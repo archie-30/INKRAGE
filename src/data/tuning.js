@@ -303,6 +303,7 @@ export const TUNING={
         autoClose:7
     },
     levelUi:{lockedUlt:{fill:0.05,line:0.4,text:0.5}},
+    notes:{ver:'v0.10.39',lines:12,gift:67,lock:3,delay:0.8},
     ui:{
         guideNote:28,
         guideNoteTime:2.2,

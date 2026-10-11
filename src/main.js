@@ -29,7 +29,7 @@ import {Ink} from './game/ink.js';
 import {Deck} from './game/deck.js';
 import {CardEffects,createCard,cardParams} from './game/card.js';
 import {STARTING_DECK,ALL_CARDS,CARDS,isUlt,unlockedCards,TUTORIAL_MERGE} from './data/cards.js';
-import {progress,loadProgress,addXp,markSeen,markBeaten,markBossIntro,godMode,effectiveLevel,xpToNext} from './core/progress.js';
+import {progress,loadProgress,saveProgress,addXp,markSeen,markBeaten,markBossIntro,godMode,effectiveLevel,xpToNext} from './core/progress.js';
 import {CardArt} from './ui2d/cardView.js';
 import {Hand} from './ui2d/hand.js';
 import {DeckView} from './ui2d/deckView.js';
@@ -1819,6 +1819,31 @@ function boot() {
             {kind:'bullet',text:t('resume.score',{n:s.stats.score||0})}
         ]},{ok:t('resume.continue'),cancel:t('resume.settle'),esc:'ok',onOk:()=>resumeRun(s,false),onCancel:()=>resumeRun(s,true)});
     }
+    function checkNotes() {
+        const N=TUNING.notes;
+        if (progress.notesVer===N.ver||game.mode!=='menu'||!mainMenu.open||transition.active||langPick.open||!settings.langChosen||!settings.tutorialSeen||time.real<TUNING.ui.loaderMin+TUNING.ui.loaderFade+N.delay) {
+            return;
+        }
+        if (popup.shown()||guide.shown()||confirmPop.shown()||chestView.shown()||settingsMenu.open||codex.open||levelUp.open||levelView.open||relicView.open||skinEditor.open||trainingPicker.open||achView.open||buyPrompt.open) {
+            return;
+        }
+        progress.notesVer=N.ver;
+        saveProgress();
+        const gift=!progress.betaGift;
+        const blocks=gift?[{kind:'text',text:t('notes.gift',{n:N.gift})}]:[];
+        for (let i=1;i<=N.lines;i++) {
+            blocks.push({kind:'bullet',text:t('notes.'+i)});
+        }
+        audio.play('ui');
+        guide.open2({title:t('notes.title',{ver:N.ver}),icon:null,blocks},{ok:t(gift?'notes.claim':'notice.ok'),lock:N.lock,onOk:()=>{
+            if (!gift||progress.betaGift) {
+                return;
+            }
+            progress.betaGift=true;
+            const items=grantCoins(N.gift);
+            chestView.open2(items,t('notes.giftTitle'),settings.skin,null);
+        }});
+    }
     let pendingGuide=null;
     let pendingBoss=null;
     let buyArmT=0;
@@ -2131,6 +2156,9 @@ function boot() {
     });
     const guide=new GuidePopup({
         ok:()=>{
+            if (guide.lockLeft()>0) {
+                return;
+            }
             audio.play('ui');
             const fn=guide.opts.onOk;
             if (guide.opts.keep) {
@@ -3414,6 +3442,7 @@ function boot() {
             achToast.push(achQueue.shift());
             audio.play('equip',1.2);
         }
+        checkNotes();
         ultCutin.update(fx.paused?0:dt);
         checkDevice();
         gameUi.dt=dt;

@@ -103,7 +103,12 @@ export class GuidePopup extends Panel {
         this.press=null;
         this.noteText='';
         this.noteAt=-9;
+        this.openAt=time.real;
         this.show();
+    }
+
+    lockLeft() {
+        return this.opts.lock?Math.max(0,this.opts.lock-(time.real-this.openAt)):0;
     }
 
     note(text) {
@@ -156,6 +161,9 @@ export class GuidePopup extends Panel {
         }
         this.layout();
         if (inRect(this.okBtn,x,y)) {
+            if (this.lockLeft()>0) {
+                return true;
+            }
             this.actions.ok();
             return true;
         }
@@ -293,7 +301,16 @@ export class GuidePopup extends Panel {
         if (this.cancelBtn) {
             drawButton(ctx,this.cancelBtn,this.opts.cancel,v,ap,this.hoverIdx===0,small?17:19);
         }
-        drawButton(ctx,this.okBtn,this.opts.ok||t('notice.ok'),v,ap,this.hoverIdx===(this.cancelBtn?1:0),small?17:19);
+        const lk=this.lockLeft();
+        const okText=this.opts.ok||t('notice.ok');
+        drawButton(ctx,this.okBtn,lk>0?t('notes.wait',{ok:okText,n:Math.ceil(lk)}):okText,v,ap,lk<=0&&this.hoverIdx===(this.cancelBtn?1:0),small?17:19);
+        if (lk>0&&ap>0) {
+            const b=this.okBtn;
+            ctx.fillStyle=rgba('paper',0.5);
+            ctx.fillRect(b.x,b.y,b.w,b.h);
+            ctx.fillStyle=PALETTE.red;
+            ctx.fillRect(b.x,b.y+b.h-4,b.w*(lk/this.opts.lock),4);
+        }
         const nk=time.real-this.noteAt;
         if (this.noteText&&nk<TUNING.ui.guideNoteTime) {
             const pop=1+Math.max(0,1-nk/0.18)*0.25;
