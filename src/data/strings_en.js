@@ -569,7 +569,7 @@ export const STRINGS_EN={
     'settings.full':'Fullscreen',
     'settings.unsupported':'Not supported in this browser',
     'notice.ok':'Got it',
-    'notes.title':'{ver} Update Highlights',
+    'notes.title':'Update Highlights',
     'notes.1':'New bosses: Big Alarm Clock, Arithmagistrate',
     'notes.2':'Nerfed: Paper Shield, Correction Fluid, perfect-dodge ink',
     'notes.3':'Buffed: Paper Fortress, Bouncy Ball, Sketch Leap',

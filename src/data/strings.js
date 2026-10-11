@@ -571,7 +571,7 @@ export const STRINGS={
     'settings.full':'全螢幕',
     'settings.unsupported':'此瀏覽器不支援',
     'notice.ok':'我知道了',
-    'notes.title':'{ver} 更新速覽',
+    'notes.title':'更新速覽',
     'notes.1':'新增頭目：大鬧鐘、加減法官',
     'notes.2':'削弱：紙盾、修正液、完美閃避回墨',
     'notes.3':'增強：紙壘、彈跳皮球、速寫後撤',
