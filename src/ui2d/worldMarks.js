@@ -305,6 +305,12 @@ export class WorldMarks {
             game.project(d.x,D.height+W.enterLift,d.z-d.t-D.alcove*0.5,p);
             this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('door.enter',{name:exitLabel(d.exit)}),v,2340,t('intro.'+(d.exit.kind==='node'?d.exit.node:d.exit.kind)));
         }
+        const qb=game.enemies.boss();
+        const tile=qb&&qb.onTile?qb.onTile(game.player):null;
+        if (tile) {
+            game.project(tile.x,TUNING.calcMarks.promptLift,tile.z,p);
+            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('calc.press'),v,2380);
+        }
         const mp=game.minis.prompt(game.player);
         if (mp) {
             game.project(mp.x,mp.y,mp.z,p);
