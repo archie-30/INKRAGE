@@ -4945,6 +4945,18 @@ class Calculator extends Enemy {
         return this.state==='daze'?this.weakX(this.def.weakMult):1;
     }
 
+    get guarded() {
+        return this.alive&&this.state==='ask';
+    }
+
+    get guardKey() {
+        return 'boss.guard.calc';
+    }
+
+    guardMult() {
+        return this.guarded?this.def.quiz.guardMult:1;
+    }
+
     stun(t,full) {
         if (this.state==='daze'||this.state==='zero') {
             return;

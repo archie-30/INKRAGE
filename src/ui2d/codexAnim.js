@@ -1949,6 +1949,10 @@ export const ENEMY_ATTACKS={
                     S.stars(cx,PY-0.6,k);
                     S.text('×2',cx,PY+2.3,18,PALETTE.red,1-seg(k,0.9,1));
                 }
+                else {
+                    S.ring(cx,PY,1.9,PALETTE.midGray,0.08,seg(k,0.04,0.12)*0.7,[0.3,0.2]);
+                    S.text('−60%',cx,PY+2.3,16,PALETTE.midGray,seg(k,0.04,0.12));
+                }
                 ks.forEach(([x,y,n],i)=>{
                     const up=seg(k,0.04+i*0.02,0.12+i*0.02);
                     const gone=solved?seg(k,hit,hit+0.1):0;
@@ -2083,7 +2087,7 @@ export const ENEMY_ATTACKS={
                 from.forEach((p,i)=>calcKey(S,lerp(p[0],to[i][0],f),lerp(p[1],to[i][1],f)-hop,nums[i]));
                 S.text('⇄',7,PY,22,PALETTE.red,seg(k,0.36,0.4)*(1-seg(k,0.6,0.64)));
                 S.player(2.2,PY,0);
-                S.text('7s',cx-1.6,PY+2.3,16,PALETTE.red);
+                S.text('8s',cx-1.6,PY+2.3,16,PALETTE.red);
             }
         }
     ],

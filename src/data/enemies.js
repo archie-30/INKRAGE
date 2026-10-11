@@ -571,7 +571,7 @@ export const ENEMIES={
         evolve:{at:0.5,time:2.4},
         first:1.4,
         gap:[0.5,0.9],
-        quiz:{time:9,time2:8,count:4,count2:5,addRate:0.7,addRate2:0.5,far:3,near:2,near2:[1,2],margin:2.6,minPlayer:3.5,minGap:3.2,minBoss:3.6,keyR:1.05,guard:3,clear:0.4,keySize:1.8,keyH:0.36,sink:0.6,hop:1.2,pop:0.3,fade:2,wrongRing:10,timeoutRing:8,ringSpeed:4.5,swapAt:0.45,swapTime:0.7,shoot:1.9,shoot2:1.4,shotSpread:0.28,shotSpeed:6},
+        quiz:{time:9,time2:8,count:4,count2:5,addRate:0.7,addRate2:0.5,far:3,near:2,near2:[1,2],margin:2.6,minPlayer:3.5,minGap:3.2,minBoss:3.6,keyR:1.05,guard:3,clear:0.4,keySize:1.8,keyH:0.36,sink:0.6,hop:1.2,pop:0.3,fade:2,wrongRing:10,timeoutRing:8,ringSpeed:4.5,swapAt:0.45,swapTime:0.7,shoot:1.9,shoot2:1.4,shotSpread:0.28,shotSpeed:6,guardMult:0.4},
         daze:{time:4},
         rain:{rows:3,rows2:4,warn:1.0,stagger:0.45,half:0.7,fall:0.35,linger:0.35,spacing:1.5,height:7,cross2:true},
         plus:{warn:1.0,dur:4.4,dur2:4,turn:Math.PI*1.25,turn2:Math.PI*1.6,width:0.42,len:24,inner:1.9},
