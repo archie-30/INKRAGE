@@ -1835,7 +1835,7 @@ function boot() {
             blocks.push({kind:'bullet',text:t('notes.'+i)});
         }
         audio.play('ui');
-        guide.open2({title:t('notes.title',{ver:N.ver}),icon:null,blocks},{ok:t(gift?'notes.claim':'notice.ok'),lock:N.lock,onOk:()=>{
+        guide.open2({title:t('notes.title'),icon:null,blocks},{ok:t(gift?'notes.claim':'notice.ok'),lock:N.lock,onOk:()=>{
             if (!gift||progress.betaGift) {
                 return;
             }
