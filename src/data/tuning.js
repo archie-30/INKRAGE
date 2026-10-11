@@ -341,7 +341,7 @@ export const TUNING={
     worldMarks:{sayFont:17,sayLift:46,sayTime:3.2,sayMargin:12,sayTop:170,sayLeft:190,subH:22,subMaxW:360,subFont:14,subLine:19,enterLift:0.6,doorLift:0.5,doorIn:0.6,edgeTop:88,edgeBottom:150,npcLift:0.6,iconR:13,bob:3,bobRate:3,promptH:34,bangH:8,touchPad:14,padSegs:28,padLift:1.4},
     doorFx:{close:0.9,hold:0.12,open:0.4,lines:72,lineW:9,lineIn0:0.55,lineIn1:0.08,startR:0.03,endR:1.4,core:0.55,ringPts:40,ringJag:0.1,ringW:2.4,ringAlpha:0.7,flatFrom:0.82},
     limits:{maxHp:[8,12],maxInk:[8,12]},
-    calcMarks:{y:46,y2:60,font:30,pad:10,barH:5,hint:14,edge:{alpha:0.38,breath:0.45,rate:0.7,depth:0.16}},
+    calcMarks:{promptLift:1.4,y:46,y2:60,font:30,pad:10,barH:5,hint:14,edge:{alpha:0.38,breath:0.45,rate:0.7,depth:0.16}},
     alarmMarks:{edgeGlow:{alpha:0.32,breath:0.25,rate:0.5,depth:0.11},w:120,h:13,lift:0.25,shake:2.5,font:13,label:8,padLift:1.2,padR:13,padBob:4,edge:30,hudW:0.6,hudH:9,hudY:44,hudY2:58,arrow:15,arrowR:62,hurryAt:85,alertRate:6,alertPop:0.06,alertLift:2.6,alertFont:16,arrowBob:4,arrowLift:0.9},
     wallTele:{front:2.2,half:15,width:0.22,reach:9,alpha:0.45},
     moveTele:{width:3,alpha:0.4},
@@ -656,9 +656,11 @@ export const TUNING={
         interval:[9,14],
         first:6,
         ink:2,
+        healRate:0.35,
         max:2,
         minPlayerDist:3.5,
         minFoeDist:4,
+        minBossDist:7,
         tries:24
     },
     accent:{

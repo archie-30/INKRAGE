@@ -1955,13 +1955,11 @@ export const ENEMY_ATTACKS={
                     calcKey(S,x,y,n,up*(i===0?1-seg(k,hit+0.2,hit+0.3):1-gone),i===0&&solved?1:0);
                 });
                 S.burst(6,2.3,1.6,seg(k,hit,hit+0.15),PALETTE.red);
-                const dash=seg(k,hit-0.1,hit);
-                const px=lerp(2.6,6,easeOut(dash));
-                const py=lerp(5.2,2.3,easeOut(dash));
-                if (dash>0&&dash<1) {
-                    S.line(2.6,5.2,px,py,PALETTE.midGray,0.3,0.5);
-                }
-                S.player(px,py,Math.atan2(2.3-5.2,6-2.6),{flash:dash>0&&dash<1?0.5:0});
+                const walk=inOut(seg(k,hit-0.26,hit-0.06));
+                const px=lerp(2.6,6,walk);
+                const py=lerp(5.2,2.3,walk);
+                S.player(px,py,Math.atan2(2.3-5.2,6-2.6));
+                S.text(t('ui.interact'),6,1.1,14,PALETTE.red,seg(k,hit-0.06,hit-0.02)*(1-seg(k,hit+0.04,hit+0.08)));
                 for (let j=0;j<3;j++) {
                     const a=Math.PI+(j-1)*0.28;
                     S.fly(cx-1.6,PY,cx-1.6+Math.cos(a)*7,PY+Math.sin(a)*7*0.5,k,0.12,0.32);

@@ -5080,10 +5080,29 @@ class Calculator extends Enemy {
         return {side:S.axis==='z'?(S.dir>0?'top':'bottom'):(S.dir>0?'left':'right')};
     }
 
-    nearTile(p) {
+    onTile(p) {
         const Q=this.def.quiz;
-        const r=Q.keyR*Q.guard;
-        return this.alive&&this.state==='ask'&&this.tiles.some(k=>!k.done&&Math.abs(p.pos.x-k.x)<r&&Math.abs(p.pos.z-k.z)<r);
+        if (!this.alive||this.state!=='ask') {
+            return null;
+        }
+        return this.tiles.find(k=>!k.done&&k.t>=Q.pop&&k.mt>=1&&Math.abs(p.pos.x-k.x)<Q.keyR&&Math.abs(p.pos.z-k.z)<Q.keyR)||null;
+    }
+
+    pressTile(ctx) {
+        const k=this.onTile(ctx.player);
+        if (!k) {
+            return false;
+        }
+        k.done=true;
+        k.press=1;
+        ctx.player.sqv-=3;
+        if (k.right) {
+            this.solved(ctx,k);
+        }
+        else {
+            this.wrong(ctx,k);
+        }
+        return true;
     }
 
     swapTiles() {
@@ -5118,18 +5137,6 @@ class Calculator extends Enemy {
                 const f=EASE.easeInOutCubic(k.mt);
                 k.x=k.fx+(k.tx-k.fx)*f;
                 k.z=k.fz+(k.tz-k.fz)*f;
-            }
-            if (k.done||k.t<Q.pop) {
-                continue;
-            }
-            if (p.dashT>0&&Math.abs(p.pos.x-k.x)<Q.keyR&&Math.abs(p.pos.z-k.z)<Q.keyR) {
-                k.done=true;
-                k.press=1;
-                if (k.right) {
-                    this.solved(ctx,k);
-                    return;
-                }
-                this.wrong(ctx,k);
             }
         }
         this.shotT-=dt;

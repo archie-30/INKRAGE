@@ -1016,10 +1016,10 @@ function boot() {
             audio.play('wall',1.4);
             const r=Math.random();
             if (r<0.5) {
-                pickups.spawn('ink',piece.x,piece.z);
+                dropAt('ink',piece.x,piece.z);
             }
             else if (r<0.8) {
-                pickups.spawn('heal',piece.x,piece.z);
+                dropAt('heal',piece.x,piece.z);
             }
             particles.burst(piece.x,0.6,piece.z,10,{color:'farGray',speed:[2,5],up:[2,5]});
         }
@@ -1665,6 +1665,11 @@ function boot() {
     function tryInteract() {
         if (game.mode!=='play'||fx.paused||transition.active) {
             return false;
+        }
+        const qb=enemies.boss();
+        if (qb&&qb.pressTile&&qb.pressTile(ctx)) {
+            audio.play('ui');
+            return true;
         }
         if (doors.focus>=0&&run.canExit()) {
             audio.play('ui');
@@ -3045,13 +3050,14 @@ function boot() {
             return;
         }
         bossDropT=B.interval[0]+Math.random()*(B.interval[1]-B.interval[0]);
-        if (pickups.items.filter(q=>q.active&&q.type==='ink').length>=B.max) {
+        if (pickups.items.filter(q=>q.active&&(q.type==='ink'||q.type==='heal')).length>=B.max) {
             return;
         }
+        const kind=dropRng.next()<B.healRate?'heal':'ink';
         for (let i=0;i<B.tries;i++) {
             const s=game.room.freeSpot(dropRng);
-            if (s&&Math.hypot(s.x-player.pos.x,s.z-player.pos.z)>=B.minPlayerDist&&!enemies.list.some(e=>e.alive&&Math.hypot(s.x-e.pos.x,s.z-e.pos.z)<B.minFoeDist+(e.def.radius||0))) {
-                pickups.spawn('ink',s.x,s.z,B.ink);
+            if (s&&Math.hypot(s.x-player.pos.x,s.z-player.pos.z)>=B.minPlayerDist&&!nearFoe(s.x,s.z)) {
+                pickups.spawn(kind,s.x,s.z,kind==='ink'?B.ink:0);
                 rings.spawn(s.x,s.z,1.2,'ink',0.4);
                 particles.burst(s.x,2.5,s.z,8,{speed:[1,3],up:[-4,-1],size:[0.08,0.14]});
                 return;
@@ -3059,6 +3065,24 @@ function boot() {
         }
     }
     const dropRng=new RNG(4242);
+    function nearFoe(x,z) {
+        const B=TUNING.bossDrop;
+        return enemies.list.some(e=>e.alive&&Math.hypot(x-e.pos.x,z-e.pos.z)<(e.def.boss?B.minBossDist:B.minFoeDist)+(e.def.radius||0));
+    }
+    function dropAt(kind,x,z) {
+        const B=TUNING.bossDrop;
+        if (!enemies.list.some(e=>e.alive&&e.def.boss&&Math.hypot(x-e.pos.x,z-e.pos.z)<B.minBossDist+e.def.radius)) {
+            pickups.spawn(kind,x,z);
+            return;
+        }
+        for (let i=0;i<B.tries;i++) {
+            const s=game.room.freeSpot(dropRng);
+            if (s&&!nearFoe(s.x,s.z)) {
+                pickups.spawn(kind,s.x,s.z);
+                return;
+            }
+        }
+    }
     let skinZoom=0;
     let achCheckT=0;
     const NO_AIM={mode:'none'};
@@ -3213,7 +3237,7 @@ function boot() {
             npcs.update(dt,player,i=>run.canInteract(i));
             doors.update(dt,player);
             const qb=enemies.boss();
-            input.interactReady=!fx.paused&&!transition.active&&!(qb&&qb.nearTile&&qb.nearTile(player))&&((doors.focus>=0&&run.canExit())||(npcs.focus>=0&&run.canInteract(npcs.focus))||minis.wantsInteract(player));
+            input.interactReady=!fx.paused&&!transition.active&&(!!(qb&&qb.onTile&&qb.onTile(player))||(doors.focus>=0&&run.canExit())||(npcs.focus>=0&&run.canInteract(npcs.focus))||minis.wantsInteract(player));
             buyArmT-=dt;
             if (npcs.armed>=0&&(npcs.focus!==npcs.armed||buyArmT<=0||!input.interactReady||input.lastDevice!=='touch')) {
                 npcs.armed=-1;
