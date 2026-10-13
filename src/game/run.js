@@ -1004,7 +1004,7 @@ export class Run {
             back();
         }
         else {
-            this.applyEffects([[it.effect,it.n]],back);
+            this.applyEffects([[it.effect,it.effect==='weapon'?it.price:it.n]],back);
         }
     }
 
@@ -1137,7 +1137,16 @@ export class Run {
             }
             const opts=ids.slice(0,MINIGAMES.swapChoices);
             this.state='node';
-            this.hooks.openChoice({kind:'swap',options:opts.map(id=>({id}))},k=>{
+            this.hooks.openChoice({kind:'swap',options:opts.map(id=>({id})).concat([{id:'keep',w:t('weapon.'+cur+'.name')}])},k=>{
+                if (k>=opts.length) {
+                    this.note('note.swapKept',{w:t('weapon.'+cur+'.name')});
+                    if (arg>0) {
+                        this.stats.score+=arg;
+                        this.note('note.refund',{n:arg});
+                    }
+                    cont();
+                    return;
+                }
                 this.hooks.setWeapon(opts[k]);
                 this.note('note.swapped',{w:t('weapon.'+opts[k]+'.name')});
                 cont();

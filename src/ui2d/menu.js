@@ -7893,7 +7893,7 @@ export class ChoicePanel extends Panel {
     keys(o) {
         const s=this.spec;
         if (s.kind==='swap') {
-            return ['weapon.'+o.id+'.name','weapon.'+o.id+'.short'];
+            return o.id==='keep'?['swap.keep','swap.keep.desc']:['weapon.'+o.id+'.name','weapon.'+o.id+'.short'];
         }
         if (s.kind==='drop') {
             return ['relic.'+o.id+'.name','relic.'+o.id+'.short'];
@@ -8079,7 +8079,10 @@ export class ChoicePanel extends Panel {
             ctx.beginPath();
             ctx.arc(r.w/2,8,6,0,Math.PI*2);
             ctx.fill();
-            if (this.spec.kind==='swap') {
+            if (this.spec.kind==='swap'&&o.id==='keep') {
+                drawChoiceIcon(ctx,'leave',r.w/2,C.iconY,C.cardIconR,v,false);
+            }
+            else if (this.spec.kind==='swap') {
                 drawWeaponIcon(ctx,o.id,r.w/2,C.iconY,C.cardIconR/55,v,false);
             }
             else if (this.spec.kind==='drop') {
