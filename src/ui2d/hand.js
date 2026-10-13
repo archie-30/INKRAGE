@@ -423,6 +423,10 @@ export class Hand {
         if (api.onPlayStart) {
             api.onPlayStart(card,target);
         }
+        if (this.press&&this.press.v===v) {
+            this.press=null;
+        }
+        api.execute(card,target);
         return true;
     }
 
@@ -1046,7 +1050,6 @@ export class Hand {
                 scale:rng.range(0.8,1.4)*this.s
             });
         }
-        this.api.execute(v.card,v.target);
     }
 
     drawCardView(ctx,v,art,variant) {
