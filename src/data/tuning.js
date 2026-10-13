@@ -392,6 +392,7 @@ export const TUNING={
         wheelLine:40
     },
     effects:{
+        wavePreview:{front:0.6,width:0.24,alpha:0.4},
         leap:{speed:22,life:0.5,time:0.72,height:2.2,tries:12,grace:0.08,land:1.8,shake:0.12,fov:0.7},
         puppet:{alpha:0.95,spin:2.5,ring:0.6,ringR:1.8,drop:0.35,dropH:7,shake:0.55,fov:2.4,stop:70,splat:2.6,waves:3,waveGap:0.12,waveR:3,pull:2.2,near:1.6},
         ball:{radius:0.36,speed:22,maxLen:80,previewSegs:2,previewTail:4,step:0.12,hop:9,hopH:0.35,spin:14},
@@ -652,7 +653,7 @@ export const TUNING={
     brushSwing:{start:0.4,band:0.35,bulletPad:0.3,propPad:0.3,compassClear:0.75},
     bossIntro:{delay:0.9},
     achFx:{dodgeChain:{window:7}},
-    dodgeFx:{ink:0.5,slow:0.3,slowTime:0.55,blur:0.9,blurTime:0.4,flash:0.18,cooldown:0.8},
+    dodgeFx:{invuln:0.5,ink:0.5,slow:0.3,slowTime:0.55,blur:0.9,blurTime:0.4,flash:0.18,cooldown:0.8},
     bossDrop:{
         interval:[9,14],
         first:6,

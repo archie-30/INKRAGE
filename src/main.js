@@ -863,6 +863,7 @@ function boot() {
     let dodgeFxAt=-9;
     function perfectDodge(p) {
         const D=TUNING.dodgeFx;
+        p.invuln=Math.max(p.invuln,D.invuln);
         ink.add(D.ink);
         perfectRelic();
         if (time.real-dodgeFxAt<D.cooldown) {

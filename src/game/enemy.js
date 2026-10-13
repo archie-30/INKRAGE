@@ -1962,7 +1962,7 @@ class Scissors extends Enemy {
 
     finish() {
         this.setState('move');
-        this.patternT=rng.range(0.6,1.1);
+        this.patternT=rng.range(this.def.gap[0],this.def.gap[1]);
     }
 
     pose() {

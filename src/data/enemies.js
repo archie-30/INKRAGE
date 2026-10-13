@@ -401,6 +401,7 @@ export const ENEMIES={
         dashSpeed:17,
         dashTime:1.1,
         stuckTime:1.5,
+        gap:[0.8,1.35],
         evolve:{at:0.5,time:2.2},
         orbit:{tele:0.6,r:5.5,turn:1.5,speed:11,time:3,every:0.5,count:3,spread:0.35},
         trail:{every:0.09,linger:1.3,stagger:0.02,speed:6.5,life:3},
