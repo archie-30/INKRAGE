@@ -213,7 +213,7 @@ export const CARDS={
         type:'defense',
         mode:'around',
         targeting:'none',
-        params:{radius:5.5,damage:15,push:14},
+        params:{radius:5.5,damage:22,push:14},
         upgraded:{cost:2,params:{radius:7,damage:22,push:16}},
         effect:(g,t,p)=>g.shockwave(p.radius,p.damage,p.push)
     },
