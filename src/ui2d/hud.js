@@ -176,7 +176,7 @@ export class Hud {
             const k=1-Math.min(1,(player.cdT||0)/W.cooldown);
             const a0=Math.PI/2+span/2;
             ctx.lineCap='round';
-            ctx.lineWidth=B.stroke;
+            ctx.lineWidth=5;
             ctx.strokeStyle=rgba('midGray',0.5);
             ctx.beginPath();
             ctx.arc(cx,cy-r,r,a0,a0-span,true);
@@ -569,7 +569,7 @@ export class Hud {
             ctx.textBaseline='middle';
             ctx.lineJoin='round';
             ctx.strokeStyle=rgba('paper',0.95);
-            ctx.lineWidth=B.stroke;
+            ctx.lineWidth=5;
             const txt=(f.n>0?'+':'')+f.n;
             ctx.strokeText(txt,0,0);
             ctx.fillStyle=f.n>0?PALETTE.red:PALETTE.ink;
@@ -1029,7 +1029,7 @@ export class Hud {
         ctx.stroke();
         if (p>0.005) {
             ctx.strokeStyle=col;
-            ctx.lineWidth=B.stroke;
+            ctx.lineWidth=5;
             ctx.lineCap='round';
             ctx.beginPath();
             ctx.moveTo(x0,y);
