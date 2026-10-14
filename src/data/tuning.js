@@ -105,7 +105,7 @@ export const TUNING={
         friction:55,
         dashSpeed:24,
         dashTime:0.13,
-        dashCooldown:0.5,
+        dashCooldown:0.42,
         dashFovPunch:2.2,
         dashTrauma:0.12,
         turnSpeed:24,
