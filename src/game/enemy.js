@@ -5793,6 +5793,28 @@ export class EnemyManager {
         return best;
     }
 
+    priority(x,z,range) {
+        let best=null;
+        let bk=-1;
+        let bd=0;
+        for (const e of this.list) {
+            if (e.state==='spawn'||e.def.noAim||!e.alive) {
+                continue;
+            }
+            const d=Math.hypot(e.pos.x-x,e.pos.z-z);
+            if (d>range+e.def.radius) {
+                continue;
+            }
+            const k=e.def.boss?2:(e.elite?1:0);
+            if (k>bk||(k===bk&&d<bd)) {
+                best=e;
+                bk=k;
+                bd=d;
+            }
+        }
+        return best;
+    }
+
     damage(e,dmg,dx,dz,quiet=false,crit=false) {
         if (!e.alive) {
             return false;

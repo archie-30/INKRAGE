@@ -103,7 +103,7 @@ export const STRINGS_EN={
     'card.rapid.name':'Rapid Fire',
     'card.rapid.desc':'Fire rate ×{mult} for {duration}s.',
     'card.execute.name':'Red Ink Execution',
-    'card.execute.desc':'Deal {damage} devastating damage to the enemy nearest the target.',
+    'card.execute.desc':'Deal {damage} devastating damage to an enemy in the target area: bosses first, then elites, otherwise the nearest one.',
     'card.pencilWall.name':'Pencil Wall',
     'card.pencilWall.desc':'Draw a path up to {length} long on the ground; a wall grows along it and blocks enemy bullets for {duration}s.',
     'card.eraser.name':'Eraser',
