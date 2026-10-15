@@ -679,25 +679,37 @@ export class Hud {
         ctx.fillRect(B[4],B[5],B[6],B[7]);
     }
 
-    drawRushProgress(ctx,w,run) {
+    tickRush() {
         const U=TUNING.hud.rush;
-        const R=run.rush;
         const now=time.real;
         const dt=Math.min(0.1,Math.max(0,now-(this.rushLast??now)));
         this.rushLast=now;
         this.rushA=this.rushA??0;
         this.rushA+=((this.rushShow?1:0)-this.rushA)*Math.min(1,dt*U.fade);
-        if (this.rushA<0.01) {
+    }
+
+    drawRushProgress(ctx,w,run,force=false,y0=null) {
+        const U=TUNING.hud.rush;
+        const R=run.rush;
+        const A=force?1:this.rushA;
+        if (A<0.01) {
             return;
         }
         const n=R.order.length;
         const v=time.boilIndex;
         const x0=w/2-(n-1)*U.gap/2;
         const cur=Math.min(R.idx,n-1);
-        const ea=EASE.easeOutCubic(this.rushA);
+        const ea=EASE.easeOutCubic(A);
         ctx.save();
         ctx.globalAlpha*=ea;
-        ctx.translate(0,(1-ea)*-U.slide);
+        ctx.translate(0,(1-ea)*-U.slide+(y0===null?0:y0-U.y));
+        if (force) {
+            const px=x0-U.r-U.plate;
+            const pw=(n-1)*U.gap+(U.r+U.plate)*2;
+            ctx.fillStyle=rgba('paper',0.96);
+            ctx.fillRect(px,U.y-U.r-U.plate,pw,U.r*2+U.plate*2+22);
+            drawShape(ctx,sketchRect(px,U.y-U.r-U.plate,pw,U.r*2+U.plate*2+22,{width:1.6,seed:7410}),PALETTE.ink,v);
+        }
         ctx.strokeStyle=rgba('ink',0.35);
         ctx.lineWidth=2;
         ctx.beginPath();
@@ -754,6 +766,7 @@ export class Hud {
             return;
         }
         if (run.mode==='bossrush'&&run.rush) {
+            this.tickRush();
             this.drawRushProgress(ctx,w,run);
         }
         else if (run.notebook()&&!p.overtime) {
@@ -820,7 +833,14 @@ export class Hud {
             ctx.fillStyle=fail?PALETTE.midGray:PALETTE.red;
             ctx.fillText(txt,w/2,by+18);
         }
-        this.drawBossBar(ctx,w,enemies,by+4+(run.mode==='bossrush'?TUNING.hud.rush.barShift*(this.rushA??0):0));
+        if (run.mode==='bossrush'&&run.rush) {
+            const U=TUNING.hud.rush;
+            const low=U.y+U.r+U.barBelow;
+            this.drawBossBar(ctx,w,enemies,U.barTop+(low-U.barTop)*EASE.easeInOutCubic(Math.min(1,this.rushA??0)));
+        }
+        else {
+            this.drawBossBar(ctx,w,enemies,by+4);
+        }
     }
 
     drawBossBar(ctx,w,enemies,y,hint=true) {

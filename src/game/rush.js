@@ -333,11 +333,13 @@ export const RushMixin={
             return true;
         }
         if (n.role==='relic') {
-            p.npcs.forEach((q,k)=>{
-                if (q.role==='relic') {
-                    this.markNpc(k,k!==i);
-                }
-            });
+            if (p.relicTaken) {
+                this.hooks.npcSay(0,t('library.onlyOne'));
+                this.state='peace';
+                return true;
+            }
+            p.relicTaken=true;
+            this.markNpc(i);
             this.state='node';
             this.hooks.takeRelic(n.relic,done);
             return true;
@@ -432,7 +434,7 @@ export const RushMixin={
                 p.cards=this.rushCardOffer();
             }
             const ri=p.npcs.map((q,k)=>q.role==='relic'?k:-1).filter(k=>k>=0);
-            if (ri.length>0&&ri.every(k=>!p.used[k])) {
+            if (ri.length>0&&!p.relicTaken) {
                 const fresh=this.rushRelicOffer();
                 const specs=this.relicNpcs(INFIRMARY,fresh);
                 if (specs.length===ri.length) {

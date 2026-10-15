@@ -458,7 +458,7 @@ export class CardEffects {
         }
     }
 
-    eraseCone(dx,dz,range,angle,damage,push) {
+    eraseCone(dx,dz,range,angle,damage,push,slowTime=0,slowMult=1) {
         const g=this.g;
         const p=g.player;
         p.faceDir(dx,dz);
@@ -489,10 +489,22 @@ export class CardEffects {
                 e.vel.x+=ex/d*push;
                 e.vel.z+=ez/d*push;
             }
+            if (e.alive&&slowTime>0) {
+                const prev=e.slowT>0?e.slowMult||1:1;
+                e.slowT=Math.max(e.slowT||0,slowTime);
+                e.slowMult=Math.min(prev,slowMult);
+                g.particles.burst(e.pos.x,0.9,e.pos.z,this.E.eraserCrumbs,{color:'farGray',speed:[1,4],up:[1,3],size:[0.08,0.16],life:[0.4,0.7]});
+            }
+        }
+        for (let i=0;i<this.E.eraserDust;i++) {
+            const a=base-angle/2+angle*(i+0.5)/this.E.eraserDust;
+            const rr=range*(0.4+0.55*((i*0.618)%1));
+            g.particles.burst(cx+Math.cos(a)*rr,0.4,cz+Math.sin(a)*rr,2,{color:i%3===0?'red':'farGray',speed:[0.5,2.5],up:[1.5,3.5],size:[0.07,0.14],life:[0.35,0.6]});
         }
         this.sweeps.push({type:'eraser',t:0,dur:this.E.eraserSweep,x:cx,z:cz,a0:base-angle/2,a1:base+angle/2,range});
-        g.fx.cameraShake(0.25);
-        g.fx.fovPunch(1.0);
+        g.fx.cameraShake(this.E.eraserShake);
+        g.fx.fovPunch(1.4);
+        g.fx.hitStop(this.E.eraserStop);
     }
 
     trapCircle(x,z,radius,duration,slow) {
