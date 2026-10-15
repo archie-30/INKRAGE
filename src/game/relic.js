@@ -171,12 +171,12 @@ export function killRelic(small) {
     return 0;
 }
 
-export function pageRelic() {
+export function pageRelic(every=0) {
     if (!hasRelic('bandage')) {
         return 0;
     }
     relic.pages++;
-    if (relic.pages>=R.bandage.every) {
+    if (relic.pages>=(every||R.bandage.every)) {
         relic.pages=0;
         flashRelic('bandage');
         return R.bandage.heal;

@@ -239,6 +239,18 @@ export const LIBRARY={
     relics:[[4,1.4],[7,2.6],[10,1.4]]
 };
 
+export const INFIRMARY=room([
+    {type:'box',x:-13,z:-8,w:2.6,h:0.7,d:1.3,rot:0},
+    {type:'sheet',x:-13,z:-8,w:2.2,d:1.1,rot:0},
+    {type:'box',x:13,z:-8,w:2.6,h:0.7,d:1.3,rot:0},
+    {type:'sheet',x:13,z:-8,w:2.2,d:1.1,rot:0},
+    {type:'pillar',x:-14,z:8.5,r:0.5,h:2.2},
+    {type:'pillar',x:14,z:8.5,r:0.5,h:2.2},
+    {type:'notes',x:-3,z:-8,s:1.1,count:3,rot:0.2},
+    {type:'crumple',x:4,z:8,r:0.6},
+    {type:'shavings',x:1.5,z:-3,count:6}
+],{spawn:[0,6],keeper:[-10.5,-3.5],relics:[[-12,3],[-9,4.6],[-6,6]],zones:[[7.5,-3],[11,3.5]]});
+
 export const TRAINING={
     layout:room([
         {type:'pillar',x:-12,z:-6.5,r:0.7,h:2.8},

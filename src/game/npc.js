@@ -45,7 +45,87 @@ function eyes(g,y,z,spread,size,tone='ink') {
     g.add(ball(size,tone,-spread,y,z),ball(size,tone,spread,y,z));
 }
 
+function table(g,tone='cover') {
+    g.add(bx(1.7,0.12,1.0,tone,0,0.86,0));
+    for (const [x,z] of [[-0.75,-0.4],[0.75,-0.4],[-0.75,0.4],[0.75,0.4]]) {
+        g.add(bx(0.1,0.8,0.1,'dark',x,0.4,z));
+    }
+}
+
+const STATIONS={
+    bed(g) {
+        g.add(bx(1.2,0.5,2.1,'dark',0,0.25,0));
+        g.add(bx(1.14,0.18,2.0,'light',0,0.58,0));
+        g.add(bx(0.8,0.16,0.42,'light',0,0.74,-0.72));
+        g.add(bx(1.16,0.1,1.2,'cover',0,0.7,0.35));
+        g.add(bx(0.5,0.04,0.14,'accent',0,0.76,0.35));
+        g.add(bx(0.14,0.04,0.5,'accent',0,0.76,0.35));
+        g.add(bx(1.2,0.7,0.1,'dark',0,0.6,-1.02));
+    },
+    bench(g) {
+        table(g);
+        g.add(cyl(0.05,0.05,0.7,'dark',-0.4,1.0,0.1,6));
+        const hm=bx(0.32,0.16,0.16,'ink',-0.4,1.32,0.1);
+        g.add(hm);
+        g.add(bx(0.5,0.1,0.34,'light',0.35,0.97,-0.1));
+        g.add(bx(0.5,0.1,0.34,'accent',0.38,1.07,-0.08));
+    },
+    swap(g) {
+        table(g);
+        for (let i=0;i<3;i++) {
+            g.add(bx(0.42,0.04,0.6,i===2?'accent':'light',-0.45,0.95+i*0.05,0));
+            g.add(bx(0.42,0.04,0.6,'light',0.45,0.95+i*0.05,0));
+        }
+        const ar=bx(0.4,0.06,0.08,'accent',0,1.2,0);
+        g.add(ar);
+    },
+    ults(g) {
+        g.add(bx(1.3,2.0,0.7,'dark',0,1.0,0));
+        g.add(bx(1.1,1.7,0.06,'cover',0,1.05,0.36));
+        for (let i=0;i<3;i++) {
+            const b=bx(0.46,0.1,0.05,'accent',0,1.2,0.4);
+            b.rotation.z=i*Math.PI/3;
+            g.add(b);
+        }
+    },
+    retest(g) {
+        table(g,'light');
+        g.add(bx(0.8,0.02,1.0,'light',0,0.93,0));
+        for (let i=0;i<4;i++) {
+            g.add(bx(0.6,0.02,0.04,'dark',0,0.95,-0.3+i*0.18));
+        }
+        const pen=cyl(0.04,0.04,0.7,'accent',0.55,0.98,0.2,6);
+        pen.rotation.z=Math.PI/2;
+        g.add(pen);
+    },
+    challenge(g) {
+        g.add(cyl(0.6,0.7,0.5,'dark',0,0.25,0,10));
+        g.add(cyl(0.12,0.12,0.4,'cover',0,0.7,0,8));
+        g.add(cyl(0.38,0.18,0.5,'marker',0,1.15,0,12));
+        g.add(cyl(0.4,0.4,0.05,'marker',0,1.4,0,12));
+        for (const s of [-1,1]) {
+            const h=cyl(0.04,0.04,0.3,'marker',s*0.42,1.2,0,6);
+            h.rotation.z=Math.PI/2;
+            g.add(h);
+        }
+    }
+};
+
 const MODELS={
+    zone(body,root,s) {
+        const st=new THREE.Group();
+        (STATIONS[s.zone]||STATIONS.bed)(st);
+        st.visible=false;
+        st.scale.set(0.001,0.001,0.001);
+        body.add(st);
+        const fog=new THREE.Group();
+        const puffs=[[0,0.9,0,1.0],[-0.8,0.6,0.3,0.7],[0.8,0.65,-0.2,0.75],[0.2,1.5,-0.3,0.65],[-0.4,1.3,-0.5,0.6],[0.5,0.5,0.6,0.6],[-0.6,0.45,-0.6,0.55]];
+        for (const [x,y,z,r] of puffs) {
+            fog.add(ball(r,'cover',x,y,z));
+        }
+        root.add(fog);
+        return {r:1.25,h:2.4,still:true,fog,station:st};
+    },
     shop(body,root) {
         root.add(bx(2.6,0.9,1.0,'cover',0,0.45,0.75));
         root.add(bx(2.7,0.08,1.1,'dark',0,0.94,0.75));
@@ -404,6 +484,10 @@ export class Npcs {
 
     build(room,specs) {
         this.clear();
+        this.build2(room,...specs);
+    }
+
+    build2(room,...specs) {
         for (const s of specs) {
             const root=new THREE.Group();
             root.position.set(s.x,0,s.z);
@@ -412,8 +496,35 @@ export class Npcs {
             const info=MODELS[s.model](body,root,s);
             room.group.add(root);
             room.addPiece('npc',root,[makeCircle(s.x,s.z,info.r)],{x:s.x,z:s.z,radius:info.r,erasable:false});
-            this.list.push({model:s.model,item:s.item||null,label:s.label||null,price:s.price||0,relic:s.relic||null,root,body,x:s.x,z:s.z,r:info.r,h:info.h,lid:info.lid||null,icon:info.icon||null,float:!!info.float,still:!!info.still,used:false,sealed:false,t:Math.random()*6,yaw:0,pop:0,open:0});
+            this.list.push({model:s.model,item:s.item||null,label:s.label||null,price:s.price||0,relic:s.relic||null,zone:s.zone||null,role:s.role||null,root,body,x:s.x,z:s.z,r:info.r,h:info.h,lid:info.lid||null,icon:info.icon||null,fog:info.fog||null,station:info.station||null,reveal:0,revealed:false,float:!!info.float,still:!!info.still,used:false,sealed:false,t:Math.random()*6,yaw:0,pop:0,open:0});
         }
+    }
+
+    reveal(i,instant=false) {
+        const n=this.list[i];
+        if (!n||!n.fog) {
+            return;
+        }
+        n.revealed=true;
+        n.station.visible=true;
+        if (instant) {
+            n.reveal=1;
+        }
+        n.pop=1;
+    }
+
+    replace(room,i,s) {
+        const old=this.list[i];
+        if (!old) {
+            return;
+        }
+        old.root.parent&&old.root.parent.remove(old.root);
+        const keep=this.list;
+        this.list=[];
+        this.build2(room,s);
+        const fresh=this.list[0];
+        this.list=keep;
+        this.list[i]=fresh;
     }
 
     say(i,text,dur) {
@@ -470,6 +581,22 @@ export class Npcs {
             }
             if (n.icon) {
                 n.icon.rotation.y=Math.sin(n.t*N.iconSway)*0.35;
+            }
+            if (n.fog) {
+                if (n.revealed) {
+                    n.reveal=Math.min(1,n.reveal+dt*N.fogRate);
+                }
+                const e=EASE.easeOutCubic(n.reveal);
+                const f=Math.max(0.001,1-e);
+                const sealed=n.sealed?N.fogSealed:1;
+                n.fog.scale.set(f*(1+e*0.6),f*sealed,f*(1+e*0.6));
+                n.fog.position.y=e*N.fogLift;
+                n.fog.rotation.y=n.t*N.fogSpin;
+                n.fog.visible=f>0.01;
+                const g=Math.max(0.001,EASE.easeOutBack(n.reveal));
+                n.station.scale.set(g,g,g);
+                n.body.scale.set(1,1,1);
+                n.body.position.y=0;
             }
             if (n.lid) {
                 n.open+=((n.used&&!n.sealed?1:0)-n.open)*Math.min(1,dt*N.lidRate);

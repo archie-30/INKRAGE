@@ -12,6 +12,7 @@ import {drawCourseIcon} from './courseIcons.js';
 import {drawRelicIcon} from './relicIcons.js';
 import {relic,relicLit} from '../game/relic.js';
 import {relicParams} from '../data/relics.js';
+import {ENEMY_ICONS} from './enemyIcons.js';
 
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
@@ -678,6 +679,57 @@ export class Hud {
         ctx.fillRect(B[4],B[5],B[6],B[7]);
     }
 
+    drawRushProgress(ctx,w,run) {
+        const U=TUNING.hud.rush;
+        const R=run.rush;
+        const n=R.order.length;
+        const v=time.boilIndex;
+        const x0=w/2-(n-1)*U.gap/2;
+        const cur=Math.min(R.idx,n-1);
+        ctx.save();
+        ctx.strokeStyle=rgba('ink',0.35);
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(x0,U.y);
+        ctx.lineTo(x0+(n-1)*U.gap,U.y);
+        ctx.stroke();
+        for (let i=0;i<n;i++) {
+            const x=x0+i*U.gap;
+            const done=i<R.idx;
+            const now=i===R.idx&&R.at==='boss';
+            const bob=now?Math.sin(time.real*4)*2:0;
+            ctx.fillStyle=now?rgba('red',0.16):PALETTE.paper;
+            ctx.beginPath();
+            ctx.arc(x,U.y+bob,U.r,0,Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle=now?PALETTE.red:PALETTE.ink;
+            ctx.lineWidth=now?2.4:1.4;
+            ctx.stroke();
+            ctx.save();
+            ctx.translate(x,U.y+bob);
+            ctx.scale(U.icon,U.icon);
+            if (!done&&!now) {
+                ctx.globalAlpha*=0.35;
+            }
+            ENEMY_ICONS[R.order[i]](ctx,v);
+            ctx.restore();
+            if (done) {
+                ctx.strokeStyle=PALETTE.red;
+                ctx.lineWidth=2.6;
+                ctx.beginPath();
+                ctx.moveTo(x-U.r*0.7,U.y-U.r*0.7);
+                ctx.lineTo(x+U.r*0.7,U.y+U.r*0.7);
+                ctx.stroke();
+            }
+        }
+        ctx.fillStyle=PALETTE.ink;
+        ctx.font='bold 13px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='top';
+        ctx.fillText(R.at==='boss'?t('rush.hudBoss',{n:cur+1,total:n}):t('rush.hudRest',{n:R.room,total:n-1}),w/2,U.y+U.r+6);
+        ctx.restore();
+    }
+
     drawRunInfo(ctx,w,run,enemies,h=0) {
         if (!run||!run.plan) {
             return;
@@ -690,7 +742,10 @@ export class Hud {
             this.drawBossBar(ctx,w,enemies,TUNING.hud.trainBossY,false);
             return;
         }
-        if (run.notebook()&&!p.overtime) {
+        if (run.mode==='bossrush'&&run.rush) {
+            this.drawRushProgress(ctx,w,run);
+        }
+        else if (run.notebook()&&!p.overtime) {
             this.drawProgress(ctx,w,run);
         }
         else {
@@ -754,7 +809,7 @@ export class Hud {
             ctx.fillStyle=fail?PALETTE.midGray:PALETTE.red;
             ctx.fillText(txt,w/2,by+18);
         }
-        this.drawBossBar(ctx,w,enemies,by+4);
+        this.drawBossBar(ctx,w,enemies,by+4+(run.mode==='bossrush'?TUNING.hud.rush.barShift:0));
     }
 
     drawBossBar(ctx,w,enemies,y,hint=true) {

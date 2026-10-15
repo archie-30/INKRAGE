@@ -16,6 +16,7 @@ import {bump,setMax,resetRevive,reviveCount,setRevive,relicPool} from '../core/m
 import {COURSE_ORDER} from '../data/courses.js';
 import {CourseRun} from './course.js';
 import {gamblerMult,flashRelic,shopMult,hasRelic} from './relic.js';
+import {RushMixin} from './rush.js';
 
 export class Run {
     constructor(hooks,seed) {
@@ -50,17 +51,25 @@ export class Run {
         this.report=null;
         const ids=mode==='training'?unlockedCards(effectiveLevel()):(mode==='tutorial'?TUTORIAL_DECK:(startDeck||STARTING_DECK));
         this.deckList=ids.map(id=>({id,upgraded:false}));
+        this.relicIds=relicPool();
         this.stats={kills:0,cards:0,damage:0,taken:0,dealt:0,rooms:0,time:0,bosses:0,act:0,xp:0,score:0,log:[]};
+        if (mode==='bossrush') {
+            this.initRush();
+        }
         this.hooks.clearRun();
         this.enter();
     }
 
     saveable() {
-        return (this.mode==='story'||this.mode==='endless')&&!!this.stats&&!!this.plan&&this.state!=='dead'&&this.state!=='summary';
+        return (this.mode==='story'||this.mode==='endless'||this.mode==='bossrush')&&!!this.stats&&!!this.plan&&this.state!=='dead'&&this.state!=='summary';
     }
 
     snapshot() {
         if (!this.saveable()) {
+            return;
+        }
+        if (this.mode==='bossrush') {
+            this.rushSnap();
             return;
         }
         const p=this.plan;
@@ -70,7 +79,7 @@ export class Run {
                 plan[k]=p[k];
             }
         }
-        this.hooks.saveRun({mode:this.mode,rng:this.rng.s,seed:this.seed,act:this.act,index:this.index,lastLayout:this.lastLayout,lastTypes:this.lastTypes,usedBosses:this.usedBosses,lastEvent:this.lastEvent,lastGames:this.lastGames,lastPrize:this.lastPrize,courseBag:this.courseBag,courseIdx:this.courseIdx||0,courseSeen:[...this.courseSeen],overtime:this.overtime,otPage:this.otPage,node:this.node,eliteNext:this.eliteNext,revived:reviveCount(),deck:this.deckList,stats:this.stats,plan});
+        this.hooks.saveRun({mode:this.mode,rng:this.rng.s,seed:this.seed,act:this.act,index:this.index,lastLayout:this.lastLayout,lastTypes:this.lastTypes,usedBosses:this.usedBosses,lastEvent:this.lastEvent,lastGames:this.lastGames,lastPrize:this.lastPrize,courseBag:this.courseBag,courseIdx:this.courseIdx||0,courseSeen:[...this.courseSeen],overtime:this.overtime,otPage:this.otPage,node:this.node,eliteNext:this.eliteNext,revived:reviveCount(),relicIds:this.relicIds,deck:this.deckList,stats:this.stats,plan});
     }
 
     restore(s) {
@@ -99,8 +108,15 @@ export class Run {
         this.ambushAfter=null;
         this.report=null;
         this.deckList=s.deck.map(c=>({id:c.id,upgraded:!!c.upgraded})).filter(c=>CARDS[c.id]);
+        this.relicIds=Array.isArray(s.relicIds)?s.relicIds.slice():relicPool();
         this.stats=s.stats;
         this.stats.log=this.stats.log||[];
+        if (s.mode==='bossrush') {
+            this.timer=0;
+            this.npcUsed=[];
+            this.restoreRush(s);
+            return;
+        }
         const plan={...s.plan,npcs:[],waves:[],barrels:0,crates:0,restored:true};
         this.plan=plan;
         this.director=null;
@@ -171,6 +187,10 @@ export class Run {
     }
 
     enter() {
+        if (this.mode==='bossrush') {
+            this.enterRush();
+            return this.room;
+        }
         if (this.training()&&this.trainGame) {
             const list=PEACE_LAYOUTS.event;
             const plan=this.planGame(list[Math.floor(this.rng.next()*list.length)],'test',this.trainGame);
@@ -352,7 +372,7 @@ export class Run {
     planLibrary() {
         const L=LIBRARY;
         const plan={act:this.act,index:this.index,peace:true,node:'library',boss:false,layoutKey:'library',layout:L,hpMult:actDef(this.act).hpMult,waves:[],barrels:0,crates:0};
-        const pool=relicPool().filter(id=>!hasRelic(id));
+        const pool=(this.relicIds||relicPool()).filter(id=>!hasRelic(id));
         for (let i=pool.length-1;i>0;i--) {
             const j=Math.floor(this.rng.next()*(i+1));
             [pool[i],pool[j]]=[pool[j],pool[i]];
@@ -458,6 +478,10 @@ export class Run {
 
     gameDone(ok,bonus=false) {
         const p=this.plan;
+        if (p.rushGame) {
+            this.rushGameDone(ok);
+            return;
+        }
         if (ok&&!p.trainGame) {
             bump('games');
         }
@@ -575,6 +599,9 @@ export class Run {
         const ex=this.plan.exits[i];
         if (!ex||!this.canExit()) {
             return false;
+        }
+        if (this.mode==='bossrush') {
+            return this.rushExit(ex,i);
         }
         if (ex.kind==='games') {
             this.hooks.openGames();
@@ -842,6 +869,9 @@ export class Run {
             return false;
         }
         const p=this.plan;
+        if (p.node==='infirmary') {
+            return this.rushInteract(i);
+        }
         this.state='node';
         const done=()=>this.backToPeace();
         if (p.node==='rest') {
@@ -1232,6 +1262,9 @@ export class Run {
         if (this.state==='combat'||this.state==='cleared'||this.state==='dead') {
             this.stats.time+=dt;
         }
+        if (this.state==='combat'&&this.mode==='bossrush') {
+            this.rushTrack(dt);
+        }
         if (this.state==='combat') {
             this.director.update(dt,player);
             for (const e of this.director.events) {
@@ -1262,6 +1295,9 @@ export class Run {
                 }
                 if (this.plan.boss) {
                     this.stats.bosses++;
+                    if (this.mode==='bossrush') {
+                        this.rushFinish();
+                    }
                     if (this.notebook()&&!this.overtime&&this.act===ACTS.length-1) {
                         this.stats.act=ACTS.length;
                         this.stats.xp+=TUNING.levels.xpAct+TUNING.levels.xpVictory;
@@ -1276,6 +1312,10 @@ export class Run {
         if (this.state==='cleared') {
             this.timer-=dt;
             if (this.timer<=0) {
+                if (this.mode==='bossrush') {
+                    this.rushCleared();
+                    return;
+                }
                 if (this.ambushAfter) {
                     const a=this.ambushAfter;
                     this.ambushAfter=null;
@@ -1338,3 +1378,5 @@ export class Run {
         }
     }
 }
+
+Object.assign(Run.prototype,RushMixin);

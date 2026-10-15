@@ -195,6 +195,8 @@ export class Overlay {
         }
         if (!(game.codex.open&&game.codex.t>TUNING.codex.open.fade)&&!game.settingsMenu.open) {
             game.mainMenu.draw(ctx);
+            game.modeSelect.draw(ctx);
+            game.deckDraft.draw(ctx,game.art);
         }
         game.levelView.draw(ctx);
         game.relicView.draw(ctx);

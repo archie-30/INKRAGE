@@ -5816,6 +5816,8 @@ export class EnemyManager {
     }
 
     damage(e,dmg,dx,dz,quiet=false,crit=false) {
+        const src=this.src||'card';
+        this.src=null;
         if (!e.alive) {
             return false;
         }
@@ -5840,7 +5842,7 @@ export class EnemyManager {
             dead=false;
         }
         if (this.onDamage) {
-            this.onDamage(e,dmg,crit);
+            this.onDamage(e,dmg,crit,src);
         }
         if (this.onHit) {
             this.onHit(e,e.pos.x,e.pos.z,dx,dz,dead,quiet,crit);
