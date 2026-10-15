@@ -1,9 +1,11 @@
 import*as THREE from 'three';
-import {toonMaterial,dissolveVariant,trapMaterial,inkMaterial,countdownMaterial,unlitMaterial,pal,setArenaClip} from '../render/materials.js';
+import {toonMaterial,dissolveVariant,trapMaterial,inkMaterial,countdownMaterial,unlitMaterial,iconMaterial,pal,setArenaClip} from '../render/materials.js';
 import {makeBox,makeCircle,circleVs} from '../core/collision.js';
 import {RNG,hash1} from '../core/rng.js';
 import {EASE} from '../core/easing.js';
 import {TUNING} from '../data/tuning.js';
+import {t} from '../data/strings.js';
+import {rgba,PALETTE} from '../data/palette.js';
 
 const geoCache=new Map();
 
@@ -390,6 +392,53 @@ const DECOR_BUILDERS={
             j.position.set(-w*0.3+i*w*0.3,h+0.13,0);
             g.add(j);
         }
+        return g;
+    },
+    notice(p) {
+        const g=new THREE.Group();
+        const w=p.w||1.8;
+        const h=p.h||1.1;
+        for (const sx of [-1,1]) {
+            const post=mesh(box(0.1,1.6,0.1),'dark');
+            post.position.set(sx*w*0.4,0.8,0);
+            g.add(post);
+        }
+        const board=new THREE.Group();
+        board.position.y=1.25;
+        board.rotation.x=-TUNING.props.noticeTilt;
+        g.add(board);
+        const back=mesh(box(w+0.12,h+0.12,0.08),'dark');
+        back.position.z=-0.05;
+        board.add(back);
+        const c=document.createElement('canvas');
+        c.width=512;
+        c.height=Math.round(512*h/w);
+        const x=c.getContext('2d');
+        x.fillStyle=PALETTE.paper;
+        x.fillRect(0,0,c.width,c.height);
+        x.strokeStyle=PALETTE.red;
+        x.lineWidth=10;
+        x.strokeRect(14,14,c.width-28,c.height-28);
+        x.fillStyle=PALETTE.ink;
+        x.textAlign='center';
+        x.textBaseline='middle';
+        const parts=t(p.key).split('｜');
+        x.font='bold 62px sans-serif';
+        x.fillStyle=PALETTE.red;
+        x.fillText(parts.length>1?parts[0]:'!',c.width/2,c.height*0.27);
+        x.fillStyle=PALETTE.ink;
+        const body=parts[parts.length-1];
+        x.font='bold 50px sans-serif';
+        const words=body.length>10?[body.slice(0,Math.ceil(body.length/2)),body.slice(Math.ceil(body.length/2))]:[body];
+        words.forEach((l,i)=>x.fillText(l,c.width/2,c.height*(0.55+i*0.22),c.width-50));
+        x.fillStyle=rgba('red',0.8);
+        x.beginPath();
+        x.arc(c.width/2,30,9,0,Math.PI*2);
+        x.fill();
+        const tex=new THREE.CanvasTexture(c);
+        tex.colorSpace=THREE.NoColorSpace;
+        const face=new THREE.Mesh(new THREE.PlaneGeometry(w,h),iconMaterial(tex));
+        board.add(face);
         return g;
     },
     medKit(p) {

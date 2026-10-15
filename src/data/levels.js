@@ -244,6 +244,7 @@ export const INFIRMARY=room([
     {type:'medCabinet',x:4.5,z:-9.2,w:1.8,h:2.0,solid:[1.8,0.6]},
     {type:'medKit',x:-2.6,z:-8.9,s:1,rot:0.15},
     {type:'floorCross',x:0,z:1,s:1.2},
+    {type:'notice',x:9.5,z:0.3,w:2.8,h:1.5,key:'rush.sign',solid:[2.9,0.3]},
     {type:'runes',x:-9,z:2.6,r:3.4,count:10},
     {type:'candle',x:-12.6,z:0.6,r:0.2,h:0.9},
     {type:'candle',x:-5.4,z:0.6,r:0.18,h:0.7},

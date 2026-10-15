@@ -306,12 +306,12 @@ export const TUNING={
     modeUi:{pad:56,padSmall:28,gap:34,gapSmall:20,top:100,topSmall:72,cardMaxW:300,cardMaxH:430,cardMaxHSmall:330,below:34,belowSmall:22,btnW:340,btnH:56,btnHSmall:44,backW:120,backWSmall:96,rule:30,ruleIn:0.6,margin:64,stagger:0.09,dropIn:0.55,selLift:14,hoverLift:6,tilt:0.035,tapeW:56,shakeDecay:2.4,best:38,bestSmall:28,fx:{popDecay:3,doodles:16,drift:14,alpha:0.35,ants:30,ring:8,sparks:6,orbit:0.12,burst:26,landT:0.45,idle:3},save:{pop:0.4,rot:-0.12,sway:1.6,blink:4}},
     draftUi:{rerollW:200,top:96,topSmall:66,foot:118,footSmall:88,gap:30,gapSmall:16,maxW:520,head:48,headSmall:34,cellGap:8,btnW:300,slide:0.5,pickDelay:0.35},
     rushSummaryUi:{gradeX:250,maxW:980,foot:80,footSmall:62,scoreY:112,scoreYSmall:72,scoreScaleSmall:0.7,metaY:62,metaYSmall:42,gap:0.15,countTime:0.9,gradeTime:0.6,rowH:58,rowHSmall:44,nameW:190,nameWSmall:130,subW:110,subWSmall:86,rowStart:0.35,rowGap:0.16,rowIn:0.35,count:0.45,totalCount:0.8,stampTime:0.35},
+    birdFlap:{rate:5,amp:0.7,swoop:0.2},
     bossRush:{
         unlockLevel:5,
         deck:{normal:7,ult:2},
         defense:['paperShield','shockwave','blot','reflect','eraser','inkDash'],
         single:['pierce','homing','paperBlade','bounceBall','chain'],
-        intro:3,
         introShow:2,
         dodgeInk:1,
         inkVial:2,
@@ -368,7 +368,7 @@ export const TUNING={
     pauseUi:{compactH:840,center:0.42,titleGap:44,colW:200,rowH:44,gap:10,hintGap:22},
     doors:{width:2.4,height:1.9,backH:1.12,post:0.28,side:0.3,sideH:0.9,alcove:2.8,leaf:0.12,swing:1.75,openTime:0.8,closeTime:0.35,stagger:0.18,spread:0.5,pairSpread:0.36,insideK:0.7,glow:0.85,floor:0.5,swirlAlpha:0.55,swirlRate:1.2,tunnelLayers:3,tunnelRate:0.45,tunnelScale:[0.25,1],tunnelSpin:0.6,tunnelAlpha:0.8,raysAlpha:0.45,raysRate:2.3,runeSpin:0.35,runeAlpha:0.7,pulse:0.25,pulseRate:3,emitEvery:0.08,burstCount:24},
     minigame:{endDelay:0.9,bellShake:0.18,bell:{impulse:3.2,k:34,damp:3.4,clapK:70,clapDamp:5,flash:0.28,squash:0.1,wave:2.6,decay:1.4},tilesSearch:4000,popTime:0.35,popGap:0.04,wallRise:0.5,wallGap:0.03,wallSink:0.5},
-    npc:{fogRate:1.6,fogSealed:0.55,fogLift:1.6,fogSpin:0.25,fogPuffs:30,fogR:2.8,fogSize:2.4,fogAlpha:0.92,fogSealedAlpha:0.8,fogBob:1.1,fogBobAmp:0.12,zoneR:2.9,stationScale:1.15,iconTilt:0.9,iconSway:1.3,goneRate:3,goneLift:0.8,bellPitch:[0.8,1,1.2,1.45],range:1.6,turn:6,bobRate:2.2,bobAmp:0.06,squash:0.025,popDecay:2.5,popScale:0.25,floatAmp:0.15,floatRate:2,floatBase:0.2,sealedScale:0.9,lidRate:6,lidOpen:1.3},
+    npc:{zoneR:2.2,stationScale:1.15,sealedStation:0.9,iconTilt:0.9,iconSway:1.3,goneRate:3,goneLift:0.8,bellPitch:[0.8,1,1.2,1.45],range:1.6,turn:6,bobRate:2.2,bobAmp:0.06,squash:0.025,popDecay:2.5,popScale:0.25,floatAmp:0.15,floatRate:2,floatBase:0.2,sealedScale:0.9,lidRate:6,lidOpen:1.3},
     worldMarks:{sayFont:17,sayLift:46,sayTime:3.2,sayMargin:12,sayTop:170,sayLeft:190,subH:22,subMaxW:360,subFont:14,subLine:19,enterLift:0.6,doorLift:0.5,doorIn:0.6,edgeTop:88,edgeBottom:150,npcLift:0.6,iconR:13,bob:3,bobRate:3,promptH:34,bangH:8,touchPad:14,padSegs:28,padLift:1.4},
     doorFx:{close:0.9,hold:0.12,open:0.4,lines:72,lineW:9,lineIn0:0.55,lineIn1:0.08,startR:0.03,endR:1.4,core:0.55,ringPts:40,ringJag:0.1,ringW:2.4,ringAlpha:0.7,flatFrom:0.82},
     limits:{maxHp:[8,12],maxInk:[8,12]},
@@ -672,6 +672,7 @@ export const TUNING={
         burstTime:0.22
     },
     props:{
+        noticeTilt:0.55,
         booksPad:0.3,
         crumpleR:0.9,
         barrelHp:25,

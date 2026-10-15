@@ -8172,6 +8172,7 @@ export class DeckPicker extends Panel {
         this.list.sort((a,b)=>ult(a)-ult(b)||(a.card.id<b.card.id?-1:(a.card.id>b.card.id?1:0)));
         this.onPick=onPick;
         this.sel=-1;
+        this.backArmed=false;
         this.show();
     }
 
@@ -8225,6 +8226,10 @@ export class DeckPicker extends Panel {
         }
         this.layout();
         if (this.backBtn&&inRect(this.backBtn,x,y)) {
+            if (this.back.confirm&&!this.backArmed) {
+                this.backArmed=true;
+                return true;
+            }
             const cb=this.back.cb;
             this.hide();
             if (this.actions.select) {
@@ -8340,7 +8345,7 @@ export class DeckPicker extends Panel {
             ctx.fillText(t('pick.choose'),this.okBtn.x+this.okBtn.w/2,this.okBtn.y+D.btnH/2);
         }
         if (this.backBtn) {
-            drawButton(ctx,this.backBtn,t('pick.'+this.mode+'.back',{n:this.back.n}),v,1,inRect(this.backBtn,this.hx,this.hy),15,false);
+            drawButton(ctx,this.backBtn,t(this.backArmed?'pick.'+this.mode+'.backSure':'pick.'+this.mode+'.back',{n:this.back.n}),v,1,this.backArmed||inRect(this.backBtn,this.hx,this.hy),15,!!this.back.confirm);
         }
         ctx.restore();
     }
