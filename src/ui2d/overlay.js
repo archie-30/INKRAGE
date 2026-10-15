@@ -72,7 +72,7 @@ export class Overlay {
         this.us=us;
         this.width=w/us;
         this.height=h/us;
-        this.dpr=Math.min(window.devicePixelRatio||1,TUNING.pixelRatioCap.ui);
+        this.dpr=Math.min(window.devicePixelRatio||1,device.mobile?TUNING.pixelRatioCap.uiMobile:TUNING.pixelRatioCap.ui);
         this.canvas.width=Math.floor(w*this.dpr);
         this.canvas.height=Math.floor(h*this.dpr);
     }

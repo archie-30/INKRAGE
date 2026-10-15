@@ -2229,6 +2229,15 @@ function boot() {
             audio.play('ui');
             mainMenu.hide();
             skinEditor.show();
+            skinEditor.tab='colors';
+            skinEditor.tabK=0;
+        },
+        weaponTab:()=>{
+            audio.play('ui');
+            mainMenu.hide();
+            skinEditor.show();
+            skinEditor.tab='weapon';
+            skinEditor.tabK=2;
         },
         levels:()=>{
             audio.play('ui');
@@ -3788,11 +3797,17 @@ function boot() {
             }
         }
         applyAimAssist();
-        renderer.render(scene,fxScene,rig.camera);
+        if (!coveredUi()) {
+            renderer.render(scene,fxScene,rig.camera);
+        }
         if (transition.state==='capture') {
             transition.capture(renderer.gl.domElement,renderer.width,renderer.height);
         }
         overlay.draw(input,player,gameUi);
+    }
+    function coveredUi() {
+        const k=TUNING.perf.coverAfter;
+        return [modeSelect,deckDraft,codex,settingsMenu,levelView].some(q=>q.open&&q.t>k);
     }
     const loop=createLoop(update,render);
     loop.start();

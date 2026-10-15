@@ -131,7 +131,9 @@ export function wipeStorage() {
 }
 
 export function qualityConfig() {
-    return TUNING.quality[settings.quality]||TUNING.quality.mid;
+    const q=TUNING.quality[settings.quality]||TUNING.quality.mid;
+    const m=device.mobile&&TUNING.qualityMobile[settings.quality];
+    return m?{...q,...m}:q;
 }
 
 export function pixelRatio() {

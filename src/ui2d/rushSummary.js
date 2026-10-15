@@ -196,6 +196,10 @@ function drawGrade(S,ctx,T,gx,gy,sc,TL,v) {
     }
     const R=40*sc;
     ctx.save();
+    ctx.fillStyle=rgba('paper',0.92*Math.min(1,gk*3));
+    ctx.beginPath();
+    ctx.ellipse(gx,gy,R*1.04,R*0.88,-0.2,0,Math.PI*2);
+    ctx.fill();
     ctx.strokeStyle=PALETTE.red;
     ctx.lineWidth=4*sc;
     ctx.lineCap='round';
@@ -204,7 +208,20 @@ function drawGrade(S,ctx,T,gx,gy,sc,TL,v) {
     ctx.stroke();
     const lk=Math.max(0,(gk-0.35)/0.65);
     if (lk>0) {
-        S.drawSplat(ctx,gx,gy,R*1.6,4100,'red',clamp01((lk-0.2)/0.4)*0.5);
+        const dk=clamp01((lk-0.1)/0.3);
+        if (dk>0&&dk<1) {
+            ctx.save();
+            ctx.globalAlpha=1-dk;
+            ctx.fillStyle=PALETTE.red;
+            for (let k=0;k<10;k++) {
+                const a=k/10*Math.PI*2+0.4;
+                const d=R*(1.25+dk*0.7);
+                ctx.beginPath();
+                ctx.arc(gx+Math.cos(a)*d,gy+Math.sin(a)*d*0.85,3*sc*(1-dk)+1,0,Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
         const e=2.2-1.2*EASE.easeOutBack(Math.min(1,lk));
         ctx.translate(gx,gy);
         ctx.rotate(-0.12);
@@ -237,8 +254,8 @@ function drawGrade(S,ctx,T,gx,gy,sc,TL,v) {
         ctx.fillStyle=PALETTE.red;
         ctx.font='bold 11px '+FONT;
         ctx.textAlign='center';
-        ctx.textBaseline='top';
-        ctx.fillText(t('rush.sum.gradeTap'),gx,gy+R*1.05);
+        ctx.textBaseline='bottom';
+        ctx.fillText(t('rush.sum.gradeTap'),gx,gy-R*1.0);
         ctx.restore();
     }
 }
