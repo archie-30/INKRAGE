@@ -772,9 +772,12 @@ function boot() {
                 }
                 else {
                     markBossIntro(e.type);
-                    fx.paused=true;
-                    resumeT=TUNING.bossRush.intro;
-                    rushIntro=true;
+                    rushIntroT=TUNING.bossRush.introShow;
+                    if (run.rush&&run.rush.idx>0) {
+                        fx.paused=true;
+                        resumeT=TUNING.bossRush.intro;
+                        rushIntro=true;
+                    }
                 }
             }
             else if (e.def.boss&&!e.tutor&&(run.mode==='story'||run.mode==='endless')&&!progress.bossIntro.includes(e.type)) {
@@ -2047,6 +2050,7 @@ function boot() {
     }
     let resumeT=0;
     let rushIntro=false;
+    let rushIntroT=0;
     function closePause() {
         audio.play('ui');
         pauseMenu.hide();
@@ -2185,6 +2189,14 @@ function boot() {
     const modeSelect=new ModeSelect({
         status:rushStatus,
         saves:()=>Object.fromEntries(MODE_LIST.map(m=>[m,!!loadRunSnap(m)])),
+        grade:()=>{
+            audio.play('ui');
+            const R=TUNING.bossRush;
+            const max=R.score.boss*7;
+            const cur=progress.bestRushGrade||'';
+            const blocks=[{kind:'text',text:t('rush.gradeInfo.body',{n:(progress.bestRush||0).toLocaleString('en-US'),g:cur})}].concat(R.grades.map(([g,f],k)=>({kind:'bullet',text:(g===cur?'▶ ':'')+(k<R.grades.length-1?t('rush.gradeInfo.row',{g,n:Math.round(f*max).toLocaleString('en-US'),p:Math.round(f*100),c:R.coins[g]}):t('rush.gradeInfo.last',{g,n:Math.round(R.grades[k-1][1]*max).toLocaleString('en-US'),c:R.coins[g]}))})));
+            guide.open2({title:t('rush.gradeInfo.title'),icon:null,blocks},{ok:t('notice.ok'),fit:true});
+        },
         back:()=>{
             audio.play('ui');
             modeSelect.hide();
@@ -3605,7 +3617,10 @@ function boot() {
             }
         }
         gameUi.resumeT=resumeT;
-        overlay.hud.rushShow=run.mode==='bossrush'&&!pauseMenu.open&&(run.state!=='combat'||(rushIntro&&resumeT>0)||!!pendingBoss||codex.shown()||guide.shown()||!enemies.list.some(e=>e.def.boss&&e.alive));
+        if (!fx.paused) {
+            rushIntroT=Math.max(0,rushIntroT-dt);
+        }
+        overlay.hud.rushShow=run.mode==='bossrush'&&!pauseMenu.open&&(run.state!=='combat'||(rushIntro&&resumeT>0)||rushIntroT>0||!!pendingBoss||codex.shown()||guide.shown()||!enemies.list.some(e=>e.def.boss&&e.alive));
         setTouchText(input.lastDevice==='touch');
         music.update(musicTrack());
         music.setDuck((pauseMenu.open&&!settingsMenu.open&&!codex.open)||relicView.rolling());

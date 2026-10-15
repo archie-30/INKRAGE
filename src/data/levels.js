@@ -345,13 +345,36 @@ const MENU_DECOR=[
     {type:'shavings',x:10,z:-24,count:12}
 ];
 
+const MENU_PROPS=[
+    {type:'runes',x:0,z:1.5,r:3.2,count:12},
+    {type:'tome',x:0.5,z:-6.5,s:1.4,rot:0.12},
+    {type:'candle',x:-3.4,z:-1.2,r:0.22,h:1.1},
+    {type:'candle',x:3.6,z:-0.6,r:0.18,h:0.7},
+    {type:'candle',x:-2.6,z:4.6,r:0.16,h:0.5},
+    {type:'candle',x:3,z:4.4,r:0.2,h:0.9},
+    {type:'books',x:-7.5,z:-4.5,w:1.6,d:2.2,rot:0.4,count:5},
+    {type:'books',x:7,z:-6.5,w:1.4,d:1.9,rot:-0.3,count:3},
+    {type:'shelf',x:-10.5,z:-8.5,w:3.2,h:3.2,d:1,rot:0.35},
+    {type:'lamp',x:9.5,z:-4,s:1.1,rot:2.4},
+    {type:'mug',x:-9.5,z:2,r:1.2,h:2},
+    {type:'sharpener',x:7.5,z:3.5,s:1.1,rot:-0.6},
+    {type:'ruler',x:-4.5,z:7.5,len:9,w:1.4,rot:0.12},
+    {type:'notes',x:6,z:7,s:1.4,count:4,rot:0.25},
+    {type:'sheet',x:-6.5,z:0.5,w:2.6,d:3.4,rot:0.35},
+    {type:'shavings',x:4.5,z:-2.5,count:7},
+    {type:'crumple',x:-5,z:-7,r:0.6},
+    {type:'crumple',x:10.5,z:6.5,r:0.5},
+    {type:'clip',x:-11,z:6,r:0.6,len:2.6,rot:-0.5},
+    {type:'pin',x:11.5,z:-1,r:0.35}
+];
+
 export const MENU_SCENE={
-    layout:{...LAYOUTS.crossroads,props:LAYOUTS.crossroads.props.filter(q=>Math.hypot(q.x,q.z-1.5)>5).concat(MENU_DECOR)},
-    seed:77,
+    layout:room(MENU_PROPS.concat(MENU_DECOR.filter(q=>Math.hypot(q.x,q.z)>16))),
+    seed:91,
     barrels:0,
     crates:0,
-    enemies:[['doodle',-6,-5,2.4],['blob',7,-3,0],['compass',-8,5,0.8]],
-    decals:[[-3,2,2.6],[6,-5,3.2],[-8,-6,2.2],[9,3,1.8],[1,6.5,2.4],[-6,7,1.6]]
+    enemies:[['bird',-6,-3,1.2],['stampSoldier',6.5,-2,-0.4],['inkCloud',-8,5,0.9]],
+    decals:[[-3,-3,2.2],[5,-5,2.8],[-8,-7,2.0],[9,4,1.6],[2,7.5,2.2],[-7,7,1.4]]
 };
 
 export const LEVELS={test:LAYOUTS.crossroads};

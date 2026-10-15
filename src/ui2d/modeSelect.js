@@ -104,6 +104,10 @@ export class ModeSelect extends Panel {
             this.actions.back();
             return true;
         }
+        if (this.gradeHit&&this.status().rushGrade&&inRect(this.gradeHit,x,y)&&this.actions.grade) {
+            this.actions.grade();
+            return true;
+        }
         for (let i=0;i<3;i++) {
             if (inRect(this.infos[i],x,y)) {
                 this.actions.info(MODE_LIST[i]);
@@ -269,12 +273,9 @@ export class ModeSelect extends Panel {
     drawSelFx(ctx,r,v,i) {
         const F=TUNING.modeUi.fx;
         ctx.save();
-        ctx.strokeStyle=PALETTE.red;
-        ctx.lineWidth=2;
-        ctx.setLineDash([10,7]);
-        ctx.lineDashOffset=-time.real*F.ants;
-        ctx.strokeRect(-F.ring,-F.ring,r.w+F.ring*2,r.h+F.ring*2);
-        ctx.setLineDash([]);
+        ctx.globalAlpha*=0.6+0.4*Math.sin(time.real*3);
+        drawShape(ctx,sketchRect(-F.ring,-F.ring,r.w+F.ring*2,r.h+F.ring*2,{width:2.2,seed:3640+i}),PALETTE.red,v);
+        ctx.globalAlpha=1;
         const per=2*(r.w+r.h+F.ring*4);
         for (let k=0;k<F.sparks;k++) {
             let d=((time.real*F.orbit+k/F.sparks)%1)*per;
@@ -641,14 +642,7 @@ export class ModeSelect extends Panel {
             y+=small?15:18;
         }
         y+=small?2:6;
-        ctx.strokeStyle=rgba('midGray',0.6);
-        ctx.setLineDash([4,4]);
-        ctx.lineWidth=1;
-        ctx.beginPath();
-        ctx.moveTo(18,y);
-        ctx.lineTo(r.w-18,y);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        drawShape(ctx,sketchLine(18,y,r.w-18,y,{width:1.2,seed:3650+i}),rgba('midGray',0.7),v);
         y=Math.max(y+(small?16:22),r.h-(small?74:96));
         if (locked) {
             ctx.font='bold '+(small?12:13)+'px '+FONT;
@@ -677,6 +671,8 @@ export class ModeSelect extends Panel {
             ctx.fillText(txt,r.w/2,y);
             if (mode==='bossrush'&&st.rushGrade) {
                 const gx=r.w/2+ctx.measureText(txt).width/2+(small?24:30);
+                const gr=(small?15:18)+6;
+                this.gradeHit={x:r.x+gx-gr,y:r.y+y-gr,w:gr*2,h:gr*2};
                 ctx.save();
                 ctx.translate(gx,y);
                 ctx.rotate(-0.15);
@@ -748,9 +744,7 @@ export class ModeSelect extends Panel {
         ctx.fillRect(0,0,tw,th);
         ctx.strokeStyle=PALETTE.red;
         ctx.lineWidth=1.6;
-        ctx.setLineDash([4,3]);
         ctx.strokeRect(2,2,tw-4,th-4);
-        ctx.setLineDash([]);
         const pulse=0.55+0.45*Math.sin(time.real*U.blink);
         ctx.fillStyle=rgba('red',pulse);
         ctx.beginPath();
