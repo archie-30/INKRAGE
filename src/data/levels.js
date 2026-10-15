@@ -240,16 +240,22 @@ export const LIBRARY={
 };
 
 export const INFIRMARY=room([
-    {type:'box',x:-13,z:-8,w:2.6,h:0.7,d:1.3,rot:0},
-    {type:'sheet',x:-13,z:-8,w:2.2,d:1.1,rot:0},
-    {type:'box',x:13,z:-8,w:2.6,h:0.7,d:1.3,rot:0},
-    {type:'sheet',x:13,z:-8,w:2.2,d:1.1,rot:0},
-    {type:'pillar',x:-14,z:8.5,r:0.5,h:2.2},
-    {type:'pillar',x:14,z:8.5,r:0.5,h:2.2},
-    {type:'notes',x:-3,z:-8,s:1.1,count:3,rot:0.2},
-    {type:'crumple',x:4,z:8,r:0.6},
-    {type:'shavings',x:1.5,z:-3,count:6}
-],{spawn:[0,6],keeper:[-10.5,-3.5],relics:[[-12,3],[-9,4.6],[-6,6]],zones:[[7.5,-3],[11,3.5]]});
+    {type:'medCabinet',x:-4.5,z:-9.2,w:1.8,h:2.0,solid:[1.8,0.6]},
+    {type:'medCabinet',x:4.5,z:-9.2,w:1.8,h:2.0,solid:[1.8,0.6]},
+    {type:'medKit',x:-2.6,z:-8.9,s:1,rot:0.15},
+    {type:'floorCross',x:0,z:1,s:1.2},
+    {type:'runes',x:-9,z:2.6,r:3.4,count:10},
+    {type:'candle',x:-12.6,z:0.6,r:0.2,h:0.9},
+    {type:'candle',x:-5.4,z:0.6,r:0.18,h:0.7},
+    {type:'candle',x:-12.4,z:7.6,r:0.16,h:0.6},
+    {type:'candle',x:-5.6,z:7.6,r:0.2,h:1.0},
+    {type:'tome',x:-13.2,z:-7.4,s:0.7,rot:0.4,solid:[2.2,1.6]},
+    {type:'books',x:-13,z:8.4,w:1.4,d:1.8,rot:0.3,count:4},
+    {type:'pillar',x:14,z:9,r:0.5,h:2.2},
+    {type:'notes',x:-1,z:-6.5,s:1.1,count:3,rot:0.2},
+    {type:'crumple',x:3,z:8.6,r:0.6},
+    {type:'shavings',x:2,z:-3,count:6}
+],{spawn:[0,6],keeper:[-11,-4.5],relics:[[-12,4.6],[-9,5.8],[-6,4.6]],zones:[[9.5,-4.2],[9.5,4.8]]});
 
 export const TRAINING={
     layout:room([

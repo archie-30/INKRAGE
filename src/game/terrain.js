@@ -369,6 +369,57 @@ const DECOR_BUILDERS={
         g.add(dish,wax,drip,wick,flame);
         return g;
     },
+    medCabinet(p) {
+        const g=new THREE.Group();
+        const w=p.w||1.8;
+        const h=p.h||2.0;
+        const red=unlitMaterial({color:'red'});
+        const back=mesh(box(w,h,0.6),'dark');
+        back.position.y=h/2;
+        const door=mesh(box(w*0.9,h*0.82,0.04),'cover');
+        door.position.set(0,h*0.48,0.31);
+        const split=mesh(box(0.04,h*0.82,0.05),'dark');
+        split.position.set(0,h*0.48,0.33);
+        const cx=new THREE.Mesh(box(w*0.32,0.1,0.04),red);
+        cx.position.set(0,h*0.94,0.31);
+        const cy=new THREE.Mesh(box(0.1,w*0.32,0.04),red);
+        cy.position.set(0,h*0.94,0.31);
+        g.add(back,door,split,cx,cy);
+        for (let i=0;i<3;i++) {
+            const j=mesh(cachedGeo('mjar',()=>new THREE.CylinderGeometry(0.09,0.1,0.26,8)),i===1?'dark':'light');
+            j.position.set(-w*0.3+i*w*0.3,h+0.13,0);
+            g.add(j);
+        }
+        return g;
+    },
+    medKit(p) {
+        const g=new THREE.Group();
+        const s=p.s||1;
+        const red=unlitMaterial({color:'red'});
+        const b=mesh(box(0.9*s,0.45*s,0.6*s),'light');
+        b.position.y=0.225*s;
+        const lid=mesh(box(0.92*s,0.06*s,0.62*s),'dark');
+        lid.position.y=0.46*s;
+        const h=mesh(box(0.3*s,0.08*s,0.06*s),'dark');
+        h.position.y=0.53*s;
+        const cx=new THREE.Mesh(box(0.3*s,0.08*s,0.02),red);
+        cx.position.set(0,0.25*s,0.31*s);
+        const cy=new THREE.Mesh(box(0.08*s,0.3*s,0.02),red);
+        cy.position.set(0,0.25*s,0.31*s);
+        g.add(b,lid,h,cx,cy);
+        return g;
+    },
+    floorCross(p) {
+        const g=new THREE.Group();
+        const s=p.s||1;
+        const red=unlitMaterial({color:'red'});
+        for (const [w,d] of [[1.6*s,0.5*s],[0.5*s,1.6*s]]) {
+            const m=new THREE.Mesh(box(w,0.02,d),red);
+            m.position.y=0.015;
+            g.add(m);
+        }
+        return g;
+    },
     runes(p) {
         const g=new THREE.Group();
         const r=p.r;

@@ -682,11 +682,22 @@ export class Hud {
     drawRushProgress(ctx,w,run) {
         const U=TUNING.hud.rush;
         const R=run.rush;
+        const now=time.real;
+        const dt=Math.min(0.1,Math.max(0,now-(this.rushLast??now)));
+        this.rushLast=now;
+        this.rushA=this.rushA??0;
+        this.rushA+=((this.rushShow?1:0)-this.rushA)*Math.min(1,dt*U.fade);
+        if (this.rushA<0.01) {
+            return;
+        }
         const n=R.order.length;
         const v=time.boilIndex;
         const x0=w/2-(n-1)*U.gap/2;
         const cur=Math.min(R.idx,n-1);
+        const ea=EASE.easeOutCubic(this.rushA);
         ctx.save();
+        ctx.globalAlpha*=ea;
+        ctx.translate(0,(1-ea)*-U.slide);
         ctx.strokeStyle=rgba('ink',0.35);
         ctx.lineWidth=2;
         ctx.beginPath();
@@ -809,7 +820,7 @@ export class Hud {
             ctx.fillStyle=fail?PALETTE.midGray:PALETTE.red;
             ctx.fillText(txt,w/2,by+18);
         }
-        this.drawBossBar(ctx,w,enemies,by+4+(run.mode==='bossrush'?TUNING.hud.rush.barShift:0));
+        this.drawBossBar(ctx,w,enemies,by+4+(run.mode==='bossrush'?TUNING.hud.rush.barShift*(this.rushA??0):0));
     }
 
     drawBossBar(ctx,w,enemies,y,hint=true) {
