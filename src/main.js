@@ -2228,16 +2228,12 @@ function boot() {
         skin:()=>{
             audio.play('ui');
             mainMenu.hide();
-            skinEditor.show();
-            skinEditor.tab='colors';
-            skinEditor.tabK=0;
+            skinEditor.openTab(false);
         },
-        weaponTab:()=>{
+        arms:()=>{
             audio.play('ui');
             mainMenu.hide();
-            skinEditor.show();
-            skinEditor.tab='weapon';
-            skinEditor.tabK=2;
+            skinEditor.openTab(true);
         },
         levels:()=>{
             audio.play('ui');

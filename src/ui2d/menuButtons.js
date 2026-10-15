@@ -111,6 +111,28 @@ const ICONS={
         ctx.fill();
         ctx.restore();
     },
+    arms(ctx,r,k,col) {
+        const s=r*0.62;
+        ctx.save();
+        ctx.rotate(-0.8+Math.sin(k*2)*0.1);
+        ctx.fillStyle=col;
+        ctx.fillRect(-s*0.2,-s,s*0.4,s*1.3);
+        ctx.fillStyle=PALETTE.red;
+        ctx.beginPath();
+        ctx.moveTo(-s*0.2,s*0.3);
+        ctx.lineTo(s*0.2,s*0.3);
+        ctx.lineTo(0,s*0.95);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(-s*0.07,-s*0.7,s*0.14,s*0.6);
+        const d=(k*1.2)%1;
+        ctx.globalAlpha*=1-d;
+        ctx.beginPath();
+        ctx.arc(0,s*1.05+d*s*0.5,r*0.07,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    },
     codex(ctx,r,k,col) {
         const s=r*0.6;
         const flap=Math.sin(k*2.2)*0.18;

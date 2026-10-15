@@ -130,11 +130,11 @@ async function checkDevCode(digits,U) {
     }
 }
 
-const MENU_ACTS=['play','weapon','training','achieve','codex'];
+const MENU_ACTS=['play','arms','weapon','training','achieve','codex'];
 
 const MENU_SUBS=[];
 
-const MENU_EXTRA=['settings','skin','weaponTab'];
+const MENU_EXTRA=['settings','skin'];
 
 const MAX_LEVEL=TUNING.levels.max;
 
@@ -182,13 +182,9 @@ export class MainMenu extends Panel {
         this.settingsBtn={x:bar.x,y:bar.y,w:bar.h*M.gearW,h:bar.h};
         this.levelRect={x:bar.x+this.settingsBtn.w,y:bar.y,w:bar.w-this.settingsBtn.w,h:bar.h};
         const kw=small?M.footW.small:M.footW.big;
-        const kg=small?16:20;
         const lx=w*(1-M.colFrac)/2;
-        const ky=h*(small?M.skinYSmall:M.skinY);
-        const kh=small?40:52;
-        this.skinBtn={x:lx-kw-kg/2,y:ky,w:kw,h:kh};
-        this.weaponBtn={x:lx+kg/2,y:ky,w:kw,h:kh};
-        this.buttons.push(this.settingsBtn,this.skinBtn,this.weaponBtn);
+        this.skinBtn={x:lx-kw/2,y:h*(small?M.skinYSmall:M.skinY),w:kw,h:small?40:52};
+        this.buttons.push(this.settingsBtn,this.skinBtn);
     }
 
     hover(x,y) {
@@ -350,7 +346,7 @@ export class MainMenu extends Panel {
         ctx.restore();
     }
 
-    drawFootBtn(ctx,v,b,hv,label,kind,e,bob) {
+    drawFootBtn(ctx,v,b,hv,label,e,bob) {
         ctx.save();
         ctx.translate(b.x+b.w/2,b.y+b.h/2+bob);
         ctx.scale(e*(hv?1.06:1),e*(hv?1.06:1));
@@ -358,43 +354,24 @@ export class MainMenu extends Panel {
         ctx.translate(-b.w/2,-b.h/2);
         ctx.fillStyle=hv?rgba('farGray',0.95):rgba('paper',0.94);
         ctx.fillRect(0,0,b.w,b.h);
-        drawShape(ctx,sketchRect(0,0,b.w,b.h,{width:hv?2.8:2,seed:kind==='skin'?1390:1391}),PALETTE.ink,v);
+        drawShape(ctx,sketchRect(0,0,b.w,b.h,{width:hv?2.8:2,seed:1390}),PALETTE.ink,v);
         const px=b.h*0.55;
         const py=b.h/2;
         const pr=b.h*0.28;
-        if (kind==='skin') {
-            ctx.fillStyle=PALETTE.paper;
+        ctx.fillStyle=PALETTE.paper;
+        ctx.beginPath();
+        ctx.ellipse(px,py,pr*1.15,pr,-0.3,0,Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle=PALETTE.ink;
+        ctx.lineWidth=2;
+        ctx.stroke();
+        const cols=[PALETTE.red,'#5E7399','#C49A52','#7A8A5B'];
+        for (let i=0;i<4;i++) {
+            const an=-2.4+i*0.9+(hv?Math.sin(time.real*6+i)*0.1:0);
+            ctx.fillStyle=cols[i];
             ctx.beginPath();
-            ctx.ellipse(px,py,pr*1.15,pr,-0.3,0,Math.PI*2);
+            ctx.arc(px+Math.cos(an)*pr*0.6,py+Math.sin(an)*pr*0.55,pr*0.2,0,Math.PI*2);
             ctx.fill();
-            ctx.strokeStyle=PALETTE.ink;
-            ctx.lineWidth=2;
-            ctx.stroke();
-            const cols=[PALETTE.red,'#5E7399','#C49A52','#7A8A5B'];
-            for (let i=0;i<4;i++) {
-                const an=-2.4+i*0.9+(hv?Math.sin(time.real*6+i)*0.1:0);
-                ctx.fillStyle=cols[i];
-                ctx.beginPath();
-                ctx.arc(px+Math.cos(an)*pr*0.6,py+Math.sin(an)*pr*0.55,pr*0.2,0,Math.PI*2);
-                ctx.fill();
-            }
-        }
-        else {
-            ctx.save();
-            ctx.translate(px,py);
-            ctx.rotate(-0.8+(hv?Math.sin(time.real*8)*0.12:0));
-            ctx.fillStyle=PALETTE.ink;
-            ctx.fillRect(-pr*0.22,-pr*1.1,pr*0.44,pr*1.5);
-            ctx.beginPath();
-            ctx.moveTo(-pr*0.22,pr*0.4);
-            ctx.lineTo(pr*0.22,pr*0.4);
-            ctx.lineTo(0,pr*1.1);
-            ctx.closePath();
-            ctx.fillStyle=PALETTE.red;
-            ctx.fill();
-            ctx.fillStyle=PALETTE.paper;
-            ctx.fillRect(-pr*0.08,-pr*0.8,pr*0.16,pr*0.7);
-            ctx.restore();
         }
         ctx.fillStyle=PALETTE.ink;
         ctx.font='bold '+(b.h<46?16:20)+'px '+FONT;
@@ -406,14 +383,13 @@ export class MainMenu extends Panel {
 
     drawSkinBtn(ctx,v) {
         const b=this.skinBtn;
-        const wb=this.weaponBtn;
         const ap=Math.max(0,Math.min(1,(this.t-0.7)/0.4));
         if (ap<=0) {
             return;
         }
         const e=EASE.easeOutBack(ap);
         const bob=Math.sin(time.real*2)*2;
-        const cx=(b.x+wb.x+wb.w)/2;
+        const cx=b.x+b.w/2;
         ctx.save();
         ctx.globalAlpha=Math.min(1,ap*2);
         ctx.strokeStyle=rgba('ink',0.35);
@@ -429,13 +405,7 @@ export class MainMenu extends Panel {
         ctx.lineTo(cx+6,b.y-20+bob);
         ctx.closePath();
         ctx.fill();
-        this.drawFootBtn(ctx,v,b,this.hoverIdx===MENU_ACTS.length+1,t('menu.skin'),'skin',e,bob);
-        this.drawFootBtn(ctx,v,wb,this.hoverIdx===MENU_ACTS.length+2,t('menu.weaponBtn'),'weapon',e,bob);
-        ctx.fillStyle=PALETTE.ink;
-        ctx.font=(b.h<46?'12px ':'14px ')+FONT;
-        ctx.textAlign='center';
-        ctx.textBaseline='top';
-        ctx.fillText(t('menu.equipped',{name:t('weapon.'+(settings.weapon||'pen')+'.name')}),wb.x+wb.w/2,wb.y+wb.h+bob+(b.h<46?6:10));
+        this.drawFootBtn(ctx,v,b,this.hoverIdx===MENU_ACTS.length+1,t('menu.skin'),e,bob);
         ctx.restore();
     }
 
@@ -4146,7 +4116,8 @@ function drawTone(ctx,x,y,r,tones,sel,v,seed,locked=false) {
     }
 }
 
-const SKIN_TABS=['colors','acc','weapon'];
+const SKIN_TABS=['colors','acc'];
+const ARMS_TABS=['weapon'];
 
 export class SkinEditor extends Panel {
     constructor(actions) {
@@ -4225,7 +4196,7 @@ export class SkinEditor extends Panel {
             const idx=list.indexOf(cur[part.key]);
             this.sel[part.key]=(this.sel[part.key]??idx)+(idx-(this.sel[part.key]??idx))*kk;
         }
-        const ti=SKIN_TABS.indexOf(this.tab);
+        const ti=this.tabList().indexOf(this.tab);
         this.tabK+=(ti-this.tabK)*Math.min(1,dt*U.follow);
         this.tabT=Math.min(1,this.tabT+dt/0.35);
         this.wSelT=Math.min(1,(this.wSelT??1)+dt/TUNING.weaponUi.selTime);
@@ -4374,11 +4345,12 @@ export class SkinEditor extends Panel {
             this.actions.dice();
             return true;
         }
-        for (let i=0;i<SKIN_TABS.length;i++) {
+        const tabs=this.tabList();
+        for (let i=0;i<tabs.length&&!this.weaponOnly;i++) {
             const r=this.tabRects&&this.tabRects[i];
             if (r&&inRect(r,x,y)) {
-                if (this.tab!==SKIN_TABS[i]) {
-                    this.tab=SKIN_TABS[i];
+                if (this.tab!==tabs[i]) {
+                    this.tab=tabs[i];
                     this.tabT=0;
                     this.wSel=settings.weapon||'pen';
                     this.wSelT=1;
@@ -4491,21 +4463,38 @@ export class SkinEditor extends Panel {
         this.burst(b.x+b.w/2,b.y,[PALETTE.red,PALETTE.ink,PALETTE.marker],18);
     }
 
+    tabList() {
+        return this.weaponOnly?ARMS_TABS:SKIN_TABS;
+    }
+
+    openTab(weapon) {
+        this.weaponOnly=weapon;
+        this.tab=weapon?'weapon':'colors';
+        this.tabK=0;
+        this.show();
+    }
+
     drawTabs(ctx,x,y,w,v,small) {
         const U=TUNING.metaUi.tab;
         const th=small?U.hSmall:U.h;
-        const tw=w/SKIN_TABS.length;
+        if (this.weaponOnly) {
+            this.tabRects=[];
+            drawShape(ctx,sketchLine(x,y+4,x+w,y+4,{width:1.2,seed:1560}),rgba('midGray',0.7),v);
+            return y+12;
+        }
+        const tabs=this.tabList();
+        const tw=w/tabs.length;
         this.tabRects=[];
-        for (let i=0;i<SKIN_TABS.length;i++) {
+        for (let i=0;i<tabs.length;i++) {
             const r={x:x+i*tw,y,w:tw,h:th};
             this.tabRects.push(r);
-            const on=SKIN_TABS[i]===this.tab;
+            const on=tabs[i]===this.tab;
             const hv=inRect(r,this.hx,this.hy);
             ctx.fillStyle=on?PALETTE.ink:(hv?PALETTE.ink:PALETTE.nearGray);
             ctx.font=(on?'bold ':'')+(small?14:15)+'px '+FONT;
             ctx.textAlign='center';
             ctx.textBaseline='middle';
-            ctx.fillText(t('skin.tab.'+SKIN_TABS[i]),r.x+tw/2,y+th/2-2);
+            ctx.fillText(t('skin.tab.'+tabs[i]),r.x+tw/2,y+th/2-2);
         }
         drawShape(ctx,sketchLine(x,y+th,x+w,y+th,{width:1.2,seed:1560}),rgba('midGray',0.7),v);
         const ux=x+this.tabK*tw+tw*0.15;
@@ -4945,13 +4934,13 @@ export class SkinEditor extends Panel {
         ctx.font='bold '+(small?20:26)+'px '+FONT;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        ctx.fillText(t('skin.title'),P.x+18,P.y+(small?10:16));
+        ctx.fillText(t(this.weaponOnly?'arms.title':'skin.title'),P.x+18,P.y+(small?10:16));
         drawWallet(ctx,P.x+P.w-14,P.y+(small?8:14),v,'right',small?13:15,this.walletK);
         ctx.font='12px '+FONT;
         ctx.fillStyle=PALETTE.nearGray;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        ctx.fillText(t('skin.hint'),P.x+18,P.y+(small?36:50));
+        ctx.fillText(t(this.weaponOnly?'arms.hint':'skin.hint'),P.x+18,P.y+(small?36:50));
         this.hits=[];
         let y=this.drawTabs(ctx,P.x+14,P.y+(small?52:72),P.w-28,v,small);
         const winfo=this.tab==='weapon'?this.weaponInfo(ctx,P,small):null;
