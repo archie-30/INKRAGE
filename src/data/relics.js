@@ -41,7 +41,7 @@ export function relicParams(id) {
         sneakers:()=>({s:R.sneakers.iframe}),
         feather:()=>({pct:pct(R.feather.speed)}),
         eraserBits:()=>({every:R.eraserBits.every,n:R.eraserBits.ink}),
-        boxCutter:()=>({range:R.boxCutter.range,pct:pct(R.boxCutter.mult)}),
+        boxCutter:()=>({range:Math.round(R.boxCutter.range/TUNING.grid.size*10)/10,pct:pct(R.boxCutter.mult)}),
         glasses:()=>({pct:pct(R.glasses.slow)}),
         coupon:()=>({pct:pct(R.coupon.mult)}),
         metronome:()=>({s:R.metronome.time,pct:pct(R.metronome.rate)}),

@@ -36,9 +36,25 @@ export function cardName(card) {
     return t(card.def.nameKey)+(card.upgraded?'+':'');
 }
 
+const DIST_KEYS=['radius','range','width','length'];
+
+export function toMeters(v) {
+    return Math.round(v/TUNING.grid.size*10)/10;
+}
+
+export function shownParams(card) {
+    const p={...cardParams(card)};
+    for (const k of DIST_KEYS) {
+        if (typeof p[k]==='number') {
+            p[k]=toMeters(p[k]);
+        }
+    }
+    return p;
+}
+
 export function cardDesc(card) {
     const up=card.upgraded&&card.def.upgraded&&card.def.upgraded.descKey;
-    return t(up||card.def.descKey,cardParams(card));
+    return t(up||card.def.descKey,shownParams(card));
 }
 
 export function cardRange(card) {

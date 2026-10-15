@@ -12,7 +12,7 @@ import {tweens} from './core/tween.js';
 import {fx} from './core/fx.js';
 import {isFlagship,wipeStorage,detectDevice,loadSettings,saveSettings,settings,autoDrop,qualityConfig,boilScale,device,TRAINING_DEFAULTS,TRAINING_SPAWN} from './core/settings.js';
 import {Renderer} from './render/renderer.js';
-import {initMaterials,setBoilSeed,setJitterScale,setShadowQuality,toonMaterial,shared,dissolveVariant} from './render/materials.js';
+import {initMaterials,setBoilSeed,setJitterScale,setShadowQuality,toonMaterial,shared,dissolveVariant,lineMaterial} from './render/materials.js';
 import {Particles,MuzzleFlashes,Rings,FloorMarks} from './render/particles.js';
 import {Preview} from './render/preview.js';
 import {Shards} from './render/shards.js';
@@ -43,7 +43,7 @@ import {RelicGacha} from './ui2d/gacha.js';
 import {RunSummary,MainMenu,PauseMenu,SettingsMenu,Codex,TrainingPicker,LevelView,SkinEditor,TrainingMenu,Coach,LangPicker,InfoPopup,ChoicePanel,DeckPicker,LevelUpView,drawWeaponIcon} from './ui2d/menu.js';
 import {weaponUnlocked,pickWeapon,unlockedWeapons,RANDOM_WEAPON,WEAPONS,WEAPON_ORDER} from './data/weapons.js';
 import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
-import {startRelic,relic,takeGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
+import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
 import {GuidePopup,courseGuide,modeGuide,relicGuide,coinGuide} from './ui2d/guide.js';
 import {ModeSelect,MODE_LIST} from './ui2d/modeSelect.js';
@@ -225,6 +225,44 @@ function boot() {
     const playerBullets=new BulletSystem(actors,fxScene,{color:'ink',...TUNING.bullet.player});
     const enemyBullets=new BulletSystem(actors,fxScene,{color:'red',owner:'enemy',...TUNING.bullet.enemy});
     const chalkBullets=new BulletSystem(actors,fxScene,TUNING.bullet.chalk);
+    const chalkLines=[];
+    const chalkLineGeo=new THREE.PlaneGeometry(1,1);
+    chalkLineGeo.rotateX(-Math.PI/2);
+    chalkLineGeo.translate(0.5,0,0);
+    function chalkLine(x,z,dx,dz,len,warn) {
+        let q=chalkLines.find(c=>!c.on);
+        if (!q) {
+            const m=new THREE.Mesh(chalkLineGeo,lineMaterial('red'));
+            m.frustumCulled=false;
+            fxScene.add(m);
+            q={m};
+            chalkLines.push(q);
+        }
+        q.on=true;
+        q.t=0;
+        q.warn=warn;
+        q.len=len;
+        q.m.visible=true;
+        q.m.position.set(x,0.05,z);
+        q.m.rotation.y=Math.atan2(-dz,dx);
+        q.m.scale.set(0.01,1,TUNING.courses.dodge.teleW);
+    }
+    function tickChalkLines(dt) {
+        for (const q of chalkLines) {
+            if (!q.on) {
+                continue;
+            }
+            q.t+=dt;
+            if (q.t>=q.warn) {
+                q.on=false;
+                q.m.visible=false;
+                continue;
+            }
+            const len=q.len*EASE.easeOutCubic(Math.min(1,q.t/(q.warn*0.5)));
+            q.m.scale.x=Math.max(0.01,len);
+            q.m.material.uniforms.uLength.value=len;
+        }
+    }
     const E=TUNING.effects;
     const pierceBullets=new BulletSystem(actors,fxScene,{color:'ink',capacity:16,radius:E.pierceRadius,size:E.pierceSize,trailWidth:E.pierceTrail,pierce:true,thruWalls:true});
     const homingBullets=new BulletSystem(actors,fxScene,{color:'ink',capacity:48,radius:0.22,size:E.homingSize,trailWidth:0.2,homing:E.homingTurn});
@@ -1128,6 +1166,10 @@ function boot() {
         playerBullets.clear();
         enemyBullets.clear();
         chalkBullets.clear();
+        for (const q of chalkLines) {
+            q.on=false;
+            q.m.visible=false;
+        }
         pierceBullets.clear();
         for (const s of extraSys) {
             s.clear();
@@ -1324,8 +1366,9 @@ function boot() {
             enemies,
             bullets:chalkBullets,
             room:()=>game.room,
-            chalked:(x,z,warn)=>{
-                dangerRings.spawn(x,z,1.1,'red',warn);
+            chalked:(x,z,warn,dx,dz,len)=>{
+                dangerRings.spawn(x,z,0.8,'red',warn);
+                chalkLine(x,z,dx,dz,len,warn);
                 particles.burst(x,1.0,z,6,{color:'paper',speed:[1,3],up:[1,3],size:[0.08,0.14]});
             },
             thrown:(x,z)=>{
@@ -1383,6 +1426,7 @@ function boot() {
         },
         pageStart:plan=>{
             const R=TUNING.relics;
+            rearmGuard();
             if (hasRelic('inkVial')&&ink.value<R.inkVial.min&&!plan.rush) {
                 ink.value=R.inkVial.min;
                 flashRelic('inkVial');
@@ -3467,6 +3511,7 @@ function boot() {
         enemyBullets.update(dt*hurry,room);
         chalkBullets.frozen=enemyBullets.frozen;
         chalkBullets.update(dt,room);
+        tickChalkLines(dt);
         pierceBullets.update(dt,room);
         for (const s of extraSys) {
             s.update(dt,room);
