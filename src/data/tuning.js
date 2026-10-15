@@ -305,13 +305,14 @@ export const TUNING={
     levelUi:{lockedUlt:{fill:0.05,line:0.4,text:0.5}},
     modeUi:{pad:56,padSmall:28,gap:34,gapSmall:20,top:100,topSmall:72,cardMaxW:300,cardMaxH:430,cardMaxHSmall:330,below:34,belowSmall:22,btnW:340,btnH:56,btnHSmall:44,backW:120,backWSmall:96,rule:30,ruleIn:0.6,margin:64,stagger:0.09,dropIn:0.55,selLift:14,hoverLift:6,tilt:0.035,tapeW:56,shakeDecay:2.4,best:38,bestSmall:28,fx:{popDecay:3,doodles:16,drift:14,alpha:0.35,ants:30,ring:8,sparks:6,orbit:0.12,burst:26,landT:0.45,idle:3},save:{pop:0.4,rot:-0.12,sway:1.6,blink:4}},
     draftUi:{rerollW:200,top:96,topSmall:66,foot:118,footSmall:88,gap:30,gapSmall:16,maxW:520,head:48,headSmall:34,cellGap:8,btnW:300,slide:0.5,pickDelay:0.35},
-    rushSummaryUi:{maxW:980,foot:90,footSmall:70,headGap:44,headGapSmall:30,headH:92,headHSmall:70,big:46,bigSmall:32,rowH:58,rowHSmall:44,nameW:190,nameWSmall:130,subW:110,subWSmall:86,rowStart:0.35,rowGap:0.16,rowIn:0.35,count:0.45,totalCount:0.8,stampTime:0.35},
+    rushSummaryUi:{gradeX:250,maxW:980,foot:80,footSmall:62,scoreY:112,scoreYSmall:72,scoreScaleSmall:0.7,metaY:62,metaYSmall:42,gap:0.15,countTime:0.9,gradeTime:0.6,rowH:58,rowHSmall:44,nameW:190,nameWSmall:130,subW:110,subWSmall:86,rowStart:0.35,rowGap:0.16,rowIn:0.35,count:0.45,totalCount:0.8,stampTime:0.35},
     bossRush:{
         unlockLevel:5,
         deck:{normal:7,ult:2},
         defense:['paperShield','shockwave','blot','reflect','eraser','inkDash'],
         single:['pierce','homing','paperBlade','bounceBall','chain'],
         intro:3,
+        introShow:2,
         dodgeInk:1,
         inkVial:2,
         bandageEvery:2,
@@ -593,7 +594,7 @@ export const TUNING={
         confetti:{count:46,speed:[60,140],size:[4,9],spin:6}
     },
     menu:{
-        btn:{primaryH:1.3,slide:60,pulse:2.4,shine:0.45,textGap:14,arrowW:26,primarySize:26},
+        btn:{gap:17,gapSmall:10,primaryH:1.3,slide:60,pulse:2.4,shine:0.45,textGap:14,arrowW:26,primarySize:26},
         randomCycle:1.2,
         bestGap:26,
         bestGapSmall:18,
@@ -746,7 +747,7 @@ export const TUNING={
         toastBannerY:196,
         relics:{r:16,gap:7,top:12,pop:0.45,shake:0.18,shakeRate:42,ring:5,infoW:300,infoPad:16},
         result:{time:4.2,perLine:0.6,lineH:26,maxW:420,fade:0.35,titleSize:19,lineSize:16,halo:5,gapTop:22,lineGap:10,lineDelay:0.18,flyDelay:0.45,flyTime:0.7,flyArc:40,flySize:24},
-        rush:{y:30,gap:42,r:16,icon:0.42,plate:8,barTop:12,barBelow:28,fade:3.2,slide:24},
+        rush:{y:30,gap:42,r:16,icon:0.42,barTop:12,barBelow:28,fade:3.2,slide:24},
         progress:{y:30,segW:340,minSeg:160,side:240,actGap:12,dotR:6,bossR:8.5,curR:9,anim:0.8,hop:14,pulse:0.12,pulseRate:4,actSize:15,tagSize:14,tagY:20,below:58,show:4,fade:0.8,pauseY:34},
         score:{right:78,y:12,labelSize:12,size:30,pop:0.35,popDecay:2.5,rate:6,shake:4,shakeRate:55,shakeDecay:2.2},
         timer:{offset:42,cloneOffset:14,width:76,height:5},

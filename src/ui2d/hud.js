@@ -703,13 +703,6 @@ export class Hud {
         ctx.save();
         ctx.globalAlpha*=ea;
         ctx.translate(0,(1-ea)*-U.slide+(y0===null?0:y0-U.y));
-        if (force) {
-            const px=x0-U.r-U.plate;
-            const pw=(n-1)*U.gap+(U.r+U.plate)*2;
-            ctx.fillStyle=rgba('paper',0.96);
-            ctx.fillRect(px,U.y-U.r-U.plate,pw,U.r*2+U.plate*2+22);
-            drawShape(ctx,sketchRect(px,U.y-U.r-U.plate,pw,U.r*2+U.plate*2+22,{width:1.6,seed:7410}),PALETTE.ink,v);
-        }
         ctx.strokeStyle=rgba('ink',0.35);
         ctx.lineWidth=2;
         ctx.beginPath();

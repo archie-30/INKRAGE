@@ -162,7 +162,7 @@ export class MainMenu extends Panel {
         const top=small?h*0.3:h*0.3;
         const subH=small?M.bestGapSmall:M.bestGap;
         const avail=(small?h-top-14:h-top-120)-subH*MENU_SUBS.length;
-        const gap=small?6:10;
+        const gap=small?M.btn.gapSmall:M.btn.gap;
         const big=M.btn.primaryH;
         const bh=Math.min(small?40:52,(avail-gap*MENU_ACTS.length)/(MENU_ACTS.length+big-1));
         let y=top;
@@ -2627,6 +2627,14 @@ export class RunSummary {
             this.t=99;
             return true;
         }
+        if (this.gradeRect&&inRect(this.gradeRect,x,y)) {
+            this.gradeOpen=!this.gradeOpen;
+            return true;
+        }
+        if (this.gradeOpen) {
+            this.gradeOpen=false;
+            return true;
+        }
         const c=this.chest&&!this.chest.opened?this.chest:null;
         if (c&&this.chestBtn&&inRect(this.chestBtn,x,y)) {
             c.opened=true;
@@ -2734,13 +2742,17 @@ export class RunSummary {
 
     marks() {
         const G=TUNING.summaryUi.grade;
+        if (this.stats.mode==='bossrush') {
+            const max=this.stats.rushT?this.stats.rushT.max:TUNING.bossRush.score.boss*7;
+            return TUNING.bossRush.grades.map(([g,f])=>[g,Math.round(f*max)]);
+        }
         return this.stats.mode==='endless'?G.endless:G.story;
     }
 
     drawGradeInfo(ctx,x,y,v) {
         const M=this.marks();
         const cur=this.grade();
-        const lines=[t('grade.points',{n:this.stats.score}),t(this.stats.mode==='endless'?'grade.ruleEndless':'grade.rule')];
+        const lines=[t('grade.points',{n:this.stats.score}),t(this.stats.mode==='endless'?'grade.ruleEndless':(this.stats.mode==='bossrush'?'grade.ruleRush':'grade.rule'))];
         const rows=M.slice(0,-1).map(m=>[m[0],t('grade.at',{n:m[1]})]).concat([[M[M.length-1][0],t('grade.below',{n:M[M.length-2][1]})]]);
         const pad=12;
         const bw=280;
