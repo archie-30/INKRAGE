@@ -27,6 +27,7 @@ import {drawAcc,drawAccIcon,drawLock,drawWallet,drawCoin,drawMiniChest,drawItemI
 import {drawRelicIcon} from './relicIcons.js';
 import {RELIC_ORDER} from '../data/relics.js';
 import {drawRushSummary,rushReady} from './rushSummary.js';
+import {drawMenuButton} from './menuButtons.js';
 
 function lerp1(a,b,f) {
     return a+(b-a)*Math.max(0,Math.min(1,f));
@@ -162,12 +163,14 @@ export class MainMenu extends Panel {
         const subH=small?M.bestGapSmall:M.bestGap;
         const avail=(small?h-top-14:h-top-120)-subH*MENU_SUBS.length;
         const gap=small?6:10;
-        const bh=Math.min(small?40:52,avail/MENU_ACTS.length-gap);
+        const big=M.btn.primaryH;
+        const bh=Math.min(small?40:52,(avail-gap*MENU_ACTS.length)/(MENU_ACTS.length+big-1));
         let y=top;
         this.subY=[];
         for (let i=0;i<MENU_ACTS.length;i++) {
-            this.buttons.push({x:cx-bw/2,y,w:bw,h:bh});
-            y+=bh+gap;
+            const hh=i===0?Math.round(bh*big):bh;
+            this.buttons.push({x:cx-bw/2,y,w:bw,h:hh});
+            y+=hh+gap;
             if (MENU_SUBS.includes(i)) {
                 this.subY[i]=y+subH/2-gap/2;
                 y+=subH;
@@ -483,7 +486,7 @@ export class MainMenu extends Panel {
         ctx.fillText(t('menu.subtitle'),0,64);
         ctx.restore();
         for (let i=0;i<MENU_ACTS.length;i++) {
-            drawButton(ctx,this.buttons[i],t('menu.'+MENU_ACTS[i]),v,(this.t-0.35-i*0.08)/0.45,this.hoverIdx===i,this.buttons[i].h<46?19:22);
+            drawMenuButton(ctx,this.buttons[i],MENU_ACTS[i],t('menu.'+MENU_ACTS[i]),v,(this.t-0.35-i*0.08)/0.45,this.hoverIdx===i,i===0);
         }
         this.drawAchBadge(ctx);
         this.drawBar(ctx,v);
@@ -1173,7 +1176,6 @@ export class SettingsMenu extends Panel {
         }
         ctx.restore();
         if (!touch) {
-            this.drawModeBtn(ctx,v);
             this.drawPrivacy(ctx,v);
         }
         if (this.info&&this.t>0.35&&!this.pw.open) {
@@ -1189,29 +1191,6 @@ export class SettingsMenu extends Panel {
         const L=TUNING.settingsUi.lang;
         const w=104;
         return {x:P.x+P.w-w-L.pad,y:P.y+L.pad,w,h:L.h};
-    }
-
-    modeBox() {
-        const p=this.privBox();
-        const w=104;
-        return {x:p.x-8-w,y:p.y,w,h:p.h};
-    }
-
-    drawModeBtn(ctx,v) {
-        const b=this.modeBox();
-        const a=Math.min(1,this.t*4);
-        ctx.save();
-        ctx.globalAlpha*=a;
-        const hv=inRect(b,this.hx??-1,this.hy??-1);
-        ctx.fillStyle=hv?rgba('farGray',0.95):PALETTE.paper;
-        ctx.fillRect(b.x,b.y,b.w,b.h);
-        drawShape(ctx,sketchRect(b.x,b.y,b.w,b.h,{width:1.8,seed:1492}),PALETTE.ink,v);
-        ctx.fillStyle=PALETTE.ink;
-        ctx.font='bold 14px '+FONT;
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(t('settings.modes'),b.x+b.w/2,b.y+b.h/2+1,b.w-12);
-        ctx.restore();
     }
 
     drawPrivacy(ctx,v) {
@@ -1237,10 +1216,6 @@ export class SettingsMenu extends Panel {
         }
         if (inRect(this.privBox(),x,y)) {
             this.actions.privacy();
-            return true;
-        }
-        if (inRect(this.modeBox(),x,y)) {
-            this.actions.modes();
             return true;
         }
         return false;

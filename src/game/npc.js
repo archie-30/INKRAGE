@@ -4,6 +4,7 @@ import {makeCircle} from '../core/collision.js';
 import {TUNING} from '../data/tuning.js';
 import {EASE} from '../core/easing.js';
 import {drawRelicIcon} from '../ui2d/relicIcons.js';
+import {rgba} from '../data/palette.js';
 
 const TONES={
     cover:{light:'farGray',mid:'midGray',dark:'nearGray'},
@@ -286,6 +287,40 @@ const STATIONS={
     }
 };
 
+let fogTex=null;
+
+function fogTexture() {
+    if (fogTex) {
+        return fogTex;
+    }
+    const c=document.createElement('canvas');
+    c.width=128;
+    c.height=128;
+    const x=c.getContext('2d');
+    const blobs=[[64,70,50],[42,62,30],[86,60,32],[60,44,28],[78,82,26],[46,84,24]];
+    for (const [bx0,by0,r] of blobs) {
+        const g=x.createRadialGradient(bx0,by0,r*0.15,bx0,by0,r);
+        g.addColorStop(0,rgba('paper',0.95));
+        g.addColorStop(0.55,rgba('farGray',0.75));
+        g.addColorStop(1,rgba('farGray',0));
+        x.fillStyle=g;
+        x.beginPath();
+        x.arc(bx0,by0,r,0,Math.PI*2);
+        x.fill();
+    }
+    x.strokeStyle=rgba('midGray',0.35);
+    x.lineWidth=2;
+    x.beginPath();
+    x.arc(64,70,40,Math.PI*1.05,Math.PI*1.6);
+    x.stroke();
+    x.beginPath();
+    x.arc(86,60,24,Math.PI*1.4,Math.PI*1.95);
+    x.stroke();
+    fogTex=new THREE.CanvasTexture(c);
+    fogTex.colorSpace=THREE.NoColorSpace;
+    return fogTex;
+}
+
 const FOG_PUFFS=(()=>{
     const out=[];
     const n=TUNING.npc.fogPuffs;
@@ -293,7 +328,7 @@ const FOG_PUFFS=(()=>{
         const a=i*2.399;
         const k=Math.sqrt((i+0.5)/n);
         const h=Math.abs(Math.sin(i*12.9898)*43758.5453)%1;
-        out.push([Math.cos(a)*k*TUNING.npc.fogR,0.45+h*1.6,Math.sin(a)*k*TUNING.npc.fogR*0.9,0.75+(1-k)*0.55+h*0.25,i]);
+        out.push([Math.cos(a)*k*TUNING.npc.fogR,0.5+h*1.7,Math.sin(a)*k*TUNING.npc.fogR*0.9,TUNING.npc.fogSize*(0.8+(1-k)*0.5+h*0.3),i]);
     }
     return out;
 })();
@@ -307,13 +342,15 @@ const MODELS={
         body.add(st);
         const fog=new THREE.Group();
         for (const [x,y,z,r,i] of FOG_PUFFS) {
-            const pf=ball(r,i%3===0?'light':'cover',x,y,z);
+            const pf=new THREE.Sprite(new THREE.SpriteMaterial({map:fogTexture(),transparent:true,depthWrite:false,depthTest:false,opacity:TUNING.npc.fogAlpha}));
+            pf.position.set(x,y,z);
+            pf.scale.set(r,r*0.8,1);
+            pf.material.rotation=i*0.9;
             pf.userData.base=y;
             pf.userData.ph=i*1.7;
             fog.add(pf);
         }
-        root.add(fog);
-        return {r:TUNING.npc.zoneR,h:2.8,still:true,fog,station:st};
+        return {r:TUNING.npc.zoneR,h:2.8,still:true,fog,fogFx:true,station:st};
     },
     shop(body,root) {
         root.add(bx(2.6,0.9,1.0,'cover',0,0.45,0.75));
@@ -665,7 +702,16 @@ export class Npcs {
         this.armed=-1;
     }
 
+    dropFog(n) {
+        if (n&&n.fog&&n.fog.parent) {
+            n.fog.parent.remove(n.fog);
+        }
+    }
+
     clear() {
+        for (const n of this.list) {
+            this.dropFog(n);
+        }
         this.list=[];
         this.focus=-1;
         this.armed=-1;
@@ -684,6 +730,15 @@ export class Npcs {
             root.add(body);
             const info=MODELS[s.model](body,root,s);
             room.group.add(root);
+            if (info.fogFx) {
+                if (this.fx) {
+                    info.fog.position.set(s.x,0,s.z);
+                    this.fx.add(info.fog);
+                }
+                else {
+                    root.add(info.fog);
+                }
+            }
             room.addPiece('npc',root,[makeCircle(s.x,s.z,info.r)],{x:s.x,z:s.z,radius:info.r,erasable:false});
             this.list.push({model:s.model,item:s.item||null,label:s.label||null,price:s.price||0,relic:s.relic||null,zone:s.zone||null,role:s.role||null,root,body,x:s.x,z:s.z,r:info.r,h:info.h,lid:info.lid||null,icon:info.icon||null,fog:info.fog||null,station:info.station||null,reveal:0,revealed:false,float:!!info.float,still:!!info.still,used:false,sealed:false,t:Math.random()*6,yaw:0,pop:0,open:0});
         }
@@ -708,6 +763,7 @@ export class Npcs {
             return;
         }
         old.root.parent&&old.root.parent.remove(old.root);
+        this.dropFog(old);
         const keep=this.list;
         this.list=[];
         this.build2(room,s);
@@ -780,6 +836,9 @@ export class Npcs {
                 const sealed=n.sealed?N.fogSealed:1;
                 n.fog.scale.set(f*(1+e*0.6),f*sealed,f*(1+e*0.6));
                 n.fog.position.y=e*N.fogLift;
+                for (const pf of n.fog.children) {
+                    pf.material.opacity=N.fogAlpha*(n.sealed?N.fogSealedAlpha:1)*Math.min(1,f*1.5);
+                }
                 n.fog.rotation.y=Math.sin(n.t*N.fogSpin)*0.12;
                 n.fog.visible=f>0.01;
                 if (n.fog.visible) {

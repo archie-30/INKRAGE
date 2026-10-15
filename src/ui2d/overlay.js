@@ -175,6 +175,9 @@ export class Overlay {
                 if (rn.plan&&rn.notebook()&&!rn.plan.overtime&&!rn.plan.training) {
                     this.hud.drawProgress(ctx,this.width,rn,true,TUNING.hud.progress.pauseY);
                 }
+                else if (rn.mode==='bossrush'&&rn.rush) {
+                    this.hud.drawRushProgress(ctx,this.width,rn,true,TUNING.hud.progress.pauseY);
+                }
                 game.hand.draw(ctx,game.art);
                 const hv=game.hand.hover;
                 if (hv) {

@@ -29,6 +29,8 @@ export class DeckDraft extends Panel {
         this.sel=-1;
         this.focus=null;
         this.picked=false;
+        this.rerolled=false;
+        this.dealAt=0;
         this.show();
     }
 
@@ -64,11 +66,15 @@ export class DeckDraft extends Panel {
             }
             return out;
         });
-        const bw=Math.min(D.btnW,w*0.42);
+        const bw=Math.min(D.btnW,w*0.36);
+        const rw=Math.min(D.rerollW,w*0.26);
         const bh=small?40:50;
-        this.okBtn={x:w/2-bw/2,y:h-foot+(small?34:46),w:bw,h:bh};
-        this.backBtn={x:small?14:24,y:small?12:20,w:small?96:120,h:small?34:42};
-        this.buttons=[this.backBtn,this.okBtn];
+        const by=h-foot+(small?34:46);
+        const bg=small?12:18;
+        const x0=w/2-(bw+rw+bg)/2;
+        this.rerollBtn={x:x0,y:by,w:rw,h:bh};
+        this.okBtn={x:x0+rw+bg,y:by,w:bw,h:bh};
+        this.buttons=[this.rerollBtn,this.okBtn];
     }
 
     down(x,y) {
@@ -76,8 +82,8 @@ export class DeckDraft extends Panel {
             return this.open;
         }
         this.layout();
-        if (inRect(this.backBtn,x,y)) {
-            this.actions.back();
+        if (inRect(this.rerollBtn,x,y)) {
+            this.reroll();
             return true;
         }
         if (this.sel>=0&&inRect(this.okBtn,x,y)) {
@@ -104,6 +110,27 @@ export class DeckDraft extends Panel {
             }
         }
         return true;
+    }
+
+    reroll() {
+        if (this.rerolled) {
+            this.shakeT=1;
+            return;
+        }
+        const decks=this.actions.reroll();
+        if (!decks) {
+            return;
+        }
+        this.rerolled=true;
+        this.decks=decks.map(ids=>ids.map(id=>createCard(id,false)));
+        this.sel=-1;
+        this.focus=null;
+        this.dealAt=this.t;
+    }
+
+    update(dt) {
+        super.update(dt);
+        this.shakeT=Math.max(0,(this.shakeT||0)-dt*3);
     }
 
     drawCell(ctx,art,card,r,v,hv,sel) {
@@ -168,18 +195,17 @@ export class DeckDraft extends Panel {
         ctx.fillStyle=PALETTE.nearGray;
         ctx.fillText(t('draft.sub'),0,small?22:30);
         ctx.restore();
-        const b=this.backBtn;
-        const bhv=inRect(b,this.hx,this.hy);
-        drawButton(ctx,b,'← '+t('menu.back'),v,(this.t-0.1)/0.35,bhv,small?15:18);
+        const deal=this.t-this.dealAt;
         for (let k=0;k<2;k++) {
             const P=this.panels[k];
-            const ap=clamp01((this.t-0.1-k*0.08)/D.slide);
+            const ap=clamp01((deal-0.1-k*0.08)/D.slide);
             const e=EASE.easeOutBack(ap);
             const sel=this.sel===k;
             const lift=sel?6+Math.sin(time.real*2.4)*2:0;
             ctx.save();
             ctx.globalAlpha=Math.min(1,ap*2);
-            ctx.translate((1-e)*(k===0?-w*0.4:w*0.4),-lift);
+            ctx.translate((1-e)*(k===0?-w*0.4:w*0.4),-lift+(1-e)*(this.dealAt>0?-40:0));
+            ctx.rotate((1-e)*(this.dealAt>0?(k===0?-0.15:0.15):0));
             ctx.fillStyle=rgba('ink',0.1);
             ctx.fillRect(P.x+6,P.y+8,P.w,P.h);
             ctx.fillStyle=PALETTE.paper;
@@ -230,8 +256,20 @@ export class DeckDraft extends Panel {
             ctx.textBaseline='middle';
             ctx.fillText(t('draft.hint'),w/2,footY);
         }
+        const rb=this.rerollBtn;
+        const jig=(this.shakeT||0)>0?Math.sin(time.real*45)*this.shakeT*6:0;
+        ctx.save();
+        ctx.translate(jig,0);
+        drawButton(ctx,rb,this.rerolled?t('draft.rerolled'):'↻ '+t('draft.reroll'),v,(this.t-0.3)/0.35,!this.rerolled&&inRect(rb,this.hx,this.hy),small?15:18,this.rerolled);
+        ctx.restore();
         if (this.sel>=0) {
             drawButton(ctx,this.okBtn,t('draft.ok',{n:this.sel+1}),v,1,inRect(this.okBtn,this.hx,this.hy),small?17:20);
+        }
+        else {
+            ctx.save();
+            ctx.globalAlpha=0.45;
+            drawButton(ctx,this.okBtn,t('draft.pickFirst'),v,(this.t-0.35)/0.35,false,small?15:18,true);
+            ctx.restore();
         }
         ctx.restore();
     }

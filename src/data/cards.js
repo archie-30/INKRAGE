@@ -106,9 +106,9 @@ export const CARDS={
         mode:'sweep',
         targeting:'direction',
         range:7,
-        params:{range:7,angle:1.4,damage:5,push:14},
-        upgraded:{cost:2,params:{range:9,angle:1.8}},
-        effect:(g,t,p)=>g.eraseCone(t.dx,t.dz,p.range,p.angle,p.damage,p.push)
+        params:{range:7.5,angle:1.6,damage:8,push:16,slowTime:2,slowMult:0.5},
+        upgraded:{cost:2,params:{range:9.5,angle:2.0,damage:10,slowTime:2.5}},
+        effect:(g,t,p)=>g.eraseCone(t.dx,t.dz,p.range,p.angle,p.damage,p.push,p.slowTime,p.slowMult)
     },
     trap:{
         id:'trap',

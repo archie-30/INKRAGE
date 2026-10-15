@@ -29,6 +29,8 @@ export class ModeSelect extends Panel {
         this.infos=[];
         this.shake=[0,0,0];
         this.pick=[0,0,0];
+        this.selPop=[0,0,0];
+        this.lastSel=-1;
     }
 
     open2() {
@@ -154,6 +156,11 @@ export class ModeSelect extends Panel {
         for (let i=0;i<3;i++) {
             this.shake[i]=Math.max(0,this.shake[i]-dt*TUNING.modeUi.shakeDecay);
             this.pick[i]=Math.max(0,this.pick[i]-dt*2);
+            this.selPop[i]=Math.max(0,this.selPop[i]-dt*TUNING.modeUi.fx.popDecay);
+        }
+        if (this.sel!==this.lastSel) {
+            this.selPop[this.sel]=1;
+            this.lastSel=this.sel;
         }
     }
 
@@ -176,6 +183,7 @@ export class ModeSelect extends Panel {
             ctx.lineTo(w*EASE.easeOutCubic(f),y);
             ctx.stroke();
         }
+        this.drawDoodles(ctx,a);
         ctx.strokeStyle=rgba('red',0.45*a);
         ctx.lineWidth=1.6;
         ctx.beginPath();
@@ -196,6 +204,139 @@ export class ModeSelect extends Panel {
         ctx.fillText(title,0,0);
         const tw=ctx.measureText(title).width;
         drawShape(ctx,sketchLine(-tw/2,small?17:22,-tw/2+tw*clamp01((this.t-0.2)/0.5),small?17:22,{width:2.6,seed:3601}),PALETTE.red,v);
+        ctx.restore();
+    }
+
+    drawDoodles(ctx,a) {
+        const F=TUNING.modeUi.fx;
+        const w=this.width;
+        const h=this.height;
+        const k=clamp01((this.t-0.2)/0.6)*a;
+        if (k<=0) {
+            return;
+        }
+        ctx.save();
+        ctx.lineCap='round';
+        for (let i=0;i<F.doodles;i++) {
+            const hx=(Math.sin(i*91.7)*43758.5)%1;
+            const hy=(Math.sin(i*37.3)*24634.6)%1;
+            const sp=F.drift*(0.6+Math.abs(hx)*0.8);
+            const x=Math.abs(hx)*w+Math.sin(time.real*0.4+i)*12;
+            const y=(((Math.abs(hy)*h-time.real*sp)%h)+h)%h;
+            const s=8+Math.abs(hx*hy)*14;
+            const rot=time.real*0.5*(i%2?1:-1)+i;
+            ctx.save();
+            ctx.translate(x,y);
+            ctx.rotate(rot);
+            ctx.globalAlpha=k*F.alpha*(i%5===0?1.4:1);
+            ctx.strokeStyle=i%5===0?PALETTE.red:PALETTE.midGray;
+            ctx.lineWidth=1.6;
+            ctx.beginPath();
+            const kind=i%4;
+            if (kind===0) {
+                for (let j=0;j<5;j++) {
+                    const an=j/5*Math.PI*2;
+                    ctx.moveTo(0,0);
+                    ctx.lineTo(Math.cos(an)*s*0.6,Math.sin(an)*s*0.6);
+                }
+            }
+            else if (kind===1) {
+                for (let j=0;j<=20;j++) {
+                    const an=j/20*Math.PI*3;
+                    const rr=j/20*s*0.6;
+                    if (j===0) {
+                        ctx.moveTo(0,0);
+                    }
+                    else {
+                        ctx.lineTo(Math.cos(an)*rr,Math.sin(an)*rr);
+                    }
+                }
+            }
+            else if (kind===2) {
+                ctx.moveTo(-s*0.6,0);
+                ctx.quadraticCurveTo(-s*0.2,-s*0.5,0,0);
+                ctx.quadraticCurveTo(s*0.2,s*0.5,s*0.6,0);
+            }
+            else {
+                ctx.arc(0,0,s*0.35,0,Math.PI*2);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+
+    drawSelFx(ctx,r,v,i) {
+        const F=TUNING.modeUi.fx;
+        ctx.save();
+        ctx.strokeStyle=PALETTE.red;
+        ctx.lineWidth=2;
+        ctx.setLineDash([10,7]);
+        ctx.lineDashOffset=-time.real*F.ants;
+        ctx.strokeRect(-F.ring,-F.ring,r.w+F.ring*2,r.h+F.ring*2);
+        ctx.setLineDash([]);
+        const per=2*(r.w+r.h+F.ring*4);
+        for (let k=0;k<F.sparks;k++) {
+            let d=((time.real*F.orbit+k/F.sparks)%1)*per;
+            const W=r.w+F.ring*2;
+            const H=r.h+F.ring*2;
+            let x;
+            let y;
+            if (d<W) {
+                x=d;
+                y=0;
+            }
+            else if ((d-=W)<H) {
+                x=W;
+                y=d;
+            }
+            else if ((d-=H)<W) {
+                x=W-d;
+                y=H;
+            }
+            else {
+                x=0;
+                y=H-(d-W);
+            }
+            ctx.fillStyle=k%2?PALETTE.red:PALETTE.ink;
+            ctx.beginPath();
+            ctx.arc(x-F.ring,y-F.ring,2.6+Math.sin(time.real*6+k)*1,0,Math.PI*2);
+            ctx.fill();
+        }
+        const p=this.selPop[i];
+        if (p>0) {
+            ctx.globalAlpha=p;
+            ctx.strokeStyle=PALETTE.red;
+            ctx.lineWidth=3*p;
+            const g=(1-p)*F.burst;
+            ctx.strokeRect(-g,-g,r.w+g*2,r.h+g*2);
+        }
+        ctx.restore();
+    }
+
+    drawLand(ctx,r,i) {
+        const U=TUNING.modeUi;
+        const F=U.fx;
+        const lt=this.t-0.12-i*U.stagger-U.dropIn*0.55;
+        if (lt<0||lt>F.landT) {
+            return;
+        }
+        const k=lt/F.landT;
+        ctx.save();
+        ctx.globalAlpha=1-k;
+        ctx.fillStyle=rgba('ink',0.5);
+        for (let j=0;j<8;j++) {
+            const an=j/8*Math.PI*2+i;
+            const d=r.w*0.35+k*r.w*0.35;
+            ctx.beginPath();
+            ctx.arc(r.x+r.w/2+Math.cos(an)*d,r.y+r.h+Math.sin(an)*d*0.25,4*(1-k)+1,0,Math.PI*2);
+            ctx.fill();
+        }
+        ctx.strokeStyle=rgba('ink',0.4);
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.ellipse(r.x+r.w/2,r.y+r.h,r.w*(0.4+k*0.4),10+k*14,0,0,Math.PI*2);
+        ctx.stroke();
         ctx.restore();
     }
 
@@ -431,17 +572,21 @@ export class ModeSelect extends Panel {
         const sel=this.sel===i;
         const hv=inRect(r,this.hx,this.hy);
         const tt=time.real+i*1.3;
-        const lift=(sel?U.selLift:0)+(hv?U.hoverLift:0)+(sel?Math.sin(time.real*2.2)*2:0);
+        const lift=(sel?U.selLift:0)+(hv?U.hoverLift:0)+(sel?Math.sin(time.real*2.2)*2:Math.sin(time.real*1.6+i*2)*U.fx.idle);
         const tilt=(i-1)*U.tilt*(sel||hv?0.25:1);
         const sh=this.shake[i];
         const jig=sh>0?Math.sin(time.real*45)*sh*8:0;
-        const sc=(sel?1.03:1)+this.pick[i]*0.06;
+        const sc=(sel?1.03:1)+this.pick[i]*0.06+Math.sin(this.selPop[i]*Math.PI)*0.05;
+        const flip=Math.max(0.02,Math.abs(Math.cos((1-e)*Math.PI*0.5)));
         ctx.save();
         ctx.globalAlpha=Math.min(1,ap*2);
         ctx.translate(r.x+r.w/2+jig,r.y+r.h/2-lift+(1-e)*this.height*0.5);
         ctx.rotate(tilt+(1-e)*(i-1)*0.4);
-        ctx.scale(sc,sc);
+        ctx.scale(sc*flip,sc);
         ctx.translate(-r.w/2,-r.h/2);
+        if (sel&&ap>=1) {
+            this.drawSelFx(ctx,r,v,i);
+        }
         ctx.fillStyle=rgba('ink',0.12+(sel?0.06:0));
         ctx.fillRect(6,8+lift*0.3,r.w,r.h);
         ctx.fillStyle=mode==='bossrush'&&!locked?rgba('paper',1):PALETTE.paper;
@@ -522,11 +667,11 @@ export class ModeSelect extends Panel {
         }
         else {
             const best=st.best[mode]||0;
-            ctx.font=(small?11:12)+'px '+FONT;
+            ctx.font=(small?12:14)+'px '+FONT;
             ctx.fillStyle=PALETTE.nearGray;
             ctx.fillText(t('modes.best'),r.w/2,y);
-            y+=small?20:26;
-            ctx.font='bold '+(small?22:28)+'px '+FONT;
+            y+=small?24:32;
+            ctx.font='bold '+(small?U.bestSmall:U.best)+'px '+FONT;
             ctx.fillStyle=PALETTE.ink;
             const txt=best>0?best.toLocaleString('en-US'):'—';
             ctx.fillText(txt,r.w/2,y);
@@ -629,6 +774,9 @@ export class ModeSelect extends Panel {
         this.drawBackdrop(ctx,v,a);
         this.drawBack(ctx,v);
         const order=[0,1,2].filter(i=>i!==this.sel).concat([this.sel]);
+        for (let i=0;i<3;i++) {
+            this.drawLand(ctx,this.cards[i],i);
+        }
         for (const i of order) {
             this.drawCard(ctx,i,v);
         }

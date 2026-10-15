@@ -45,7 +45,7 @@ import {weaponUnlocked,pickWeapon,unlockedWeapons,RANDOM_WEAPON,WEAPONS,WEAPON_O
 import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
 import {startRelic,relic,takeGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
-import {GuidePopup,courseGuide,modeGuide,modesGuide,relicGuide,coinGuide} from './ui2d/guide.js';
+import {GuidePopup,courseGuide,modeGuide,relicGuide,coinGuide} from './ui2d/guide.js';
 import {ModeSelect,MODE_LIST} from './ui2d/modeSelect.js';
 import {DeckDraft} from './ui2d/deckDraft.js';
 import {draftDecks,rushTotals} from './game/rush.js';
@@ -213,6 +213,7 @@ function boot() {
     const decals=new Decals(world);
     const doors=new Doors(fxScene,particles);
     const npcs=new Npcs();
+    npcs.fx=fxScene;
     const marks=new WorldMarks();
     doors.onClose=()=>fx.cameraShake(0.15);
     doors.onOpen=()=>audio.play('clear',1.3);
@@ -773,6 +774,7 @@ function boot() {
                     markBossIntro(e.type);
                     fx.paused=true;
                     resumeT=TUNING.bossRush.intro;
+                    rushIntro=true;
                 }
             }
             else if (e.def.boss&&!e.tutor&&(run.mode==='story'||run.mode==='endless')&&!progress.bossIntro.includes(e.type)) {
@@ -1835,7 +1837,9 @@ function boot() {
         mainMenu.show();
         renderer.post.drawIn(1.6,0.2);
     }
+    let startGrace=0;
     function startGame(mode='story',deckIds=null) {
+        startGrace=time.real+TUNING.ui.startGrace;
         audio.play('ui');
         coach.reset();
         mainMenu.hide();
@@ -2042,6 +2046,7 @@ function boot() {
         }
     }
     let resumeT=0;
+    let rushIntro=false;
     function closePause() {
         audio.play('ui');
         pauseMenu.hide();
@@ -2050,6 +2055,7 @@ function boot() {
     function resumeGame() {
         input.mouse.down=false;
         input.dashQueued=false;
+        rushIntro=false;
         resumeT=coach.open||upgradeView.open||!tense()||!settings.resumeCount?0:TUNING.ui.resumeCount;
         if (resumeT<=0&&!coach.open&&!upgradeView.open) {
             fx.paused=false;
@@ -2072,6 +2078,7 @@ function boot() {
         resumeT-=dt;
         if (resumeT<=0) {
             resumeT=0;
+            rushIntro=false;
             fx.paused=false;
             input.dashQueued=false;
             audio.play('ui',1.5);
@@ -2137,6 +2144,12 @@ function boot() {
             }
         },
         select:()=>audio.play('ui',1.1),
+        reroll:()=>{
+            audio.play('page');
+            draftSet=draftDecks((Date.now()*7+13)&0xffff);
+            art.warm(draftSet.flat().map(id=>createCard(id)));
+            return draftSet;
+        },
         pick:k=>{
             audio.play('clear',1.2);
             const ids=draftSet[k];
@@ -2589,12 +2602,6 @@ function boot() {
     };
     const settingsMenu=new SettingsMenu({
         changed:settingsChanged,
-        modes:()=>{
-            audio.play('ui');
-            markModeSeen('story');
-            markModeSeen('endless');
-            guide.open2(modesGuide(),{ok:t('notice.ok')});
-        },
         privacy:()=>{
             audio.play('ui');
             guide.open2({title:t('privacy.title'),icon:null,blocks:[
@@ -3183,6 +3190,9 @@ function boot() {
         }
         input.resetPointers();
         hand.cancelTargeting();
+        if (time.real<startGrace&&!document.hidden) {
+            return;
+        }
         if (game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open&&!trainingPicker.open&&!fx.cutin) {
             openPause();
         }
@@ -3198,7 +3208,7 @@ function boot() {
     window.addEventListener('blur',autoPause);
     document.addEventListener('fullscreenchange',()=>{
         setTimeout(resize,60);
-        if (!document.fullscreenElement&&settings.fullscreen&&game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open) {
+        if (!document.fullscreenElement&&settings.fullscreen&&game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open&&time.real>=startGrace) {
             openPause();
         }
     });
@@ -3595,7 +3605,7 @@ function boot() {
             }
         }
         gameUi.resumeT=resumeT;
-        overlay.hud.rushShow=run.mode==='bossrush'&&(run.state!=='combat'||pauseMenu.open||resumeT>0||!!pendingBoss||modalShown()||!enemies.list.some(e=>e.def.boss&&e.alive));
+        overlay.hud.rushShow=run.mode==='bossrush'&&!pauseMenu.open&&(run.state!=='combat'||(rushIntro&&resumeT>0)||!!pendingBoss||codex.shown()||guide.shown()||!enemies.list.some(e=>e.def.boss&&e.alive));
         setTouchText(input.lastDevice==='touch');
         music.update(musicTrack());
         music.setDuck((pauseMenu.open&&!settingsMenu.open&&!codex.open)||relicView.rolling());
