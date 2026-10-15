@@ -276,6 +276,7 @@ export const TUNING={
         inkStrokes:18
     },
     perf:{
+        coverAfter:0.4,
         window:1,
         low:0.8,
         high:0.95,
@@ -594,6 +595,7 @@ export const TUNING={
         confetti:{count:46,speed:[60,140],size:[4,9],spin:6}
     },
     menu:{
+        footW:{big:150,small:122},
         btn:{gap:17,gapSmall:10,primaryH:1.3,slide:60,pulse:2.4,shine:0.45,textGap:14,arrowW:26,primarySize:26},
         randomCycle:1.2,
         bestGap:26,
@@ -763,14 +765,19 @@ export const TUNING={
         reloadRing:12
     },
     quality:{
-        low:{pixelRatio:2.0,grain:false,hatchedShadow:false,anisotropy:1,particles:100,hulls:false,fastEdge:true,wobble:true,decals:8},
-        mid:{pixelRatio:2.0,grain:true,hatchedShadow:true,anisotropy:2,particles:220,fastEdge:true,wobble:true,decals:16,edgeAA:true},
+        low:{pixelRatio:2.0,mobileCap:1.0,grain:false,hatchedShadow:false,anisotropy:1,particles:100,hulls:false,fastEdge:true,wobble:true,decals:8},
+        mid:{pixelRatio:2.0,mobileCap:1.35,grain:true,hatchedShadow:true,anisotropy:2,particles:220,fastEdge:true,wobble:true,decals:16,edgeAA:true},
         high:{pixelRatio:2.0,mobileCap:2.0,grain:true,hatchedShadow:true,anisotropy:4,particles:500,fastEdge:false,wobble:true,decals:24,edgeAA:true}
+    },
+    qualityMobile:{
+        low:{particles:80,decals:6},
+        mid:{edgeAA:false,particles:160,decals:12}
     },
     pixelRatioCap:{
         mobile:1.5,
         desktop:2.0,
-        ui:2.0
+        ui:2.0,
+        uiMobile:1.75
     },
     reducedMotion:{
         boil:0,
