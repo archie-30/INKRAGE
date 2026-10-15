@@ -46,7 +46,7 @@ import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold
 import {startRelic,relic,takeGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
 import {GuidePopup,courseGuide,modeGuide,modesGuide,relicGuide,coinGuide} from './ui2d/guide.js';
-import {ModeSelect} from './ui2d/modeSelect.js';
+import {ModeSelect,MODE_LIST} from './ui2d/modeSelect.js';
 import {DeckDraft} from './ui2d/deckDraft.js';
 import {draftDecks,rushTotals} from './game/rush.js';
 import {BuyPrompt,ChestView,AchievementView,RevivePopup,AchToast,ConfirmPopup} from './ui2d/meta.js';
@@ -2171,6 +2171,7 @@ function boot() {
     }
     const modeSelect=new ModeSelect({
         status:rushStatus,
+        saves:()=>Object.fromEntries(MODE_LIST.map(m=>[m,!!loadRunSnap(m)])),
         back:()=>{
             audio.play('ui');
             modeSelect.hide();
@@ -3594,6 +3595,7 @@ function boot() {
             }
         }
         gameUi.resumeT=resumeT;
+        overlay.hud.rushShow=run.mode==='bossrush'&&(run.state!=='combat'||pauseMenu.open||resumeT>0||!!pendingBoss||modalShown()||!enemies.list.some(e=>e.def.boss&&e.alive));
         setTouchText(input.lastDevice==='touch');
         music.update(musicTrack());
         music.setDuck((pauseMenu.open&&!settingsMenu.open&&!codex.open)||relicView.rolling());

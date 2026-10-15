@@ -8,7 +8,7 @@ import {FONT,inRect,drawButton,Panel,fitText} from './uiKit.js';
 import {wrapText} from './cardView.js';
 import {ENEMY_ICONS} from './enemyIcons.js';
 
-export const MODE_LIST=['story','endless','bossrush'];
+export const MODE_LIST=['endless','story','bossrush'];
 
 const RUSH_ICONS=['inkBottle','scissors','book','exam','bookFinal','alarm','calculator'];
 
@@ -21,7 +21,8 @@ export class ModeSelect extends Panel {
         super();
         this.actions=actions;
         this.outFrom=0.5;
-        this.sel=0;
+        this.sel=1;
+        this.saves={};
         this.hx=-1;
         this.hy=-1;
         this.cards=[];
@@ -31,7 +32,8 @@ export class ModeSelect extends Panel {
     }
 
     open2() {
-        this.sel=0;
+        this.sel=1;
+        this.saves=this.actions.saves?this.actions.saves():{};
         this.shake=[0,0,0];
         this.pick=[0,0,0];
         this.show();
@@ -556,6 +558,9 @@ export class ModeSelect extends Panel {
         ctx.fillStyle=PALETTE.ink;
         ctx.font='bold '+(small?13:15)+'px '+FONT;
         ctx.fillText('i',icx,icy+1);
+        if (this.saves[mode]) {
+            this.drawSaveTag(ctx,small,i);
+        }
         if (mode==='story') {
             const pulse=1+Math.sin(time.real*3)*0.04;
             ctx.save();
@@ -574,6 +579,42 @@ export class ModeSelect extends Panel {
             ctx.fillText(t('modes.recommend'),0,1);
             ctx.restore();
         }
+        ctx.restore();
+    }
+
+    drawSaveTag(ctx,small,i) {
+        const U=TUNING.modeUi.save;
+        const k=clamp01((this.t-0.5-i*0.08)/U.pop);
+        if (k<=0) {
+            return;
+        }
+        const e=EASE.easeOutBack(k);
+        ctx.save();
+        ctx.translate(small?14:18,small?10:12);
+        ctx.rotate(U.rot+Math.sin(time.real*U.sway)*0.03);
+        ctx.scale(e,e);
+        ctx.font='bold '+(small?11:13)+'px '+FONT;
+        const label=t('modes.saved');
+        const tw=ctx.measureText(label).width+(small?24:30);
+        const th=small?22:26;
+        ctx.fillStyle=rgba('ink',0.15);
+        ctx.fillRect(3,3,tw,th);
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(0,0,tw,th);
+        ctx.strokeStyle=PALETTE.red;
+        ctx.lineWidth=1.6;
+        ctx.setLineDash([4,3]);
+        ctx.strokeRect(2,2,tw-4,th-4);
+        ctx.setLineDash([]);
+        const pulse=0.55+0.45*Math.sin(time.real*U.blink);
+        ctx.fillStyle=rgba('red',pulse);
+        ctx.beginPath();
+        ctx.arc(small?10:12,th/2,small?3.5:4.5,0,Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle=PALETTE.red;
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        ctx.fillText(label,small?17:21,th/2+1);
         ctx.restore();
     }
 

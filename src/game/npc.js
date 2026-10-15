@@ -52,64 +52,251 @@ function table(g,tone='cover') {
     }
 }
 
+function rot(m,x=0,y=0,z=0) {
+    m.rotation.set(x,y,z);
+    return m;
+}
+
+function rug(g,w,d,tone='light') {
+    g.add(bx(w,0.02,d,tone,0,0.01,0));
+    g.add(bx(w,0.03,0.08,'dark',0,0.02,-d/2),bx(w,0.03,0.08,'dark',0,0.02,d/2));
+    g.add(bx(0.08,0.03,d,'dark',-w/2,0.02,0),bx(0.08,0.03,d,'dark',w/2,0.02,0));
+}
+
+function chair(g,x,z,ry=0,tone='cover') {
+    const c=new THREE.Group();
+    c.add(bx(0.5,0.06,0.5,tone,0,0.5,0));
+    c.add(bx(0.5,0.55,0.06,tone,0,0.8,-0.22));
+    for (const [lx,lz] of [[-0.21,-0.21],[0.21,-0.21],[-0.21,0.21],[0.21,0.21]]) {
+        c.add(bx(0.05,0.5,0.05,'dark',lx,0.25,lz));
+    }
+    c.position.set(x,0,z);
+    c.rotation.y=ry;
+    g.add(c);
+}
+
+function jar(g,x,y,z,tone='light',h=0.3) {
+    g.add(cyl(0.11,0.12,h,tone,x,y+h/2,z,8));
+    g.add(cyl(0.12,0.12,0.06,'accent',x,y+h+0.03,z,8));
+}
+
+function papers(g,x,y,z,n=3,ry=0) {
+    for (let i=0;i<n;i++) {
+        g.add(rot(bx(0.42,0.02,0.56,'light',x+i*0.03,y+i*0.025,z-i*0.02),0,ry+i*0.18,0));
+    }
+}
+
+function screen(g,x,z,ry=0) {
+    const sc=new THREE.Group();
+    for (let i=-1;i<=1;i++) {
+        const pn=new THREE.Group();
+        pn.add(bx(0.7,1.5,0.04,'light',0,1.0,0));
+        pn.add(bx(0.06,1.8,0.06,'dark',-0.35,0.9,0),bx(0.06,1.8,0.06,'dark',0.35,0.9,0));
+        pn.add(bx(0.7,0.05,0.05,'dark',0,1.76,0));
+        pn.position.set(i*0.68,0,Math.abs(i)*0.2);
+        pn.rotation.y=-i*0.35;
+        sc.add(pn);
+    }
+    sc.add(bx(0.3,0.04,0.05,'accent',0,1.3,0.03),bx(0.08,0.3,0.05,'accent',0,1.3,0.03));
+    sc.position.set(x,0,z);
+    sc.rotation.y=ry;
+    g.add(sc);
+}
+
+function shelf(g,x,z,w=1.4,h=1.6,ry=0) {
+    const s=new THREE.Group();
+    s.add(bx(w,h,0.06,'dark',0,h/2,-0.22));
+    s.add(bx(0.06,h,0.5,'dark',-w/2,h/2,0),bx(0.06,h,0.5,'dark',w/2,h/2,0));
+    for (let k=0;k<3;k++) {
+        s.add(bx(w,0.05,0.5,'cover',0,0.1+k*h/3,0));
+    }
+    s.position.set(x,0,z);
+    s.rotation.y=ry;
+    g.add(s);
+    return s;
+}
+
+function post(g,x,z) {
+    g.add(cyl(0.18,0.22,0.08,'dark',x,0.04,z,10));
+    g.add(cyl(0.04,0.04,0.95,'dark',x,0.5,z,6));
+    g.add(ball(0.08,'accent',x,1.0,z));
+}
+
+function lampPole(g,x,z) {
+    g.add(cyl(0.22,0.26,0.06,'dark',x,0.03,z,10));
+    g.add(cyl(0.03,0.03,1.9,'dark',x,0.98,z,6));
+    g.add(rot(cyl(0.12,0.3,0.28,'cover',x,1.95,z,10),0,0,0));
+}
+
 const STATIONS={
     bed(g) {
-        g.add(bx(1.2,0.5,2.1,'dark',0,0.25,0));
-        g.add(bx(1.14,0.18,2.0,'light',0,0.58,0));
-        g.add(bx(0.8,0.16,0.42,'light',0,0.74,-0.72));
-        g.add(bx(1.16,0.1,1.2,'cover',0,0.7,0.35));
-        g.add(bx(0.5,0.04,0.14,'accent',0,0.76,0.35));
-        g.add(bx(0.14,0.04,0.5,'accent',0,0.76,0.35));
-        g.add(bx(1.2,0.7,0.1,'dark',0,0.6,-1.02));
+        rug(g,4.6,4.0,'cover');
+        const bed=new THREE.Group();
+        bed.add(bx(1.2,0.5,2.1,'dark',0,0.25,0));
+        bed.add(bx(1.14,0.18,2.0,'light',0,0.58,0));
+        bed.add(bx(0.8,0.16,0.42,'light',0,0.74,-0.72));
+        bed.add(bx(1.16,0.1,1.2,'cover',0,0.7,0.35));
+        bed.add(bx(0.5,0.04,0.14,'accent',0,0.76,0.35));
+        bed.add(bx(0.14,0.04,0.5,'accent',0,0.76,0.35));
+        bed.add(bx(1.2,0.7,0.1,'dark',0,0.6,-1.02),bx(1.2,0.45,0.1,'dark',0,0.48,1.02));
+        g.add(bed);
+        g.add(bx(0.55,0.65,0.5,'cover',1.15,0.33,-0.7),bx(0.58,0.05,0.53,'dark',1.15,0.67,-0.7));
+        g.add(cyl(0.08,0.07,0.2,'light',1.05,0.8,-0.75,8));
+        jar(g,1.28,0.7,-0.6,'light',0.22);
+        g.add(cyl(0.18,0.22,0.06,'dark',-1.1,0.03,-0.6,10));
+        g.add(cyl(0.025,0.025,1.9,'dark',-1.1,0.98,-0.6,6));
+        g.add(bx(0.4,0.04,0.04,'dark',-1.1,1.9,-0.6));
+        g.add(bx(0.24,0.36,0.12,'light',-1.24,1.66,-0.6));
+        g.add(bx(0.1,0.06,0.13,'accent',-1.24,1.66,-0.53));
+        screen(g,0,-1.9);
+        g.add(bx(0.5,0.08,0.3,'light',-0.9,0.04,1.4),bx(0.5,0.08,0.3,'light',-0.35,0.04,1.55));
     },
     bench(g) {
+        rug(g,4.6,4.0,'cover');
         table(g);
         g.add(cyl(0.05,0.05,0.7,'dark',-0.4,1.0,0.1,6));
-        const hm=bx(0.32,0.16,0.16,'ink',-0.4,1.32,0.1);
-        g.add(hm);
+        g.add(bx(0.32,0.16,0.16,'ink',-0.4,1.32,0.1));
         g.add(bx(0.5,0.1,0.34,'light',0.35,0.97,-0.1));
         g.add(bx(0.5,0.1,0.34,'accent',0.38,1.07,-0.08));
+        g.add(bx(0.3,0.22,0.3,'dark',-0.6,1.03,-0.3),bx(0.08,0.12,0.4,'cover',-0.6,1.2,-0.3));
+        papers(g,0.1,0.93,0.3,2,0.4);
+        lampPole(g,1.3,-1.0);
+        const sh=shelf(g,0,-1.9,2.0,1.7);
+        for (let k=0;k<3;k++) {
+            jar(sh,-0.6+k*0.55,0.62,0,k===1?'accent':'light',0.26);
+            sh.add(bx(0.3,0.2,0.3,k===2?'accent':'cover',-0.5+k*0.5,1.29,0));
+        }
+        g.add(bx(0.9,0.4,0.45,'accent',-1.3,0.2,0.9),bx(0.92,0.06,0.47,'dark',-1.3,0.42,0.9),bx(0.3,0.08,0.06,'dark',-1.3,0.5,0.9));
+        chair(g,0.2,1.15,Math.PI);
+        g.add(rot(bx(0.3,0.02,0.4,'light',1.1,0.02,1.1),0,0.6,0),rot(bx(0.3,0.02,0.4,'light',1.45,0.02,0.85),0,-0.3,0));
     },
     swap(g) {
+        rug(g,4.6,4.0,'cover');
         table(g);
         for (let i=0;i<3;i++) {
             g.add(bx(0.42,0.04,0.6,i===2?'accent':'light',-0.45,0.95+i*0.05,0));
             g.add(bx(0.42,0.04,0.6,'light',0.45,0.95+i*0.05,0));
         }
-        const ar=bx(0.4,0.06,0.08,'accent',0,1.2,0);
-        g.add(ar);
+        g.add(bx(0.4,0.06,0.08,'accent',0,1.2,0));
+        g.add(rot(cyl(0.0,0.1,0.18,'accent',0.24,1.2,0,6),0,0,-Math.PI/2));
+        const rack=new THREE.Group();
+        rack.add(bx(2.2,1.6,0.08,'dark',0,0.9,0));
+        rack.add(bx(0.08,1.8,0.3,'dark',-1.1,0.9,0.1),bx(0.08,1.8,0.3,'dark',1.1,0.9,0.1));
+        for (let k=0;k<5;k++) {
+            const c=bx(0.32,0.46,0.03,k%2?'light':'cover',-0.8+k*0.4,1.05+Math.sin(k)*0.1,0.06);
+            c.rotation.z=(k-2)*0.12;
+            rack.add(c);
+        }
+        rack.position.set(0,0,-1.9);
+        g.add(rack);
+        g.add(cyl(0.28,0.22,0.6,'dark',1.4,0.3,0.6,10),cyl(0.3,0.3,0.04,'cover',1.4,0.6,0.6,10));
+        g.add(rot(bx(0.3,0.02,0.4,'light',1.35,0.66,0.55),0.5,0.3,0.2));
+        g.add(rot(bx(0.3,0.02,0.4,'light',1.7,0.02,1.0),0,0.8,0),rot(bx(0.3,0.02,0.4,'light',1.1,0.02,1.3),0,-0.4,0));
+        chair(g,-1.4,0.4,Math.PI/2);
     },
     ults(g) {
-        g.add(bx(1.3,2.0,0.7,'dark',0,1.0,0));
-        g.add(bx(1.1,1.7,0.06,'cover',0,1.05,0.36));
+        rug(g,4.6,4.0,'dark');
+        g.add(bx(1.3,2.0,0.7,'dark',0,1.0,-0.4));
+        g.add(bx(1.1,1.7,0.06,'cover',0,1.05,-0.04));
         for (let i=0;i<3;i++) {
-            const b=bx(0.46,0.1,0.05,'accent',0,1.2,0.4);
+            const b=bx(0.46,0.1,0.05,'accent',0,1.2,0);
             b.rotation.z=i*Math.PI/3;
+            b.position.z=0;
             g.add(b);
+        }
+        g.add(bx(0.14,0.2,0.08,'marker',0.42,1.0,0.0));
+        for (const sx of [-1,1]) {
+            g.add(bx(0.7,1.3,0.6,'dark',sx*1.2,0.65,-0.6));
+            g.add(bx(0.6,0.04,0.5,'cover',sx*1.2,0.85,-0.5),bx(0.6,0.04,0.5,'cover',sx*1.2,0.45,-0.5));
+            const card=bx(0.34,0.46,0.03,'accent',sx*1.2,1.55,-0.5);
+            card.rotation.z=sx*0.1;
+            g.add(card);
+            g.add(bx(0.06,0.25,0.06,'dark',sx*1.2,1.3,-0.5));
+        }
+        post(g,-1.6,1.1);
+        post(g,0,1.4);
+        post(g,1.6,1.1);
+        for (const [x0,x1] of [[-1.6,0],[0,1.6]]) {
+            const rope=cyl(0.025,0.025,Math.hypot(x1-x0,0.3),'accent',(x0+x1)/2,0.82,1.25,6);
+            rope.rotation.z=Math.PI/2;
+            rope.rotation.y=Math.atan2(0.3,x1-x0)*(x0<0?1:-1);
+            g.add(rope);
         }
     },
     retest(g) {
+        rug(g,4.6,4.0,'cover');
         table(g,'light');
         g.add(bx(0.8,0.02,1.0,'light',0,0.93,0));
         for (let i=0;i<4;i++) {
             g.add(bx(0.6,0.02,0.04,'dark',0,0.95,-0.3+i*0.18));
         }
-        const pen=cyl(0.04,0.04,0.7,'accent',0.55,0.98,0.2,6);
-        pen.rotation.z=Math.PI/2;
-        g.add(pen);
+        g.add(rot(cyl(0.04,0.04,0.7,'accent',0.55,0.98,0.2,6),0,0,Math.PI/2));
+        g.add(bx(0.3,0.04,0.04,'accent',-0.25,0.96,0.25),bx(0.04,0.04,0.3,'accent',-0.25,0.96,0.25));
+        chair(g,0,0.95,Math.PI);
+        const board=new THREE.Group();
+        board.add(bx(2.4,1.3,0.08,'ink',0,1.45,0));
+        board.add(bx(2.5,0.08,0.14,'dark',0,0.8,0.04),bx(2.5,0.08,0.12,'dark',0,2.12,0));
+        board.add(bx(0.08,2.1,0.08,'dark',-1.2,1.05,0.05),bx(0.08,2.1,0.08,'dark',1.2,1.05,0.05));
+        for (let k=0;k<3;k++) {
+            board.add(bx(0.9-k*0.2,0.03,0.02,'light',-0.4,1.75-k*0.25,0.05));
+        }
+        board.add(bx(0.3,0.03,0.02,'accent',0.6,1.6,0.05),bx(0.03,0.3,0.02,'accent',0.6,1.6,0.05));
+        board.add(bx(0.18,0.06,0.08,'light',0.7,0.86,0.1));
+        board.position.set(0,0,-1.9);
+        g.add(board);
+        g.add(cyl(0.03,0.03,1.6,'dark',1.6,0.8,-0.9,6));
+        const clock=cyl(0.3,0.3,0.06,'light',1.6,1.75,-0.9,14);
+        clock.rotation.x=Math.PI/2;
+        g.add(clock);
+        g.add(bx(0.03,0.2,0.02,'ink',1.6,1.82,-0.85),bx(0.15,0.03,0.02,'accent',1.66,1.75,-0.85));
+        papers(g,-1.4,0.02,1.0,3,0.7);
+        g.add(rot(bx(0.3,0.02,0.4,'light',1.4,0.02,1.2),0,-0.5,0));
     },
     challenge(g) {
+        rug(g,4.6,4.0,'cover');
         g.add(cyl(0.6,0.7,0.5,'dark',0,0.25,0,10));
         g.add(cyl(0.12,0.12,0.4,'cover',0,0.7,0,8));
         g.add(cyl(0.38,0.18,0.5,'marker',0,1.15,0,12));
         g.add(cyl(0.4,0.4,0.05,'marker',0,1.4,0,12));
         for (const s of [-1,1]) {
-            const h=cyl(0.04,0.04,0.3,'marker',s*0.42,1.2,0,6);
-            h.rotation.z=Math.PI/2;
-            g.add(h);
+            g.add(rot(cyl(0.04,0.04,0.3,'marker',s*0.42,1.2,0,6),0,0,Math.PI/2));
+        }
+        g.add(bx(0.9,0.5,0.8,'cover',-1.0,0.25,-1.3),bx(0.9,0.8,0.8,'light',0,0.4,-1.5),bx(0.9,0.3,0.8,'cover',1.0,0.15,-1.3));
+        g.add(bx(0.2,0.3,0.02,'accent',0,0.5,-1.09),bx(0.2,0.2,0.02,'dark',-1.0,0.32,-0.89),bx(0.2,0.2,0.02,'dark',1.0,0.18,-0.89));
+        for (const sx of [-1,1]) {
+            g.add(cyl(0.03,0.03,2.2,'dark',sx*1.8,1.1,-1.2,6));
+            const fl=bx(0.6,0.38,0.02,sx<0?'accent':'marker',sx*1.8+0.3,1.95,-1.2);
+            g.add(fl);
+        }
+        const tg=new THREE.Group();
+        for (const [r,tone] of [[0.5,'light'],[0.36,'accent'],[0.22,'light'],[0.1,'accent']]) {
+            const d=cyl(r,r,0.04,tone,0,0,0,16);
+            d.rotation.x=Math.PI/2;
+            d.position.z=(0.5-r)*0.1;
+            tg.add(d);
+        }
+        tg.position.set(1.5,1.0,0.6);
+        tg.rotation.y=-0.7;
+        g.add(tg);
+        g.add(rot(bx(0.06,1.0,0.06,'dark',1.5,0.5,0.55),0,0,0));
+        g.add(bx(0.9,0.06,0.5,'dark',-1.4,0.03,0.9));
+        for (let k=0;k<3;k++) {
+            g.add(cyl(0.1,0.12,0.3-k*0.06,'marker',-1.7+k*0.3,0.21-k*0.03,0.9,8));
         }
     }
 };
+
+const FOG_PUFFS=(()=>{
+    const out=[];
+    const n=TUNING.npc.fogPuffs;
+    for (let i=0;i<n;i++) {
+        const a=i*2.399;
+        const k=Math.sqrt((i+0.5)/n);
+        const h=Math.abs(Math.sin(i*12.9898)*43758.5453)%1;
+        out.push([Math.cos(a)*k*TUNING.npc.fogR,0.45+h*1.6,Math.sin(a)*k*TUNING.npc.fogR*0.9,0.75+(1-k)*0.55+h*0.25,i]);
+    }
+    return out;
+})();
 
 const MODELS={
     zone(body,root,s) {
@@ -119,12 +306,14 @@ const MODELS={
         st.scale.set(0.001,0.001,0.001);
         body.add(st);
         const fog=new THREE.Group();
-        const puffs=[[0,0.9,0,1.0],[-0.8,0.6,0.3,0.7],[0.8,0.65,-0.2,0.75],[0.2,1.5,-0.3,0.65],[-0.4,1.3,-0.5,0.6],[0.5,0.5,0.6,0.6],[-0.6,0.45,-0.6,0.55]];
-        for (const [x,y,z,r] of puffs) {
-            fog.add(ball(r,'cover',x,y,z));
+        for (const [x,y,z,r,i] of FOG_PUFFS) {
+            const pf=ball(r,i%3===0?'light':'cover',x,y,z);
+            pf.userData.base=y;
+            pf.userData.ph=i*1.7;
+            fog.add(pf);
         }
         root.add(fog);
-        return {r:1.25,h:2.4,still:true,fog,station:st};
+        return {r:TUNING.npc.zoneR,h:2.8,still:true,fog,station:st};
     },
     shop(body,root) {
         root.add(bx(2.6,0.9,1.0,'cover',0,0.45,0.75));
@@ -591,9 +780,14 @@ export class Npcs {
                 const sealed=n.sealed?N.fogSealed:1;
                 n.fog.scale.set(f*(1+e*0.6),f*sealed,f*(1+e*0.6));
                 n.fog.position.y=e*N.fogLift;
-                n.fog.rotation.y=n.t*N.fogSpin;
+                n.fog.rotation.y=Math.sin(n.t*N.fogSpin)*0.12;
                 n.fog.visible=f>0.01;
-                const g=Math.max(0.001,EASE.easeOutBack(n.reveal));
+                if (n.fog.visible) {
+                    for (const pf of n.fog.children) {
+                        pf.position.y=pf.userData.base+Math.sin(n.t*N.fogBob+pf.userData.ph)*N.fogBobAmp;
+                    }
+                }
+                const g=Math.max(0.001,EASE.easeOutBack(n.reveal))*N.stationScale;
                 n.station.scale.set(g,g,g);
                 n.body.scale.set(1,1,1);
                 n.body.position.y=0;
