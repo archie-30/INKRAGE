@@ -342,7 +342,7 @@ export class WorldMarks {
             if (npcs.focus===i&&doors.focus<0) {
                 focused=i;
             }
-            else if (n.relic) {
+            else if (n.relic||n.role) {
                 const y=p.y-W.bangH+Math.sin(time.real*W.bobRate+i)*W.bob;
                 ctx.font='bold 13px '+FONT;
                 const label=n.label;
