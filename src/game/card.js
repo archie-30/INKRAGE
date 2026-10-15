@@ -420,7 +420,7 @@ export class CardEffects {
         const g=this.g;
         const E=this.E;
         const p=g.player;
-        const e=g.enemies.nearest(x,z,radius);
+        const e=g.enemies.priority(x,z,radius);
         if (e) {
             const dx=e.pos.x-p.pos.x;
             const dz=e.pos.z-p.pos.z;

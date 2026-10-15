@@ -105,7 +105,7 @@ export const STRINGS={
     'card.rapid.name':'連射',
     'card.rapid.desc':'{duration} 秒內射速提升為 {mult} 倍。',
     'card.execute.name':'紅墨處決',
-    'card.execute.desc':'對目標附近最近的敵人造成 {damage} 點毀滅性傷害。',
+    'card.execute.desc':'對目標範圍內的敵人造成 {damage} 點毀滅性傷害：優先頭目，其次菁英怪，再來才是最近的敵人。',
     'card.pencilWall.name':'鉛筆牆',
     'card.pencilWall.desc':'在地上畫出最長 {length} 的路徑，長出一道擋住敵彈的牆，持續 {duration} 秒後消失。',
     'card.eraser.name':'橡皮擦',
