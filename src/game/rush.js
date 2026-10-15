@@ -202,9 +202,6 @@ export const RushMixin={
                 });
             }
             if (plan.node==='infirmary') {
-                if (plan.zoneOpen>=0) {
-                    this.hooks.revealZone(plan.zoneOpen,true);
-                }
                 if (!plan.healed) {
                     plan.healed=true;
                     const n=this.hooks.heal(B().heal);
@@ -334,9 +331,8 @@ export const RushMixin={
         }
         if (n.role==='relic') {
             if (p.relicTaken) {
-                this.hooks.npcSay(0,t('library.onlyOne'));
                 this.state='peace';
-                return true;
+                return false;
             }
             p.relicTaken=true;
             this.markNpc(i);
@@ -344,39 +340,32 @@ export const RushMixin={
             this.hooks.takeRelic(n.relic,done);
             return true;
         }
-        if (p.zoneOpen<0) {
-            if (R.armed!==i) {
-                R.armed=i;
-                this.hooks.npcSay(i,t('rush.zoneConfirm',{name:n.label}));
-                this.state='peace';
-                return true;
-            }
-            R.armed=-1;
-            p.zoneOpen=i;
-            p.npcs.forEach((q,k)=>{
-                if (q.role==='zone'&&k!==i) {
-                    this.markNpc(k,true);
-                }
-            });
-            this.hooks.revealZone(i,false);
-            this.hooks.npcSay(i,t('rush.zoneOpened',{name:n.label}));
+        if (p.zoneOpen>=0&&p.zoneOpen!==i) {
+            this.hooks.npcSay(i,t('rush.zoneLocked'));
             this.state='peace';
             return true;
         }
-        if (p.zoneOpen!==i) {
-            this.state='peace';
-            return false;
-        }
         this.state='node';
         const fin=()=>{
-            this.markNpc(i);
+            this.lockZone(i);
             done();
         };
-        this.station(n.zone,fin,i);
+        this.station(n.zone,fin,i,done);
         return true;
     },
 
-    station(kind,fin,i) {
+    lockZone(i) {
+        const p=this.plan;
+        p.zoneOpen=i;
+        this.markNpc(i);
+        p.npcs.forEach((q,k)=>{
+            if (q.role==='zone'&&k!==i&&!p.used[k]) {
+                this.markNpc(k,true);
+            }
+        });
+    },
+
+    station(kind,fin,i,cancel=fin) {
         const p=this.plan;
         if (kind==='bed') {
             const n=this.hooks.heal(B().bedHeal);
@@ -410,6 +399,7 @@ export const RushMixin={
         }
         if (kind==='swap') {
             this.hooks.openDeckPick('swap',this.deckList,j=>{
+                this.lockZone(i);
                 const c=this.deckList[j];
                 const rare=CARDS[c.id].rarity==='rare';
                 this.deckList.splice(j,1);
@@ -419,7 +409,7 @@ export const RushMixin={
                     this.state='reward';
                     this.hooks.openReward([{kind:rare?'rare':'normal',cards:cands}],this.deckCounts(),picked=>this.takeCards(picked,fin),false,t('rush.swapTitle'));
                 });
-            });
+            },{cb:cancel,confirm:true});
             return;
         }
         if (kind==='ults') {
@@ -450,7 +440,7 @@ export const RushMixin={
             return;
         }
         if (kind==='challenge') {
-            this.markNpc(i);
+            this.lockZone(i);
             this.rushGame();
             return;
         }

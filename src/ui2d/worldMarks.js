@@ -378,9 +378,9 @@ export class WorldMarks {
         if (focused>=0) {
             const n=npcs.list[focused];
             game.project(n.x,n.h+W.npcLift,n.z,p);
-            const sub=n.item?t('shop.'+n.item+'.desc',{price:n.price,n:SHOP.items[n.item].n||0}):(n.relic?t('relic.'+n.relic+'.desc',relicParams(n.relic)):null);
+            const sub=n.item?t('shop.'+n.item+'.desc',{price:n.price,n:SHOP.items[n.item].n||0}):(n.relic?t('relic.'+n.relic+'.desc',relicParams(n.relic)):(n.zone?t('rush.zoneDesc.'+n.zone):null));
             const armed=touch&&npcs.armed===focused;
-            const taken=n.relic&&game.run.lib&&game.run.lib.relic;
+            const taken=n.relic&&((game.run.lib&&game.run.lib.relic)||(game.run.plan&&game.run.plan.relicTaken));
             const head=taken?n.label+t('ui.sep')+t('library.viewOnly'):(n.relic?t('library.take',{name:n.label}):(n.label||t('npc.'+n.model)));
             this.drawPrompt(ctx,p,armed?t(n.relic?'library.confirmTap':'shop.confirmTap',{name:n.label}):(taken?head:t(touch?'npc.tap':'npc.press')+t('ui.gap')+head),v,2320+focused,sub,armed);
         }

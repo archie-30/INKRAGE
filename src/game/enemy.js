@@ -1293,7 +1293,8 @@ class Bird extends Enemy {
     }
 
     pose(step) {
-        const flap=(step%2===0?1:-1)*(this.state==='swoop'?0.25:0.85);
+        const F=TUNING.birdFlap;
+        const flap=Math.sin(time.real*F.rate+this.phase)*(this.state==='swoop'?F.swoop:F.amp);
         this.wings[0].rotation.z=flap;
         this.wings[1].rotation.z=-flap;
         const dive=this.state==='swoop'?-1.0:(this.state==='telegraph'?0.3:0);

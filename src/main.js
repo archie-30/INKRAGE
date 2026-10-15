@@ -773,11 +773,6 @@ function boot() {
                 else {
                     markBossIntro(e.type);
                     rushIntroT=TUNING.bossRush.introShow;
-                    if (run.rush&&run.rush.idx>0) {
-                        fx.paused=true;
-                        resumeT=TUNING.bossRush.intro;
-                        rushIntro=true;
-                    }
                 }
             }
             else if (e.def.boss&&!e.tutor&&(run.mode==='story'||run.mode==='endless')&&!progress.bossIntro.includes(e.type)) {
@@ -1531,15 +1526,6 @@ function boot() {
                 flashRelic('inkVial');
             }
         },
-        revealZone:(i,instant)=>{
-            npcs.reveal(i,instant);
-            if (!instant) {
-                const n=npcs.list[i];
-                audio.play('clear',1.1);
-                particles.burst(n.x,1.2,n.z,26,{color:'farGray',speed:[2,6],up:[2,6],size:[0.14,0.3],life:[0.5,1.0]});
-                fx.cameraShake(0.2);
-            }
-        },
         replaceNpc:(i,spec)=>{
             npcs.replace(game.room,i,spec);
             const n=npcs.list[i];
@@ -1776,7 +1762,7 @@ function boot() {
         }
         audio.play('ui');
         hand.cancelTargeting();
-        const pickRelic=run.plan&&(run.plan.node==='library'||run.plan.node==='infirmary')&&npcs.list[npcs.focus]&&npcs.list[npcs.focus].relic&&!(run.lib&&run.lib.relic);
+        const pickRelic=run.plan&&(run.plan.node==='library'||run.plan.node==='infirmary')&&npcs.list[npcs.focus]&&npcs.list[npcs.focus].relic&&!(run.lib&&run.lib.relic)&&!run.plan.relicTaken;
         if (input.lastDevice==='touch'&&run.plan&&(run.plan.node==='shop'&&npcs.focus>0||pickRelic)&&npcs.armed!==npcs.focus) {
             npcs.armed=npcs.focus;
             buyArmT=TUNING.shopArm.time;
@@ -1983,7 +1969,15 @@ function boot() {
         audio.play('ui');
         hand.cancelTargeting();
         fx.paused=true;
-        codex.showSolo(id,()=>resumeGame());
+        codex.showSolo(id,()=>{
+            if (run.mode==='bossrush') {
+                input.mouse.down=false;
+                fx.paused=false;
+                rushIntroT=TUNING.bossRush.introShow;
+                return;
+            }
+            resumeGame();
+        });
     }
     function openCourseGuide(id,intro) {
         if (game.mode!=='play'||run.mode!=='endless'||guide.open) {
@@ -2049,7 +2043,6 @@ function boot() {
         }
     }
     let resumeT=0;
-    let rushIntro=false;
     let rushIntroT=0;
     function closePause() {
         audio.play('ui');
@@ -2059,7 +2052,6 @@ function boot() {
     function resumeGame() {
         input.mouse.down=false;
         input.dashQueued=false;
-        rushIntro=false;
         resumeT=coach.open||upgradeView.open||!tense()||!settings.resumeCount?0:TUNING.ui.resumeCount;
         if (resumeT<=0&&!coach.open&&!upgradeView.open) {
             fx.paused=false;
@@ -2082,7 +2074,6 @@ function boot() {
         resumeT-=dt;
         if (resumeT<=0) {
             resumeT=0;
-            rushIntro=false;
             fx.paused=false;
             input.dashQueued=false;
             audio.play('ui',1.5);
@@ -3620,7 +3611,7 @@ function boot() {
         if (!fx.paused) {
             rushIntroT=Math.max(0,rushIntroT-dt);
         }
-        overlay.hud.rushShow=run.mode==='bossrush'&&!pauseMenu.open&&(run.state!=='combat'||(rushIntro&&resumeT>0)||rushIntroT>0||!!pendingBoss||codex.shown()||guide.shown()||!enemies.list.some(e=>e.def.boss&&e.alive));
+        overlay.hud.rushShow=run.mode==='bossrush'&&!pauseMenu.open&&(run.state!=='combat'||rushIntroT>0||!!pendingBoss||codex.shown()||guide.shown()||!enemies.list.some(e=>e.def.boss&&e.alive));
         setTouchText(input.lastDevice==='touch');
         music.update(musicTrack());
         music.setDuck((pauseMenu.open&&!settingsMenu.open&&!codex.open)||relicView.rolling());
