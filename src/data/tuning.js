@@ -595,7 +595,7 @@ export const TUNING={
         confetti:{count:46,speed:[60,140],size:[4,9],spin:6}
     },
     menu:{
-        footW:{big:150,small:122},
+        footW:{big:170,small:136},
         btn:{gap:17,gapSmall:10,primaryH:1.3,slide:60,pulse:2.4,shine:0.45,textGap:14,arrowW:26,primarySize:26},
         randomCycle:1.2,
         bestGap:26,
