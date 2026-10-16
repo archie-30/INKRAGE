@@ -104,6 +104,134 @@ function splat(ctx,x,y,r,k,color,seed) {
 }
 
 const MOTIFS={
+    slowMo:{
+        back(ctx,w,h,k,cy) {
+            const s=seg(k,0.05,0.25);
+            ctx.fillStyle=rgba('ink',0.12*s);
+            ctx.fillRect(0,0,w,h);
+            const R=Math.min(w,h)*0.3*EASE.easeOutBack(s);
+            ring(ctx,w/2,cy,R,8,PALETTE.ink,1201);
+            for (let i=0;i<12;i++) {
+                const a=i/12*Math.PI*2;
+                line(ctx,w/2+Math.cos(a)*R*0.82,cy+Math.sin(a)*R*0.82,w/2+Math.cos(a)*R*0.95,cy+Math.sin(a)*R*0.95,4,PALETTE.ink,1210+i,0);
+            }
+            const sp=k*0.6;
+            line(ctx,w/2,cy,w/2+Math.cos(sp*6-1.6)*R*0.75,cy+Math.sin(sp*6-1.6)*R*0.75,8,PALETTE.red,1230,0);
+            line(ctx,w/2,cy,w/2+Math.cos(sp-1.6)*R*0.5,cy+Math.sin(sp-1.6)*R*0.5,10,PALETTE.ink,1231,0);
+            for (let i=0;i<4;i++) {
+                const q=seg(k,0.15+i*0.1,0.9);
+                ctx.globalAlpha*=0.4;
+                ring(ctx,w/2,cy,R*(1+q*0.6),3,PALETTE.midGray,1240+i);
+                ctx.globalAlpha/=0.4;
+            }
+        }
+    },
+    luckyDice:{
+        back(ctx,w,h,k,cy) {
+            const s=seg(k,0.04,0.2);
+            for (let i=0;i<14;i++) {
+                const q=seg(k,0.05+i*0.02,0.6+i*0.02);
+                if (q<=0||q>=1) {
+                    continue;
+                }
+                const x=w*hash1(i+1250);
+                const y=cy+(hash1(i+1260)-0.5)*h*0.6-q*h*0.2;
+                dot(ctx,x,y,4+hash1(i)*6,rgba(i%3?'ink':'red',(1-q)*s));
+            }
+        }
+    },
+    rewind:{
+        back(ctx,w,h,k,cy) {
+            const s=seg(k,0.05,0.3);
+            ctx.fillStyle=rgba('paper',0.25*s);
+            ctx.fillRect(0,0,w,h);
+            for (let i=0;i<3;i++) {
+                const x=w*(0.75-i*0.18)-EASE.easeInOutCubic(seg(k,0.1,0.5))*w*0.15;
+                ctx.fillStyle=i===0?rgba('red',0.85*s):rgba('ink',0.7*s);
+                ctx.beginPath();
+                ctx.moveTo(x,cy-h*0.16);
+                ctx.lineTo(x-h*0.16,cy);
+                ctx.lineTo(x,cy+h*0.16);
+                ctx.closePath();
+                ctx.fill();
+            }
+            for (let i=0;i<16;i++) {
+                const q=seg(k,0.1+i*0.015,0.55+i*0.015);
+                if (q<=0||q>=1) {
+                    continue;
+                }
+                const y=cy+(hash1(i+1270)-0.5)*h*0.7;
+                const x=w*(0.1+q*0.8);
+                dot(ctx,w-x,y,5,rgba(q<0.5?'red':'ink',1-q*0.6));
+            }
+        }
+    },
+    fullInk:{
+        back(ctx,w,h,k,cy) {
+            const s=EASE.easeOutBack(seg(k,0.05,0.25));
+            const bw=Math.min(w,h)*0.22*s;
+            const bh=bw*1.4;
+            const fill=EASE.easeInOutCubic(seg(k,0.15,0.45));
+            ctx.fillStyle=PALETTE.paper;
+            ctx.fillRect(w/2-bw/2,cy-bh/2,bw,bh);
+            ctx.fillStyle=PALETTE.ink;
+            ctx.fillRect(w/2-bw/2,cy+bh/2-bh*fill,bw,bh*fill);
+            ctx.strokeStyle=PALETTE.ink;
+            ctx.lineWidth=6;
+            ctx.strokeRect(w/2-bw/2,cy-bh/2,bw,bh);
+            ctx.strokeRect(w/2-bw*0.2,cy-bh/2-bw*0.3,bw*0.4,bw*0.3);
+            for (let i=0;i<10;i++) {
+                const q=seg(k,0.4+i*0.02,0.75+i*0.02);
+                if (q>0&&q<1) {
+                    const a=-Math.PI/2+(hash1(i+1280)-0.5)*1.8;
+                    dot(ctx,w/2+Math.cos(a)*bh*q,cy-bh/2+Math.sin(a)*bh*q,4+hash1(i)*5,rgba('ink',1-q));
+                }
+            }
+        }
+    },
+    firstAid:{
+        back(ctx,w,h,k,cy) {
+            const s=EASE.easeOutBack(seg(k,0.05,0.25));
+            const S=Math.min(w,h)*0.12*s;
+            ctx.fillStyle=rgba('red',0.12*s);
+            ctx.fillRect(0,0,w,h);
+            ctx.fillStyle=PALETTE.red;
+            ctx.fillRect(w/2-S*0.4,cy-S*1.2,S*0.8,S*2.4);
+            ctx.fillRect(w/2-S*1.2,cy-S*0.4,S*2.4,S*0.8);
+            for (let i=0;i<3;i++) {
+                const q=(k*1.5+i/3)%1;
+                ctx.globalAlpha*=1-q;
+                ring(ctx,w/2,cy,S*(1.6+q*2.4),5,PALETTE.red,1290+i);
+                ctx.globalAlpha/=Math.max(0.001,1-q);
+            }
+        }
+    },
+    planeDash:{
+        back(ctx,w,h,k,cy) {
+            const f=EASE.easeInOutCubic(seg(k,0.05,0.6));
+            const x=-w*0.2+f*w*1.4;
+            const y=cy+Math.sin(f*Math.PI*2)*h*0.12;
+            const S=Math.min(w,h)*0.14;
+            for (let i=0;i<6;i++) {
+                line(ctx,x-S*(1.5+i*0.5),y+(i-2.5)*S*0.2,x-S*(2.5+i*0.9),y+(i-2.5)*S*0.25,3,i%2?PALETTE.red:PALETTE.midGray,1300+i);
+            }
+            ctx.save();
+            ctx.translate(x,y);
+            ctx.rotate(Math.cos(f*Math.PI*2)*0.35);
+            ctx.fillStyle=PALETTE.paper;
+            ctx.beginPath();
+            ctx.moveTo(S*1.4,0);
+            ctx.lineTo(-S,-S*0.7);
+            ctx.lineTo(-S*0.4,0);
+            ctx.lineTo(-S,S*0.7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle=PALETTE.ink;
+            ctx.lineWidth=5;
+            ctx.stroke();
+            ctx.restore();
+        }
+    },
     execute:{
         back(ctx,w,h,k,cy) {
             const f=seg(k,0.05,0.2);
@@ -595,6 +723,29 @@ function stamp(ctx,x,y,txt,size,q,color) {
 const FOES=['doodle','blob','sprayer','compass','eraserMonster','inkCloud'];
 
 const EXTRAS={
+    luckyDice(ctx,w,h,k,cy,a) {
+        const S=Math.min(w,h)*0.17;
+        const r=seg(k,0.06,0.42);
+        const roll=a.p.roll||6;
+        const face=r<1?1+Math.floor(k*60)%6:roll;
+        const y=cy;
+        ctx.save();
+        ctx.translate(w/2,y-Math.abs(Math.sin(r*Math.PI*3))*S*(1-r));
+        ctx.rotate((1-r)*8);
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(-S/2,-S/2,S,S);
+        ctx.strokeStyle=PALETTE.ink;
+        ctx.lineWidth=6;
+        ctx.strokeRect(-S/2,-S/2,S,S);
+        const pips={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]}[face];
+        for (const [px,py] of pips) {
+            dot(ctx,px*S*0.27,py*S*0.27,S*0.08,face===6||face===1?PALETTE.red:PALETTE.ink);
+        }
+        ctx.restore();
+        if (r>=1) {
+            stamp(ctx,w/2+S*0.95,cy-S*0.6,'×'+roll,S*0.5,seg(k,0.42,0.55),PALETTE.red);
+        }
+    },
     execute(ctx,w,h,k,cy,a) {
         const S=Math.min(w,h)*0.16;
         const hitK=seg(k,0.2,0.3);

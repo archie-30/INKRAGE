@@ -820,7 +820,7 @@ export class Player {
     }
 
     isInvulnerable() {
-        return this.invuln>0||this.safeT>0||this.fortT>0||(TUNING.player.dashInvuln&&(this.dashT>0||this.dashIT>0));
+        return this.invuln>0||this.safeT>0||this.fortT>0||this.planeT>0||(TUNING.player.dashInvuln&&(this.dashT>0||this.dashIT>0));
     }
 
     get maxHp() {
@@ -839,6 +839,15 @@ export class Player {
             return false;
         }
         if (this.isInvulnerable()||this.hp<=0) {
+            return false;
+        }
+        if (this.spongeT>0) {
+            this.spongeN=(this.spongeN||0)+dmg;
+            this.invuln=TUNING.effects.kit.spongeInvuln;
+            this.sqv+=1.2;
+            if (this.events.onSponge) {
+                this.events.onSponge(this,dx,dz);
+            }
             return false;
         }
         if (!this.ghost&&takeGuard()) {
@@ -860,6 +869,7 @@ export class Player {
             return false;
         }
         this.hp=Math.max(0,this.hp-dmg);
+        this.pageHits=(this.pageHits||0)+1;
         this.invuln=P.invulnTime+(this.ghost?0:hurtInvulnBonus());
         if (!this.ghost) {
             flashRelic('styptic',this.invuln);
@@ -950,6 +960,9 @@ export class Player {
         this.fire(ctx,aim);
         if (this.W.cooldown) {
             this.cdT=this.W.cooldown/((this.rapidT>0?this.rapidMult:1)*fireMult(this.hp));
+            return;
+        }
+        if (this.fullInkT>0) {
             return;
         }
         this.ammo--;
@@ -1044,7 +1057,7 @@ export class Player {
             const dmg=pick?pick.damage:W.damage;
             const n=W.pellets||1;
             for (let p=0;p<n;p++) {
-                const a=base+(n>1?(p/(n-1)-0.5)*W.fan:0)+(Math.random()*2-1)*W.spread;
+                const a=base+(n>1?(p/(n-1)-0.5)*W.fan:0)+(this.plantT>0&&this.still?0:(Math.random()*2-1)*W.spread);
                 const bi=sys.spawn(mx,mz,Math.cos(a),Math.sin(a),W.bulletSpeed,dmg,W.bulletLife);
                 if (bi>=0) {
                     sys.tag[bi]|=TUNING.relics.weaponTag;
@@ -1081,6 +1094,10 @@ export class Player {
         this.dashIT=Math.max(0,(this.dashIT||0)-dt);
         input.getMove(_mv);
         const moveLen=Math.hypot(_mv.x,_mv.z);
+        this.still=moveLen<0.05;
+        for (const k of ['scopeT','plantT','fullInkT','umbrellaT','spongeT','planeT']) {
+            this[k]=Math.max(0,(this[k]||0)-dt);
+        }
         if (aim.mode==='point') {
             const dx=aim.point.x-this.pos.x;
             const dz=aim.point.z-this.pos.z;
@@ -1150,7 +1167,7 @@ export class Player {
         }
         else {
             const slow=room.zones.playerSlowAt(this.pos.x,this.pos.z);
-            const hm=this.hasteT>0?this.hasteMult:1;
+            const hm=(this.hasteT>0?this.hasteMult:1)*(this.umbrellaT>0?this.umbrellaSlow:1)*(this.planeT>0?this.planeMult:1);
             const rm=this.ghost?1:speedMult(this.hp);
             const tx=_mv.x*P.speed*slow*hm*this.courseSpeed*rm;
             const tz=_mv.z*P.speed*slow*hm*this.courseSpeed*rm;
@@ -1244,7 +1261,7 @@ export class Player {
             }
         }
         this.cdT=Math.max(0,(this.cdT||0)-dt);
-        if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0) {
+        if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0&&!(this.planeT>0)) {
             this.fireCd+=Math.max(Math.min(W.fireInterval,WEAPON_LIMITS.minInterval),W.fireInterval/((this.rapidT>0?this.rapidMult:1)*fireMult(this.hp)));
             if (this.fireCd<0) {
                 this.fireCd=0;

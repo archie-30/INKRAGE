@@ -156,6 +156,37 @@ export class Hand {
         const right=this.slotX(2)+W*0.5;
         this.drawRect={x:left-W*0.55-pw,y:py-ph/2,w:pw,h:ph};
         this.discardRect={x:right+W*0.55,y:py-ph/2,w:pw,h:ph};
+        const bw=Math.round(72*this.s);
+        const bh=Math.round(34*this.s);
+        this.redrawRect={x:Math.max(6,this.drawRect.x-bw-14*this.s),y:this.drawRect.y+this.drawRect.h/2-bh/2,w:bw,h:bh};
+    }
+
+    redrawShown() {
+        const R=this.api.redrawInfo?this.api.redrawInfo():null;
+        return !!R&&R.show&&(!this.api.showKeys||this.api.showKeys())?R:null;
+    }
+
+    drawRedraw(ctx,variant) {
+        const R=this.redrawShown();
+        if (!R) {
+            return;
+        }
+        const b=this.redrawRect;
+        const s=this.s;
+        const hv=R.can&&this.inRect(b,this.pointer.x,this.pointer.y,0);
+        const fl=Math.max(0,this.redrawFlash||0);
+        ctx.save();
+        ctx.translate(b.x+b.w/2,b.y+b.h/2);
+        ctx.scale(1+fl*0.12,1+fl*0.12);
+        ctx.fillStyle=R.can?(hv?rgba('farGray',0.95):rgba('paper',0.92)):rgba('farGray',0.6);
+        ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+        drawShape(ctx,sketchRect(-b.w/2,-b.h/2,b.w,b.h,{width:hv?2.4:1.6,seed:905}),R.can?PALETTE.ink:rgba('ink',0.35),variant);
+        ctx.fillStyle=R.can?PALETTE.ink:PALETTE.midGray;
+        ctx.font='bold '+Math.round(12*s)+'px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('hand.redraw',{n:R.unlimited?'∞':R.left}),0,1);
+        ctx.restore();
     }
 
     pileCenter(r) {
@@ -248,7 +279,7 @@ export class Hand {
         }
     }
 
-    onBurn(card) {
+    onBurn(card,why=null) {
         const v=new CardView(card);
         const [px,py]=this.pileCenter(this.drawRect);
         v.x=v.fromX=px;
@@ -259,6 +290,7 @@ export class Hand {
         v.face=false;
         this.flying.push(v);
         this.burnMsgT=1.4;
+        this.burnKey=why==='locked'?'deck.burnLocked':(why==='compass'?'deck.burnCompass':'deck.burn');
     }
 
     hitCard(x,y) {
@@ -392,7 +424,7 @@ export class Hand {
     tryPlay(v,target) {
         const api=this.api;
         const card=v.card;
-        if (!api.deck.canPlay()) {
+        if (!api.deck.canPlay()||(api.canCast&&!api.canCast())) {
             this.shake(v,false);
             this.lockMsgT=1.2;
             v.state='idle';
@@ -581,6 +613,10 @@ export class Hand {
                 return true;
             }
             this.cancelTargeting();
+            return true;
+        }
+        if (this.redrawShown()&&this.inRect(this.redrawRect,x,y,4)) {
+            this.api.redraw();
             return true;
         }
         if (type==='mouse') {
@@ -881,6 +917,7 @@ export class Hand {
         this.slotTargets();
         this.lockMsgT=Math.max(0,this.lockMsgT-dt);
         this.burnMsgT=Math.max(0,this.burnMsgT-dt);
+        this.redrawFlash=Math.max(0,(this.redrawFlash||0)-dt*4);
         this.riffleT=Math.max(0,this.riffleT-dt);
         if (this.reshuffling) {
             this.reshuffleT+=dt;
@@ -1223,7 +1260,7 @@ export class Hand {
         }
         else if (this.burnMsgT>0) {
             ctx.fillStyle=rgba('ink',Math.min(1,this.burnMsgT));
-            ctx.fillText(t('deck.burn'),this.width/2,y);
+            ctx.fillText(t(this.burnKey||'deck.burn'),this.width/2,y);
         }
         else if (this.targetView&&!(this.api.showKeys&&this.api.showKeys())) {
             const tgt=this.targetView.card.def.targeting;
@@ -1320,6 +1357,7 @@ export class Hand {
 
     drawContent(ctx,art,variant) {
         this.drawPiles(ctx,art,variant);
+        this.drawRedraw(ctx,variant);
         this.drawSlots(ctx,variant);
         for (const v of this.drawOrder()) {
             this.drawCardView(ctx,v,art,variant);

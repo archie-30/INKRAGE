@@ -229,7 +229,7 @@ export class Preview {
             }
             return;
         }
-        if (card.id==='ruler') {
+        if (card.id==='ruler'||card.id==='mirror') {
             let dx=target.x-p.x;
             let dz=target.z-p.z;
             const l=Math.hypot(dx,dz)||1;

@@ -299,6 +299,7 @@ export class BulletSystem {
     }
 
     update(dt,room) {
+        dt*=this.timeScale??1;
         const K=this.K;
         const cols=room.colliders;
         const b=room.bounds;

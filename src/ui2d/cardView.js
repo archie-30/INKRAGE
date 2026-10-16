@@ -620,6 +620,218 @@ const ICONS={
         const bolt=[[cx+2,cy-6],[cx-8,cy+10],[cx,cy+10],[cx-6,cy+28],[cx+10,cy+6],[cx+2,cy+6],[cx+8,cy-6]];
         fillTri(ctx,bolt,PALETTE.red);
         drawShape(ctx,sketchPolygon(bolt,{width:1.2,seed:2061,overshoot:0}),PALETTE.darkRed,v);
+    },
+    miniShield(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.paper;
+        ctx.beginPath();
+        ctx.ellipse(cx,cy,20,26,0,0,Math.PI*2);
+        ctx.fill();
+        drawShape(ctx,sketchPolygon([[cx,cy-26],[cx+20,cy-14],[cx+16,cy+14],[cx,cy+26],[cx-16,cy+14],[cx-20,cy-14]],{width:2.2,seed:1001}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy-18,cx,cy+18,{width:1.2,seed:1002}),PALETTE.midGray,v);
+        dot(ctx,cx+30,cy-22,3,PALETTE.red);
+    },
+    boxFort(ctx,v,cx,cy) {
+        for (const [x,y,i] of [[-20,10,0],[20,10,1],[0,-14,2]]) {
+            ctx.fillStyle=PALETTE.paper;
+            ctx.fillRect(cx+x-13,cy+y-11,26,22);
+            drawShape(ctx,sketchRect(cx+x-13,cy+y-11,26,22,{width:1.8,seed:1010+i}),PALETTE.ink,v);
+            ctx.fillStyle=PALETTE.red;
+            ctx.fillRect(cx+x-2,cy+y-11,4,22);
+        }
+        for (let i=0;i<3;i++) {
+            dot(ctx,cx-36+i*4,cy-26+i*3,2,PALETTE.darkRed);
+        }
+    },
+    spareMag(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(cx-12,cy-22,24,40);
+        drawShape(ctx,sketchRect(cx-12,cy-22,24,40,{width:2,seed:1020}),PALETTE.ink,v);
+        for (let i=0;i<5;i++) {
+            dot(ctx,cx,cy-14+i*7,3,PALETTE.ink);
+        }
+        drawShape(ctx,sketchPath([[cx+20,cy-8],[cx+30,cy-18],[cx+40,cy-8]],{width:2,seed:1021}),PALETTE.red,v);
+        drawShape(ctx,sketchLine(cx+30,cy-18,cx+30,cy+8,{width:2,seed:1022}),PALETTE.red,v);
+    },
+    recopy(ctx,v,cx,cy) {
+        for (let i=0;i<3;i++) {
+            ctx.save();
+            ctx.translate(cx-14+i*14,cy+4);
+            ctx.rotate(-0.25+i*0.25);
+            ctx.fillStyle=PALETTE.paper;
+            ctx.fillRect(-11,-16,22,32);
+            drawShape(ctx,sketchRect(-11,-16,22,32,{width:1.6,seed:1030+i}),PALETTE.ink,v);
+            ctx.restore();
+        }
+        drawShape(ctx,sketchPath([[cx-30,cy-26],[cx,cy-34],[cx+30,cy-26]],{width:2,seed:1033}),PALETTE.red,v);
+        fillTri(ctx,[[cx+30,cy-26],[cx+22,cy-32],[cx+24,cy-22]],PALETTE.red);
+    },
+    reserve(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy,22,{width:2,seed:1040}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy,cx,cy-14,{width:2.2,seed:1041}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy,cx+10,cy+6,{width:2.2,seed:1042}),PALETTE.ink,v);
+        ctx.fillStyle=PALETTE.red;
+        ctx.font='bold 14px '+FONT;
+        ctx.textAlign='center';
+        ctx.fillText('×2',cx+30,cy-20);
+    },
+    crossCut(ctx,v,cx,cy) {
+        for (const [dx,dy,i] of [[1,1,0],[-1,1,1],[1,-1,2],[-1,-1,3]]) {
+            drawShape(ctx,sketchLine(cx+dx*6,cy+dy*6,cx+dx*34,cy+dy*30,{width:3,seed:1050+i,taper:0.2}),PALETTE.ink,v);
+        }
+        dot(ctx,cx,cy,6,PALETTE.red);
+    },
+    scope(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy,24,{width:2.4,seed:1060}),PALETTE.ink,v);
+        drawShape(ctx,sketchCircle(cx,cy,12,{width:1.2,seed:1061}),PALETTE.midGray,v);
+        for (const [x1,y1,x2,y2,i] of [[-30,0,-8,0,0],[8,0,30,0,1],[0,-30,0,-8,2],[0,8,0,30,3]]) {
+            drawShape(ctx,sketchLine(cx+x1,cy+y1,cx+x2,cy+y2,{width:1.6,seed:1062+i}),PALETTE.ink,v);
+        }
+        dot(ctx,cx,cy,3,PALETTE.red);
+    },
+    bearTrap(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy+8,26,{width:2,seed:1070}),PALETTE.ink,v);
+        for (let i=0;i<7;i++) {
+            const x=cx-24+i*8;
+            fillTri(ctx,[[x-4,cy+2],[x,cy-10],[x+4,cy+2]],PALETTE.ink);
+            fillTri(ctx,[[x-4,cy+14],[x,cy+26],[x+4,cy+14]],PALETTE.midGray);
+        }
+        dot(ctx,cx,cy+8,4,PALETTE.red);
+    },
+    umbrella(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.red;
+        ctx.beginPath();
+        ctx.arc(cx,cy,28,Math.PI,0);
+        ctx.closePath();
+        ctx.fill();
+        drawShape(ctx,sketchPath([[cx-28,cy],[cx-14,cy-6],[cx,cy],[cx+14,cy-6],[cx+28,cy]],{width:1.6,seed:1080}),PALETTE.darkRed,v);
+        drawShape(ctx,sketchLine(cx,cy-28,cx,cy+22,{width:2,seed:1081}),PALETTE.ink,v);
+        drawShape(ctx,sketchPath([[cx,cy+22],[cx-6,cy+26],[cx-10,cy+20]],{width:2,seed:1082}),PALETTE.ink,v);
+        for (let i=0;i<3;i++) {
+            dot(ctx,cx-30+i*20,cy-38+i*2,2.5,PALETTE.red);
+        }
+    },
+    plant(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy-14,9,{width:2,seed:1090}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy-5,cx,cy+14,{width:2.4,seed:1091}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy+14,cx-12,cy+28,{width:2.2,seed:1092}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy+14,cx+12,cy+28,{width:2.2,seed:1093}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx-26,cy+30,cx+26,cy+30,{width:3,seed:1094}),PALETTE.midGray,v);
+        drawShape(ctx,sketchLine(cx+4,cy+2,cx+36,cy+2,{width:2.6,seed:1095}),PALETTE.red,v);
+    },
+    alarmClock(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.paper;
+        ctx.beginPath();
+        ctx.arc(cx,cy+4,20,0,Math.PI*2);
+        ctx.fill();
+        drawShape(ctx,sketchCircle(cx,cy+4,20,{width:2.4,seed:1100}),PALETTE.red,v);
+        drawShape(ctx,sketchCircle(cx-15,cy-17,6,{width:1.8,seed:1101}),PALETTE.ink,v);
+        drawShape(ctx,sketchCircle(cx+15,cy-17,6,{width:1.8,seed:1102}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy+4,cx,cy-8,{width:2,seed:1103}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy+4,cx+9,cy+8,{width:2,seed:1104}),PALETTE.ink,v);
+        for (const s of [-1,1]) {
+            drawShape(ctx,sketchLine(cx+s*28,cy-10,cx+s*36,cy-16,{width:1.4,seed:1105+s}),PALETTE.red,v);
+        }
+    },
+    slowShot(ctx,v,cx,cy) {
+        for (let i=0;i<4;i++) {
+            dot(ctx,cx-30+i*16,cy,3+i*3,i===3?PALETTE.red:PALETTE.ink);
+        }
+        drawShape(ctx,sketchPath([[cx-38,cy+16],[cx-10,cy+20],[cx+24,cy+16]],{width:1.2,seed:1110}),PALETTE.midGray,v);
+    },
+    mirror(ctx,v,cx,cy) {
+        ctx.fillStyle=rgba('farGray',0.9);
+        ctx.fillRect(cx-6,cy-28,12,56);
+        drawShape(ctx,sketchRect(cx-6,cy-28,12,56,{width:2,seed:1120}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx-36,cy-18,cx-8,cy,{width:1.6,seed:1121}),PALETTE.red,v);
+        drawShape(ctx,sketchLine(cx-8,cy,cx-36,cy+18,{width:2.2,seed:1122}),PALETTE.ink,v);
+        dot(ctx,cx-38,cy+20,4,PALETTE.ink);
+        drawShape(ctx,sketchLine(cx+1,cy-20,cx+3,cy-6,{width:1,seed:1123}),PALETTE.paper,v);
+    },
+    sponge(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.marker;
+        ctx.fillRect(cx-22,cy-14,44,28);
+        drawShape(ctx,sketchRect(cx-22,cy-14,44,28,{width:2,seed:1130}),PALETTE.ink,v);
+        const r=new RNG(1131);
+        for (let i=0;i<9;i++) {
+            dot(ctx,cx-16+r.range(0,32),cy-8+r.range(0,16),r.range(1.5,3.2),PALETTE.ink);
+        }
+        for (let i=0;i<4;i++) {
+            const a=-1.4+i*0.9;
+            drawShape(ctx,sketchLine(cx+Math.cos(a)*30,cy+Math.sin(a)*24,cx+Math.cos(a)*38,cy+Math.sin(a)*30,{width:1.6,seed:1132+i}),PALETTE.red,v);
+        }
+    },
+    grudge(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy,22,{width:1.6,seed:1140}),PALETTE.ink,v);
+        for (let i=0;i<4;i++) {
+            drawShape(ctx,sketchLine(cx-20+i*6,cy+26,cx-20+i*6,cy+36,{width:1.6,seed:1141+i}),PALETTE.ink,v);
+        }
+        drawShape(ctx,sketchLine(cx-24,cy+36,cx-2,cy+26,{width:1.6,seed:1145}),PALETTE.red,v);
+        drawShape(ctx,sketchPath([[cx-10,cy-6],[cx-2,cy-2],[cx-10,cy+2]],{width:2.2,seed:1146}),PALETTE.red,v);
+        drawShape(ctx,sketchPath([[cx+10,cy-6],[cx+2,cy-2],[cx+10,cy+2]],{width:2.2,seed:1147}),PALETTE.red,v);
+        drawShape(ctx,sketchLine(cx-8,cy+10,cx+8,cy+10,{width:2,seed:1148}),PALETTE.ink,v);
+    },
+    slowMo(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy,26,{width:2.4,seed:1150}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy,cx,cy-18,{width:2.2,seed:1151}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx,cy,cx-12,cy+4,{width:2.2,seed:1152}),PALETTE.red,v);
+        for (let i=0;i<3;i++) {
+            drawShape(ctx,sketchPath([[cx+30+i*4,cy-20+i*14],[cx+36+i*4,cy-16+i*14],[cx+30+i*4,cy-12+i*14]],{width:1.4,seed:1153+i}),PALETTE.midGray,v);
+        }
+    },
+    luckyDice(ctx,v,cx,cy,card) {
+        ctx.save();
+        ctx.translate(cx,cy);
+        ctx.rotate(-0.2);
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(-22,-22,44,44);
+        drawShape(ctx,sketchRect(-22,-22,44,44,{width:2.4,seed:1160}),PALETTE.ink,v);
+        for (const [x,y] of [[-11,-11],[11,-11],[0,0],[-11,11],[11,11],[0,-11]]) {
+            dot(ctx,x,y,4.2,y===0?PALETTE.red:PALETTE.ink);
+        }
+        ctx.restore();
+        drawShape(ctx,sketchPath([[cx-38,cy+30],[cx-26,cy+22],[cx-34,cy+14]],{width:1.4,seed:1161}),PALETTE.midGray,v);
+    },
+    rewind(ctx,v,cx,cy) {
+        for (let i=0;i<2;i++) {
+            const x=cx-4+i*-18;
+            fillTri(ctx,[[x+14,cy-16],[x-6,cy],[x+14,cy+16]],i===0?PALETTE.red:PALETTE.ink);
+        }
+        for (let i=0;i<3;i++) {
+            dot(ctx,cx+20+i*8,cy-14+i*14,3.2,PALETTE.red);
+        }
+    },
+    fullInk(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.ink;
+        ctx.fillRect(cx-14,cy-14,28,38);
+        drawShape(ctx,sketchRect(cx-16,cy-18,32,44,{width:2,seed:1170}),PALETTE.ink,v);
+        drawShape(ctx,sketchRect(cx-7,cy-28,14,10,{width:1.8,seed:1171}),PALETTE.ink,v);
+        ctx.fillStyle=PALETTE.paper;
+        ctx.font='bold 13px '+FONT;
+        ctx.textAlign='center';
+        ctx.fillText('MAX',cx,cy+8);
+        dot(ctx,cx+28,cy-22,3,PALETTE.red);
+    },
+    firstAid(ctx,v,cx,cy) {
+        drawShape(ctx,sketchCircle(cx,cy+4,28,{width:1.6,seed:1180}),PALETTE.red,v);
+        ctx.fillStyle=PALETTE.red;
+        ctx.fillRect(cx-6,cy-12,12,32);
+        ctx.fillRect(cx-16,cy-2,32,12);
+        drawShape(ctx,sketchRect(cx-6,cy-12,12,32,{width:1.2,seed:1181}),PALETTE.darkRed,v);
+    },
+    planeDash(ctx,v,cx,cy) {
+        ctx.fillStyle=PALETTE.paper;
+        ctx.beginPath();
+        ctx.moveTo(cx+30,cy-10);
+        ctx.lineTo(cx-26,cy-2);
+        ctx.lineTo(cx-6,cy+4);
+        ctx.lineTo(cx-10,cy+20);
+        ctx.closePath();
+        ctx.fill();
+        drawShape(ctx,sketchPolygon([[cx+30,cy-10],[cx-26,cy-2],[cx-6,cy+4],[cx-10,cy+20]],{width:2,seed:1190}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(cx+30,cy-10,cx-6,cy+4,{width:1.2,seed:1191}),PALETTE.midGray,v);
+        for (let i=0;i<3;i++) {
+            drawShape(ctx,sketchLine(cx-44,cy-6+i*8,cx-30,cy-4+i*8,{width:1.4,seed:1192+i}),PALETTE.red,v);
+        }
     }
 };
 

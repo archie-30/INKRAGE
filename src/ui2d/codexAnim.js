@@ -1406,6 +1406,400 @@ export const CARD_ANIMS={
                 }
             }
         }
+    },
+    miniShield:{
+        period:2.8,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            S.enemy('doodle',13,PY);
+            const on=seg(k,0.08,0.2);
+            const hit=0.6;
+            S.fly(12.3,PY,PX+1.1,PY,k,0.38,hit,'enemy');
+            const lost=seg(k,hit,hit+0.15);
+            if (on>0&&lost<1) {
+                const an=t*2.2;
+                const r=1.15+lost*1.2;
+                const c=S.ctx;
+                c.save();
+                c.globalAlpha=on*(1-lost);
+                c.translate(PX+Math.cos(an)*r,PY+Math.sin(an)*r);
+                c.rotate(an+lost*4);
+                c.fillStyle=PALETTE.paper;
+                c.fillRect(-0.3,-0.42,0.6,0.84);
+                c.strokeStyle=PALETTE.ink;
+                c.lineWidth=0.07;
+                c.strokeRect(-0.3,-0.42,0.6,0.84);
+                c.restore();
+            }
+        }
+    },
+    boxFort:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            S.enemy('sprayer',13.5,PY);
+            const pts=[[8,3.2],[8,5.8],[9.2,4.5]];
+            let hp=3;
+            const hits=[0.45,0.6,0.75];
+            for (const h of hits) {
+                S.fly(12.8,PY,9.7,PY,k,h-0.12,h,'enemy');
+                if (k>=h) {
+                    hp--;
+                }
+            }
+            for (let i=0;i<3;i++) {
+                const ap=seg(k,0.08+i*0.05,0.16+i*0.05);
+                const broken=i===2&&hp<=0;
+                const b=broken?seg(k,0.75,0.85):0;
+                if (ap>0&&b<1) {
+                    S.box(pts[i][0],pts[i][1]-(1-easeOut(ap))*2,1,0.9,ap*(1-b));
+                    S.rect(pts[i][0]-0.08,pts[i][1]-0.45,0.16,0.9,PALETTE.red,ap*(1-b));
+                }
+                if (broken) {
+                    S.burst(pts[i][0],pts[i][1],1.2,b,PALETTE.ink);
+                }
+            }
+            if (hp<=0) {
+                S.circle(9.2,5.3,0.25,PALETTE.ink,seg(k,0.8,0.86));
+            }
+        }
+    },
+    spareMag:{
+        period:2.8,
+        draw(S,k) {
+            const ref=seg(k,0.3,0.4);
+            S.player(PX,PY,0,{kick:k>0.45&&k<0.85?(Math.floor(k*50)%2)*0.5:0});
+            const n=Math.round(lerp(0,6,ref));
+            for (let i=0;i<6;i++) {
+                S.circle(1.2+i*0.42,7.6,0.16,i<n?PALETTE.ink:PALETTE.farGray);
+            }
+            S.text('+1',PX,PY-1.4,15,PALETTE.red,seg(k,0.35,0.45)*(1-seg(k,0.8,0.9)));
+            S.stream(PX+0.9,PY,12,PY,k,0.45,0.82,0.05,0.12);
+            S.target('doodle',12.4,PY,k,0.86);
+        }
+    },
+    recopy:{
+        period:2.8,
+        draw(S,k) {
+            for (let i=0;i<3;i++) {
+                const out=seg(k,0.2,0.35);
+                const inn=seg(k,0.45+i*0.06,0.6+i*0.06);
+                const x=5+i*2.4;
+                S.rect(x-0.8,4-out*4,1.6,2.2,PALETTE.midGray,1-out);
+                if (inn>0) {
+                    S.rect(x-0.8,8-easeOut(inn)*4,1.6,2.2,PALETTE.paper,inn);
+                    S.path([[x-0.8,8-easeOut(inn)*4],[x+0.8,8-easeOut(inn)*4],[x+0.8,10.2-easeOut(inn)*4],[x-0.8,10.2-easeOut(inn)*4],[x-0.8,8-easeOut(inn)*4]],i===2?PALETTE.red:PALETTE.ink,0.08,inn);
+                }
+            }
+            S.text('↻',12.5,2,26,PALETTE.red,seg(k,0.15,0.25)*(1-seg(k,0.85,0.95)));
+        }
+    },
+    reserve:{
+        period:3.6,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const arm=seg(k,0.08,0.15)*(1-seg(k,0.7,0.75));
+            S.ring(PX,PY,1.1,PALETTE.red,0.08,arm,[0.2,0.15]);
+            S.text('⏱',PX,PY-1.5,16,PALETTE.red,arm);
+            S.stream(PX+0.9,PY,12,PY,k,0.25,0.29,0.02,0.15);
+            S.stream(PX+0.9,PY,12,PY,k,0.7,0.74,0.02,0.15);
+            S.target('blob',12.4,PY,k,0.86);
+            S.num('×2',8,PY-0.6,seg(k,0.7,0.85),PALETTE.red);
+        }
+    },
+    crossCut:{
+        period:2.6,
+        draw(S,k) {
+            const cx=8;
+            const cy=PY;
+            S.player(cx,cy,0);
+            const f=seg(k,0.2,0.5);
+            const foes=[['doodle',cx+3.6,cy-3.4],['blob',cx-3.8,cy+3.4],['bird',cx+3.8,cy+3.4]];
+            for (const [id,x,y] of foes) {
+                S.target(id,x,y,k,0.42);
+            }
+            if (f>0&&f<1) {
+                for (let i=0;i<4;i++) {
+                    const a=Math.PI/4+i*Math.PI/2;
+                    const r=lerp(0.6,7,f);
+                    S.line(cx+Math.cos(a)*Math.max(0.6,r-1.6),cy+Math.sin(a)*Math.max(0.6,r-1.6),cx+Math.cos(a)*r,cy+Math.sin(a)*r,PALETTE.ink,0.2);
+                }
+            }
+        }
+    },
+    scope:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
+            S.player(PX,PY,0,{kick:k>0.3&&k<0.85?(Math.floor(k*40)%2)*0.5:0});
+            const ex=12;
+            const ey=PY+Math.sin(k*12)*1.8;
+            S.ring(ex,ey,1.6,PALETTE.red,0.07,on);
+            S.line(ex-2.2,ey,ex-1.2,ey,PALETTE.red,0.07,on);
+            S.line(ex+1.2,ey,ex+2.2,ey,PALETTE.red,0.07,on);
+            for (let i=0;i<8;i++) {
+                S.fly(PX+0.9,PY,ex,ey,k,0.3+i*0.07,0.4+i*0.07);
+            }
+            S.target('bird',ex,ey,k,0.9);
+            S.text('+15%',PX,PY-1.4,14,PALETTE.red,on);
+        }
+    },
+    bearTrap:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const tx=9;
+            const snap=0.55;
+            const x=lerp(14,tx,seg(k,0.15,snap));
+            const shut=seg(k,snap,snap+0.04);
+            S.ring(tx,PY,0.9,PALETTE.ink,0.1,seg(k,0.05,0.12));
+            for (let i=0;i<5;i++) {
+                const xx=tx-0.8+i*0.4;
+                S.path([[xx-0.15,PY-0.5+shut*0.35],[xx,PY-0.9+shut*0.35],[xx+0.15,PY-0.5+shut*0.35]],PALETTE.ink,0.06,1,true);
+                S.path([[xx-0.15,PY+0.5-shut*0.35],[xx,PY+0.9-shut*0.35],[xx+0.15,PY+0.5-shut*0.35]],PALETTE.ink,0.06,1,true);
+            }
+            S.enemy('doodle',x,PY,{flash:k>snap&&k<snap+0.1?1:0,shake:k>snap&&k<0.85?k:0});
+            S.num('50',tx,PY-0.6,seg(k,snap,snap+0.3),PALETTE.red);
+        }
+    },
+    umbrella:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.85,0.92));
+            S.player(PX,PY,0);
+            S.enemy('sprayer',13.5,PY);
+            for (let i=0;i<6;i++) {
+                const k0=0.15+i*0.1;
+                const y=PY+(i%3-1)*0.8;
+                S.fly(12.8,PY,PX+1.6,y,k,k0,k0+0.25,'enemy');
+            }
+            if (on>0) {
+                S.ring(PX+0.4,PY,1.5,PALETTE.red,0.32,on,null,-1.05,1.05);
+                S.line(PX,PY,PX+1.6,PY,PALETTE.ink,0.08,on);
+            }
+        }
+    },
+    plant:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
+            S.circle(PX,PY+0.6,0.9,PALETTE.midGray,0.3*on);
+            S.player(PX,PY,0,{kick:k>0.25&&k<0.85?(Math.floor(k*40)%2)*0.5:0});
+            for (let i=0;i<9;i++) {
+                const k0=0.25+i*0.065;
+                if (k>=k0&&k<=k0+0.12) {
+                    const f=(k-k0)/0.12;
+                    const x=lerp(PX+0.9,12,f);
+                    S.line(x-0.7,PY,x,PY,PALETTE.red,0.12,0.6);
+                    S.circle(x,PY,0.2,PALETTE.ink);
+                }
+            }
+            S.target('eraserMonster',12.5,PY,k,0.88);
+            S.text('+40%',PX,PY-1.4,14,PALETTE.red,on);
+        }
+    },
+    alarmClock:{
+        period:3.4,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            const cx=10;
+            const ring=0.62;
+            const shake=k<ring?seg(k,0.3,ring)*Math.sin(t*60)*0.12:0;
+            const gone=seg(k,ring,ring+0.05);
+            S.circle(cx+shake,PY,0.7,PALETTE.red,1-gone);
+            S.circle(cx+shake,PY,0.5,PALETTE.paper,1-gone);
+            S.line(cx+shake,PY,cx+shake+Math.cos(k*30)*0.4,PY+Math.sin(k*30)*0.4,PALETTE.ink,0.07,1-gone);
+            S.ring(cx,PY,3,PALETTE.red,0.06,0.5*(1-gone),[0.25,0.2]);
+            for (const [id,x,y] of [['doodle',11.6,3.2],['blob',8.6,6],['bird',12,5.8]]) {
+                S.target(id,x,y,k,ring);
+            }
+            const e=seg(k,ring,ring+0.2);
+            if (e>0&&e<1) {
+                S.ring(cx,PY,3*easeOut(e),PALETTE.red,0.25*(1-e)+0.05);
+                S.burst(cx,PY,3,e,PALETTE.red);
+            }
+        }
+    },
+    slowShot:{
+        period:3.6,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const hit=0.8;
+            const f=seg(k,0.1,hit);
+            if (k>=0.1&&k<hit) {
+                const x=lerp(PX+0.9,12.5,f);
+                const r=0.15+f*0.45;
+                S.circle(x,PY,r,f>0.85?PALETTE.red:PALETTE.ink);
+                S.text(String(Math.min(70,10+Math.floor(f*4)*15)),x,PY-1,13,PALETTE.ink);
+            }
+            S.target('eraserMonster',12.8,PY,k,hit);
+            S.num('70',12.8,PY-0.6,seg(k,hit,hit+0.2),PALETTE.red);
+        }
+    },
+    mirror:{
+        period:3,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const mx=7.5;
+            const on=seg(k,0.06,0.14)*(1-seg(k,0.88,0.95));
+            S.rect(mx-0.15,2,0.3,5,PALETTE.farGray,on);
+            S.line(mx-0.15,2,mx-0.15,7,PALETTE.ink,0.06,on);
+            S.enemy('sprayer',13.5,PY);
+            for (let i=0;i<3;i++) {
+                const k0=0.2+i*0.18;
+                const y=PY+(i-1)*1.2;
+                S.fly(12.8,PY,mx+0.3,y,k,k0,k0+0.15,'enemy');
+                S.fly(mx+0.3,y,12.8,PY,k,k0+0.15,k0+0.3,'ink');
+            }
+            S.target('sprayer',13.5,PY,k,0.82);
+        }
+    },
+    sponge:{
+        period:3.4,
+        draw(S,k) {
+            const on=seg(k,0.06,0.12);
+            const boom=0.66;
+            S.player(PX+3,PY,0);
+            if (k<boom) {
+                S.rect(PX+3-0.8,PY-0.55,1.6,1.1,PALETTE.marker,0.6*on);
+            }
+            for (let i=0;i<3;i++) {
+                const k0=0.15+i*0.12;
+                S.fly(13,PY+(i-1)*1.5,PX+3.6,PY,k,k0,k0+0.18,'enemy');
+            }
+            S.enemy('doodle',13.5,PY-1.5);
+            S.target('blob',8.4,PY+1.6,k,boom);
+            const e=seg(k,boom,boom+0.2);
+            if (e>0&&e<1) {
+                S.ring(PX+3,PY,3*easeOut(e),PALETTE.ink,0.25*(1-e)+0.05);
+                S.burst(PX+3,PY,3,e,PALETTE.ink);
+            }
+            S.num('×3',PX+3,PY-0.8,seg(k,0.5,0.66),PALETTE.red);
+        }
+    },
+    grudge:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0,{flash:[0.12,0.24,0.36].some(q=>k>q&&k<q+0.04)?1:0});
+            S.enemy('sprayer',13.5,2.5);
+            for (let i=0;i<3;i++) {
+                S.fly(12.8,2.5,PX+0.5,PY,k,i*0.12,i*0.12+0.12,'enemy');
+                if (k>i*0.12+0.12) {
+                    S.line(1+i*0.4,7.2,1+i*0.4,7.9,PALETTE.ink,0.08);
+                }
+            }
+            const hit=0.68;
+            S.ring(11,PY+1,2,PALETTE.red,0.08,seg(k,0.45,0.5)*(1-seg(k,hit,hit+0.1)));
+            S.target('eraserMonster',11,PY+1,k,hit);
+            S.num('45',11,PY+0.4,seg(k,hit,hit+0.25),PALETTE.red);
+        }
+    },
+    slowMo:{
+        period:3.6,
+        draw(S,k) {
+            const on=seg(k,0.15,0.2)*(1-seg(k,0.8,0.85));
+            const te=k<0.2?k:(k<0.8?0.2+(k-0.2)*0.4:0.44+(k-0.8));
+            S.rect(0,0,SW,SH,PALETTE.ink,0.12*on);
+            S.player(PX,lerp(PY,7,seg(k,0.25,0.7)),0);
+            S.enemy('compass',13,2.5);
+            for (let i=0;i<6;i++) {
+                const f=(te-i*0.07)/0.5;
+                if (f<0||f>1) {
+                    continue;
+                }
+                S.bullet(lerp(12.4,PX-2,f),lerp(2.5,PY,f),'enemy');
+            }
+            S.text('40%',8,1,16,PALETTE.red,on);
+        }
+    },
+    luckyDice:{
+        period:3.4,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            const roll=seg(k,0.1,0.45);
+            const face=roll<1?1+Math.floor(t*14)%6:6;
+            const dx=8;
+            const dy=PY-lerp(2,0,easeOut(roll));
+            S.rect(dx-0.8,dy-0.8,1.6,1.6,PALETTE.paper,1-seg(k,0.85,0.95));
+            S.path([[dx-0.8,dy-0.8],[dx+0.8,dy-0.8],[dx+0.8,dy+0.8],[dx-0.8,dy+0.8],[dx-0.8,dy-0.8]],PALETTE.ink,0.08,1-seg(k,0.85,0.95));
+            S.text(String(face),dx,dy+0.05,18,face===6?PALETTE.red:PALETTE.ink,1-seg(k,0.85,0.95));
+            const hit=0.6;
+            S.ring(12,PY,2,PALETTE.red,0.08,seg(k,0.45,0.5)*(1-seg(k,hit,hit+0.1)));
+            S.target('eraserMonster',12,PY,k,hit);
+            S.num('180',12,PY-0.6,seg(k,hit,hit+0.25),PALETTE.red,16);
+        }
+    },
+    rewind:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const flip=0.45;
+            const foes=[['sprayer',13.5,2.4],['doodle',13.2,6.6]];
+            for (const [id,x,y] of foes) {
+                S.target(id,x,y,k,0.75);
+            }
+            for (let i=0;i<5;i++) {
+                const y=1.8+i*1.3;
+                const f=seg(k,0.05,flip);
+                const bx=lerp(12,6.5,f);
+                if (k<flip) {
+                    S.bullet(bx,y,'enemy');
+                }
+                else {
+                    const g=seg(k,flip,0.75);
+                    const [,tx,ty]=foes[i%2];
+                    if (g<1) {
+                        S.bullet(lerp(6.5,tx,g),lerp(y,ty,g),'ink');
+                    }
+                }
+            }
+            S.text('⏪',7,1,18,PALETTE.red,seg(k,flip-0.05,flip)*(1-seg(k,0.7,0.8)));
+        }
+    },
+    fullInk:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
+            S.inkBottle(1.4,2.2,1,on);
+            S.player(PX,PY,0,{kick:k>0.2&&k<0.85?(Math.floor(k*60)%2)*0.5:0});
+            S.stream(PX+0.9,PY,12,PY,k,0.2,0.82,0.025,0.1);
+            S.target('eraserMonster',12.4,PY,k,0.85,{flash:k>0.25&&k<0.85?(Math.floor(k*40)%2):0});
+            S.text('MAX',PX,PY-1.4,14,PALETTE.red,on);
+        }
+    },
+    firstAid:{
+        period:3.6,
+        draw(S,k) {
+            const on=seg(k,0.06,0.14)*(1-seg(k,0.9,0.96));
+            S.circle(6,PY,2.2,PALETTE.red,0.12*on);
+            S.ring(6,PY,2.2,PALETTE.red,0.08,on,[0.3,0.2]);
+            S.rect(5.8,PY-0.7,0.4,1.4,PALETTE.red,on*0.6);
+            S.rect(5.3,PY-0.2,1.4,0.4,PALETTE.red,on*0.6);
+            const x=lerp(2,6,seg(k,0.15,0.3));
+            S.player(x,PY+0.4,0);
+            for (let i=0;i<3;i++) {
+                S.num('+1',x,PY,seg(k,0.35+i*0.18,0.5+i*0.18),PALETTE.red);
+            }
+        }
+    },
+    planeDash:{
+        period:3.4,
+        draw(S,k) {
+            const on=seg(k,0.08,0.14)*(1-seg(k,0.88,0.94));
+            const f=seg(k,0.12,0.8);
+            const x=lerp(2,14,f);
+            const y=PY+Math.sin(f*Math.PI*2)*1.6;
+            if (on>0) {
+                S.path([[x+0.9,y],[x-0.8,y-0.6],[x-0.3,y],[x-0.8,y+0.6],[x+0.9,y]],PALETTE.ink,0.08,on,false);
+                S.line(x-1.6,y,x-0.9,y,PALETTE.red,0.08,on*0.7);
+            }
+            else {
+                S.player(k<0.5?2:14,PY,0);
+            }
+            for (const [id,ex,ey,kh] of [['doodle',6,5.9,0.35],['blob',9.5,3.1,0.55],['bird',12.5,5.2,0.72]]) {
+                S.target(id,ex,ey,k,kh);
+            }
+        }
     }
 };
 

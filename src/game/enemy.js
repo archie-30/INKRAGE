@@ -5722,7 +5722,7 @@ export class EnemyManager {
         }
         for (const e of arr) {
             if (e.alive) {
-                e.update(e.def.boss?dt*e.bossTempo():dt,ctx);
+                e.update(e.def.boss?dt*e.bossTempo()*(this.bossScale??1):dt*(this.timeScale??1),ctx);
             }
         }
         if (D&&D.active) {
