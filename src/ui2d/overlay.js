@@ -562,7 +562,7 @@ export class Overlay {
         const R=input.reloadBtn;
         const ctx=this.ctx;
         const W=player.W;
-        const can=W&&!W.heat&&!W.cooldown;
+        const can=W&&!W.heat&&!W.cooldown&&!W.charge;
         const busy=player.reloadT>0;
         const full=!can||player.ammo>=W.magazine;
         const r=R.r*(R.id>=0?0.92:1);

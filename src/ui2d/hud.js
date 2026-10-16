@@ -173,6 +173,40 @@ export class Hud {
             ctx.fillText(t(W.heat?'hud.cool':'hud.reload'),cx,cy+6);
             return;
         }
+        if (W.charge) {
+            const k=player.slingFull?1:(player.chargeFrac||0);
+            const full=k>=1;
+            const a0=Math.PI/2+span/2;
+            ctx.lineCap='round';
+            ctx.lineWidth=5;
+            ctx.strokeStyle=rgba('midGray',0.5);
+            ctx.beginPath();
+            ctx.arc(cx,cy-r,r,a0,a0-span,true);
+            ctx.stroke();
+            const minK=W.charge.min/player.chargeFull();
+            const ma=a0-span*minK;
+            ctx.strokeStyle=PALETTE.nearGray;
+            ctx.lineWidth=2;
+            ctx.beginPath();
+            ctx.moveTo(cx+Math.cos(ma)*(r-6),cy-r+Math.sin(ma)*(r-6));
+            ctx.lineTo(cx+Math.cos(ma)*(r+6),cy-r+Math.sin(ma)*(r+6));
+            ctx.stroke();
+            if (k>0) {
+                ctx.strokeStyle=full?PALETTE.red:(k<minK?PALETTE.nearGray:PALETTE.ink);
+                ctx.lineWidth=full?7+Math.sin(performance.now()/60)*1.5:5;
+                ctx.beginPath();
+                ctx.arc(cx,cy-r,r,a0,a0-span*k,true);
+                ctx.stroke();
+            }
+            if (full) {
+                ctx.fillStyle=PALETTE.red;
+                ctx.font='bold 13px '+FONT;
+                ctx.textAlign='center';
+                ctx.textBaseline='top';
+                ctx.fillText(t(player.slingFull&&!player.charging?'hud.slingReady':'hud.chargeFull'),cx,cy+6);
+            }
+            return;
+        }
         if (W.cooldown) {
             const k=1-Math.min(1,(player.cdT||0)/W.cooldown);
             const a0=Math.PI/2+span/2;

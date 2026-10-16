@@ -1704,6 +1704,9 @@ export class CardEffects {
         p.burstLeft=0;
         p.ammo=W.magazine;
         p.cdT=0;
+        if (W.charge) {
+            p.slingFull=true;
+        }
         if (W.beam) {
             p.beamT=0;
         }

@@ -3458,6 +3458,30 @@ export const WEAPON_ANIMS={
             S.target('compass',11.6,PY,k,0.55);
         }
     },
+    slingshot:{
+        period:3,
+        draw(S,k) {
+            const rel=0.5;
+            const ch=seg(k,0.12,0.45);
+            const pull=k<rel?ch:0;
+            S.rect(PX-0.8,PY+1.1,1.6,0.25,PALETTE.farGray,1);
+            S.rect(PX-0.8,PY+1.1,1.6*pull,0.25,pull>=1?PALETTE.red:PALETTE.ink,1);
+            S.player(PX-pull*0.3,PY,0,{kick:seg(k,rel,rel+0.03)*(1-seg(k,rel+0.03,rel+0.12))});
+            if (pull>=1) {
+                S.ring(PX,PY,0.9,PALETTE.red,0.08,0.5+0.5*Math.sin(k*80));
+            }
+            const f=seg(k,rel,rel+0.3);
+            if (f>0&&f<1) {
+                const x=lerp(PX+0.9,15,f);
+                S.line(x-1.2,PY,x,PY,PALETTE.midGray,0.16,0.6);
+                S.circle(x,PY,0.28,PALETTE.ink,1);
+            }
+            for (const [id,x] of [['doodle',7.5],['blob',10],['eraserMonster',12.6]]) {
+                S.target(id,x,PY,k,rel+0.3*(x-PX-0.9)/(15-PX-0.9));
+            }
+            S.num('45',10,PY-0.6,seg(k,rel+0.12,rel+0.4),PALETTE.red);
+        }
+    },
     crayon:{
         period:2.4,
         draw(S,k) {

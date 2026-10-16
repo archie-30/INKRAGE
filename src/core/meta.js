@@ -47,7 +47,7 @@ export function initMeta() {
         P.modeSeen={};
     }
     EARLY_WEAPONS.length=0;
-    EARLY_WEAPONS.push(...P.weapons.filter(id=>WEAPONS[id]),...(P.keptWeapons||[]).filter(id=>WEAPONS[id]&&!P.weapons.includes(id)));
+    EARLY_WEAPONS.push(...P.weapons.filter(id=>WEAPONS[id]));
 }
 
 export function setGate(fn) {

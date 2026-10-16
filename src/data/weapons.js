@@ -50,7 +50,7 @@ export const WEAPONS={
         stats:{dmg:5,rate:1,range:2,mag:1}
     },
     stapler:{
-        unlock:5,
+        unlock:7,
         sys:'staple',
         sound:'wStaple',
         fireInterval:0.5,
@@ -68,7 +68,7 @@ export const WEAPONS={
         stats:{dmg:3,rate:2,range:3,mag:3}
     },
     highlighter:{
-        unlock:8,
+        unlock:9,
         sys:'beam',
         sound:'wMarker',
         fireInterval:0.1,
@@ -87,7 +87,7 @@ export const WEAPONS={
         stats:{dmg:3,rate:5,range:3,mag:3}
     },
     compass:{
-        unlock:10,
+        unlock:12,
         sys:'compass',
         sound:'wCompass',
         fireInterval:0.55,
@@ -105,7 +105,7 @@ export const WEAPONS={
         stats:{dmg:4,rate:1,range:4,mag:1}
     },
     crayon:{
-        unlock:13,
+        unlock:15,
         sys:'crayonG',
         sound:'shoot',
         fireInterval:0.15,
@@ -123,10 +123,27 @@ export const WEAPONS={
         ],
         flashColor:'red',
         stats:{dmg:3,rate:3,range:3,mag:3}
+    },
+    slingshot:{
+        unlock:18,
+        sys:'sling',
+        sound:'wSling',
+        fireInterval:0.1,
+        magazine:1,
+        reloadTime:0.5,
+        damage:15,
+        bulletSpeed:30,
+        bulletLife:1.1,
+        spread:0,
+        pellets:1,
+        charge:{min:0.3,full:1.0,dmg:[15,45],cool:0.1,slow:0.6},
+        kick:1.4,
+        flashMul:1.3,
+        stats:{dmg:5,rate:1,range:4,mag:1}
     }
 };
 
-export const WEAPON_ORDER=['pen','pencil','brush','stapler','highlighter','compass','crayon'];
+export const WEAPON_ORDER=['pen','pencil','brush','stapler','highlighter','compass','crayon','slingshot'];
 
 export const WEAPON_LIMITS={
     minInterval:0.06

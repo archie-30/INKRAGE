@@ -8,7 +8,7 @@ import {SKIN_TONES,ACCENTS} from '../data/palette.js';
 import {WEAPONS,WEAPON_LIMITS} from '../data/weapons.js';
 import {DEFAULT_SKIN} from '../data/skins.js';
 import {ACC_DEFAULT} from '../data/cosmetics.js';
-import {magBonus,reloadMult,takeGuard,maxHpBonus,hurtInvulnBonus,dashIframeBonus,speedMult,fireMult,flashRelic} from './relic.js';
+import {magBonus,reloadMult,chargeMult,takeGuard,maxHpBonus,hurtInvulnBonus,dashIframeBonus,speedMult,fireMult,flashRelic} from './relic.js';
 
 const _mv={x:0,z:0};
 
@@ -328,6 +328,16 @@ export class Player {
         cray.add(mk(new THREE.CylinderGeometry(0.03,0.03,0.05,6),g?coat:unlitMaterial({color:'crayonBlue'}),0.075,0,-0.18,Math.PI/2,false));
         cray.add(mk(new THREE.CylinderGeometry(0.03,0.03,0.05,6),g?coat:unlitMaterial({color:'crayonGreen'}),-0.075,0,-0.18,Math.PI/2,false));
         looks.crayon=cray;
+        const sling=new THREE.Group();
+        sling.add(mk(new THREE.CylinderGeometry(0.03,0.034,0.24,6),wM,0,0,-0.14));
+        for (const sx of [-1,1]) {
+            const arm=mk(new THREE.CylinderGeometry(0.026,0.03,0.24,6),wM,sx*0.08,0,0.06);
+            arm.rotation.z=sx*0.6;
+            sling.add(arm);
+        }
+        sling.add(mk(new THREE.BoxGeometry(0.24,0.012,0.012),g?coat:unlitMaterial({color:'red'}),0,0,0.17,0,false));
+        sling.add(mk(new THREE.SphereGeometry(0.04,8,6),ink,0,0,0.1,0,false));
+        looks.slingshot=sling;
         for (const k in looks) {
             if (k!=='pen') {
                 this.gun.add(looks[k]);
@@ -773,7 +783,10 @@ export class Player {
         const def=WEAPONS[id]||WEAPONS.pen;
         this.weaponId=WEAPONS[id]?id:'pen';
         this.W={...TUNING.weapon,...def};
-        if (!this.ghost&&!def.cooldown) {
+        this.chargeT=0;
+        this.charging=false;
+        this.chargeFrac=0;
+        if (!this.ghost&&!def.cooldown&&!def.charge) {
             this.W.magazine+=magBonus(this.weaponId);
             this.W.reloadTime*=reloadMult();
         }
@@ -977,6 +990,53 @@ export class Player {
         }
     }
 
+    chargeFull() {
+        return this.W.charge?this.W.charge.full*(this.ghost?1:chargeMult()):1;
+    }
+
+    updateCharge(input,ctx,aim,dt) {
+        const C=this.W.charge;
+        const full=this.chargeFull();
+        const can=this.armed&&this.armK>TUNING.player.arm.ready&&this.hp>0&&this.cdT<=0&&!(this.planeT>0);
+        const hold=input.isFiring();
+        if (!can) {
+            this.charging=false;
+            this.chargeT=0;
+            this.chargeFrac=0;
+            return;
+        }
+        if (hold) {
+            const was=this.chargeT>=full;
+            this.chargeT=Math.min(full,(this.chargeT||0)+dt);
+            this.chargeFrac=this.chargeT/full;
+            this.charging=true;
+            if (!was&&this.chargeT>=full&&this.events.onChargeFull) {
+                this.events.onChargeFull(this);
+            }
+            return;
+        }
+        if (!this.charging) {
+            return;
+        }
+        const t=this.chargeT;
+        this.charging=false;
+        this.chargeT=0;
+        this.chargeFrac=0;
+        if (t<C.min&&!this.slingFull) {
+            if (this.events.onChargeCancel) {
+                this.events.onChargeCancel(this);
+            }
+            return;
+        }
+        const f=this.slingFull?1:Math.min(1,t/full);
+        this.slingFull=false;
+        this.shotDmg=Math.round(C.dmg[0]+(C.dmg[1]-C.dmg[0])*f);
+        this.fire(ctx,aim);
+        this.shotDmg=null;
+        this.cdT=C.cool;
+        this.kick=Math.max(this.kick||0,f);
+    }
+
     swingResult(dealt) {
         const W=this.W;
         if (!W.refund) {
@@ -1054,7 +1114,7 @@ export class Player {
                 }
             }
             const sys=ctx.weaponSys[pick?pick.sys:W.sys]||ctx.playerBullets;
-            const dmg=pick?pick.damage:W.damage;
+            const dmg=pick?pick.damage:(this.shotDmg??W.damage);
             const n=W.pellets||1;
             for (let p=0;p<n;p++) {
                 const a=base+(n>1?(p/(n-1)-0.5)*W.fan:0)+(this.plantT>0&&this.still?0:(Math.random()*2-1)*W.spread);
@@ -1167,7 +1227,8 @@ export class Player {
         }
         else {
             const slow=room.zones.playerSlowAt(this.pos.x,this.pos.z);
-            const hm=(this.hasteT>0?this.hasteMult:1)*(this.umbrellaT>0?this.umbrellaSlow:1)*(this.planeT>0?this.planeMult:1);
+            const cm=this.W.charge&&this.chargeFrac>0?1-(1-this.W.charge.slow)*this.chargeFrac:1;
+            const hm=(this.hasteT>0?this.hasteMult:1)*(this.umbrellaT>0?this.umbrellaSlow:1)*(this.planeT>0?this.planeMult:1)*cm;
             const rm=this.ghost?1:speedMult(this.hp);
             const tx=_mv.x*P.speed*slow*hm*this.courseSpeed*rm;
             const tz=_mv.z*P.speed*slow*hm*this.courseSpeed*rm;
@@ -1261,7 +1322,10 @@ export class Player {
             }
         }
         this.cdT=Math.max(0,(this.cdT||0)-dt);
-        if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0&&!(this.planeT>0)) {
+        if (W.charge) {
+            this.updateCharge(input,ctx,aim,dt);
+        }
+        else if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0&&!(this.planeT>0)) {
             this.fireCd+=Math.max(Math.min(W.fireInterval,WEAPON_LIMITS.minInterval),W.fireInterval/((this.rapidT>0?this.rapidMult:1)*fireMult(this.hp)));
             if (this.fireCd<0) {
                 this.fireCd=0;
