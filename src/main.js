@@ -123,6 +123,13 @@ function boot() {
     }
     applyLang();
     loadProgress();
+    if (progress.rushResetVer!==TUNING.bossRush.resetVer) {
+        progress.rushResetVer=TUNING.bossRush.resetVer;
+        progress.bestRush=0;
+        progress.bestRushGrade='';
+        clearRunSnap('bossrush');
+        saveProgress();
+    }
     initMeta();
     flushMeta();
     settings.skin=clampSkin(settings.skin);

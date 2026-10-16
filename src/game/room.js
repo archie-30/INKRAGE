@@ -71,7 +71,7 @@ export class RoomDirector {
                     this.eliteWave=this.wave;
                     elite=true;
                 }
-                const e=this.enemies.spawn(s.type,x,z,{hpMult:s.boss?Math.min(TUNING.bossScale.hpMax,this.plan.hpMult*this.plan.bossHp):this.plan.hpMult*(elite?TUNING.elite.hp:1),elite,tier:s.boss?this.plan.tier||0:0,summon:!!(s.boss&&this.plan.rush)});
+                const e=this.enemies.spawn(s.type,x,z,{hpMult:s.boss?Math.min(TUNING.bossScale.hpMax,this.plan.hpMult*this.plan.bossHp):this.plan.hpMult*(elite?TUNING.elite.hp:1),elite,tier:s.boss?this.plan.tier||0:0,summon:!!(s.boss&&this.plan.rush),tempo:s.boss&&this.plan.rush?this.plan.tempo||1:0,summonCap:s.boss&&this.plan.rush?TUNING.bossRush.ramp.summonCap:0});
                 if (s.boss) {
                     this.boss=e;
                 }
