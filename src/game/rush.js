@@ -166,7 +166,7 @@ export const RushMixin={
         const npcs=[{model:'cardKeeper',role:'cards',label:t('rush.zone.cards'),x:L.keeper[0],z:L.keeper[1]}];
         npcs.push(...this.relicNpcs(L,relics));
         zones.forEach((k,i)=>npcs.push({model:'zone',role:'zone',zone:k,label:t('rush.zone.'+k),x:L.zones[i][0],z:L.zones[i][1]}));
-        const plan={act:this.rushTier(),index:R.room,rush:true,peace:true,node:'infirmary',boss:false,layoutKey:'infirmary',layout:L,hpMult:1,waves:[],barrels:0,crates:0,exits:[{kind:'next',label:'exit.rushNext'}],npcs,cards,relics,zones,zoneOpen:-1,used:npcs.map(()=>0),healed:false,saved:false};
+        const plan={act:this.rushTier(),index:R.room,rush:true,peace:true,node:'infirmary',boss:false,layoutKey:'infirmary',layout:L,hpMult:1,waves:[],barrels:0,crates:0,exits:[{kind:'next',label:'exit.rushNext',intro:'rushNext'}],npcs,cards,relics,zones,zoneOpen:-1,used:npcs.map(()=>0),healed:false,saved:false};
         R.plan=plan;
         return plan;
     },
