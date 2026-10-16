@@ -735,6 +735,18 @@ function boot() {
                     audio.play('ultHit');
                     fx.cameraShake(TUNING.ultFx.hitShake);
                     fx.fovPunch(TUNING.ultFx.hitFov);
+                    const src=echo||card;
+                    const tt=echo?tg.echo:tg;
+                    const self=src.def.targeting==='none'||src.def.targeting==='direction'||!tt||tt.x===undefined;
+                    const W=TUNING.ultFx.world;
+                    const ax=self?player.pos.x:tt.x;
+                    const az=self?player.pos.z:tt.z;
+                    const tone=TUNING.ultFx.tone[src.def.id]||'red';
+                    fx.flash('paper',W.flashTime,W.flash);
+                    rings.spawn(ax,az,W.ring,tone,W.ringTime);
+                    rings.spawn(ax,az,W.ring*0.6,'ink',W.ringTime*0.8);
+                    particles.burst(ax,1,az,W.drops,{color:tone,speed:[3,8],up:[3,7],size:[0.08,0.18],life:[0.4,0.8]});
+                    particles.burst(ax,1,az,W.drops/2,{color:'paper',speed:[2,6],up:[2,6],size:[0.1,0.2],life:[0.4,0.9]});
                     effects.run(card,tg);
                     tutNotify('ult');
                 },{params:{...cardParams(echo||card),roll:target.roll},echo,anchor:()=>{
