@@ -4278,15 +4278,15 @@ export class SkinEditor extends Panel {
         if (this.weaponOnly) {
             const bw=(pw-36-10)/2;
             this.randomBtn=null;
-            this.resetBtn={x:this.P.x+18,y:by,w:bw,h:bh};
-            this.backBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
+            this.backBtn={x:this.P.x+18,y:by,w:bw,h:bh};
+            this.resetBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
             this.buttons=[this.resetBtn,this.backBtn];
             return;
         }
         const bw=(pw-36-20)/3;
-        this.randomBtn={x:this.P.x+18,y:by,w:bw,h:bh};
-        this.resetBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
-        this.backBtn={x:this.P.x+38+bw*2,y:by,w:bw,h:bh};
+        this.backBtn={x:this.P.x+18,y:by,w:bw,h:bh};
+        this.randomBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
+        this.resetBtn={x:this.P.x+38+bw*2,y:by,w:bw,h:bh};
         this.buttons=[this.resetBtn,this.backBtn,this.randomBtn];
     }
 

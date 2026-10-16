@@ -5888,7 +5888,7 @@ export class EnemyManager {
             if (ex*ex+ez*ez<rr*rr) {
                 const l=Math.hypot(vx,vz)||1;
                 const m=e.damageMult(x,z);
-                this.damage(e,dmg*m,vx/l,vz/l,false,m>1);
+                this.damage(e,(typeof dmg==='function'?dmg(e):dmg)*m,vx/l,vz/l,false,m>1);
                 return e;
             }
         }

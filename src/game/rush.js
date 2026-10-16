@@ -219,9 +219,10 @@ export const RushMixin={
                     plan.saved=true;
                     this.rushSave();
                 }
-                this.exitsOpen=true;
-                this.hooks.openDoors(true);
-                this.hooks.npcSay(0,t('rush.nurse'));
+                if (this.infirmaryDone()) {
+                    this.exitsOpen=true;
+                    this.hooks.openDoors(true);
+                }
             }
             this.hooks.banner('peace',this);
             return;
@@ -312,6 +313,17 @@ export const RushMixin={
         R.plan=null;
         this.go(i);
         return true;
+    },
+
+    infirmaryDone() {
+        const p=this.plan;
+        if (!p||p.node!=='infirmary') {
+            return true;
+        }
+        const ci=p.npcs.findIndex(q=>q.role==='cards');
+        const cards=ci<0||!!p.used[ci];
+        const relic=!!p.relicTaken||!p.npcs.some(q=>q.role==='relic');
+        return cards&&relic&&p.zoneOpen>=0;
     },
 
     markNpc(i,sealed=false) {

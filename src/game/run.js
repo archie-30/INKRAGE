@@ -826,8 +826,11 @@ export class Run {
     backToPeace() {
         this.state='peace';
         this.hooks.resume();
-        if (!this.exitsOpen) {
+        if (!this.exitsOpen&&this.infirmaryDone()) {
             this.openExits();
+            if (this.plan.node==='infirmary') {
+                this.note('rush.doorOpen');
+            }
         }
     }
 
