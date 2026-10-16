@@ -1034,7 +1034,8 @@ export class Player {
             }
             return;
         }
-        const f=this.slingFull?1:Math.min(1,t/full);
+        const lo=Math.min(C.min,full*0.9);
+        const f=this.slingFull?1:Math.max(0,Math.min(1,(t-lo)/(full-lo)));
         this.slingFull=false;
         this.shotDmg=Math.round(C.dmg[0]+(C.dmg[1]-C.dmg[0])*f);
         this.fire(ctx,aim);

@@ -207,6 +207,7 @@ export class Overlay {
         game.relicView.draw(ctx);
         game.achView.draw(ctx);
         game.levelUp.draw(ctx,game.art);
+        game.news.draw(ctx,game.art);
         game.skinEditor.draw(ctx);
         game.settingsMenu.draw(ctx);
         if (game.settingsMenu.open&&game.settingsMenu.page==='touch') {
