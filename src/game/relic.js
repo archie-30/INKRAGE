@@ -99,6 +99,12 @@ export function reloadMult() {
     return hasRelic('sharpener')?R.sharpener.reload:1;
 }
 
+export function rearmGuard() {
+    if (hasRelic('whiteout')) {
+        relic.guard=R.whiteout.guards;
+    }
+}
+
 export function takeGuard() {
     if (relic.guard<=0) {
         return false;

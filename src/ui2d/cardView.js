@@ -2,7 +2,7 @@ import {PALETTE,rgba} from '../data/palette.js';
 import {TUNING} from '../data/tuning.js';
 import {t} from '../data/strings.js';
 import {sketchLine,sketchRect,sketchCircle,sketchPath,sketchPolygon,hatchFill,rectPoly,drawShape} from './sketch.js';
-import {cardName,cardDesc,cardCost,cardKey,cardParams,freeCards} from '../game/card.js';
+import {cardName,cardDesc,cardCost,cardKey,cardParams,shownParams,freeCards} from '../game/card.js';
 import {unlockLevel} from '../data/cards.js';
 import {RNG} from '../core/rng.js';
 import {carbonFree} from '../game/relic.js';
@@ -903,7 +903,7 @@ export function cardChips(card) {
 }
 
 export function cardFacts(card,withDesc=true) {
-    const p=cardParams(card);
+    const p=shownParams(card);
     const mode=card.def.mode;
     const out=[];
     if (withDesc) {

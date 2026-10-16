@@ -664,7 +664,8 @@ export class Npcs {
             root.add(body);
             const info=MODELS[s.model](body,root,s);
             room.group.add(root);
-            this.list.push({model:s.model,item:s.item||null,label:s.label||null,price:s.price||0,relic:s.relic||null,zone:s.zone||null,role:s.role||null,root,body,x:s.x,z:s.z,r:info.r,h:info.h,lid:info.lid||null,icon:info.icon||null,station:info.station||null,float:!!info.float,still:!!info.still,used:false,sealed:false,t:Math.random()*6,yaw:0,pop:0,open:0});
+            const piece=room.addPiece('npc',root,[makeCircle(s.x,s.z,info.r)],{x:s.x,z:s.z,radius:info.r,erasable:false});
+            this.list.push({piece,model:s.model,item:s.item||null,label:s.label||null,price:s.price||0,relic:s.relic||null,zone:s.zone||null,role:s.role||null,root,body,x:s.x,z:s.z,r:info.r,h:info.h,lid:info.lid||null,icon:info.icon||null,station:info.station||null,float:!!info.float,still:!!info.still,used:false,sealed:false,t:Math.random()*6,yaw:0,pop:0,open:0});
         }
     }
 
@@ -674,6 +675,9 @@ export class Npcs {
             return;
         }
         old.root.parent&&old.root.parent.remove(old.root);
+        if (old.piece&&room.removePiece) {
+            room.removePiece(old.piece);
+        }
         const keep=this.list;
         this.list=[];
         this.build2(room,s);
