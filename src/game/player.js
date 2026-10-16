@@ -1155,7 +1155,7 @@ export class Player {
         input.getMove(_mv);
         const moveLen=Math.hypot(_mv.x,_mv.z);
         this.still=moveLen<0.05;
-        for (const k of ['scopeT','plantT','fullInkT','umbrellaT','spongeT','planeT']) {
+        for (const k of ['plantT','fullInkT','umbrellaT','spongeT','planeT']) {
             this[k]=Math.max(0,(this[k]||0)-dt);
         }
         if (aim.mode==='point') {
@@ -1346,7 +1346,7 @@ export class Player {
         const s=this.speedFrac;
         const ph=this.phase;
         this.poseMoveYaw=this.moveYaw;
-        this.moveFrame.rotation.y=this.poseMoveYaw;
+        this.moveFrame.rotation.y=this.poseMoveYaw+(this.morphSpin||0);
         this.leanGroup.rotation.x=P.lean*s+(this.dashT>0?0.2:0)-this.kick*0.08;
         const ks=1-this.sq;
         const kt=1+this.st;

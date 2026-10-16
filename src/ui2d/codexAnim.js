@@ -1514,34 +1514,17 @@ export const CARD_ANIMS={
             const cy=PY;
             S.player(cx,cy,0);
             const f=seg(k,0.2,0.5);
-            const foes=[['doodle',cx+3.6,cy-3.4],['blob',cx-3.8,cy+3.4],['bird',cx+3.8,cy+3.4]];
+            const foes=[['doodle',cx+4.6,cy],['blob',cx-4.6,cy],['bird',cx,cy+3.6]];
             for (const [id,x,y] of foes) {
                 S.target(id,x,y,k,0.42);
             }
             if (f>0&&f<1) {
                 for (let i=0;i<4;i++) {
-                    const a=Math.PI/4+i*Math.PI/2;
+                    const a=i*Math.PI/2;
                     const r=lerp(0.6,7,f);
                     S.line(cx+Math.cos(a)*Math.max(0.6,r-1.6),cy+Math.sin(a)*Math.max(0.6,r-1.6),cx+Math.cos(a)*r,cy+Math.sin(a)*r,PALETTE.ink,0.2);
                 }
             }
-        }
-    },
-    scope:{
-        period:3,
-        draw(S,k) {
-            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
-            S.player(PX,PY,0,{kick:k>0.3&&k<0.85?(Math.floor(k*40)%2)*0.5:0});
-            const ex=12;
-            const ey=PY+Math.sin(k*12)*1.8;
-            S.ring(ex,ey,1.6,PALETTE.red,0.07,on);
-            S.line(ex-2.2,ey,ex-1.2,ey,PALETTE.red,0.07,on);
-            S.line(ex+1.2,ey,ex+2.2,ey,PALETTE.red,0.07,on);
-            for (let i=0;i<8;i++) {
-                S.fly(PX+0.9,PY,ex,ey,k,0.3+i*0.07,0.4+i*0.07);
-            }
-            S.target('bird',ex,ey,k,0.9);
-            S.text('+15%',PX,PY-1.4,14,PALETTE.red,on);
         }
     },
     bearTrap:{

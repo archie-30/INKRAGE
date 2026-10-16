@@ -424,7 +424,7 @@ export const TUNING={
         wheelLine:40
     },
     effects:{
-        kit:{trapR:1.2,trapArm:0.3,alarmTick:0.5,shotSpeed:6,shotLife:4.5,shotR:0.45,shotGrow:0.5,mirrorH:1.8,mirrorDmg:1.5,umbrellaR:2.6,planeR:1.3,crossLife:1.1,boxDrop:{none:0.4,heal:0.2},aidRing:0.5,rewindSpeed:24,spongeInvuln:0.25,diceShake:0.6},
+        kit:{trapR:1.2,trapArm:0.3,alarmTick:0.5,shotSpeed:6,shotLife:4.5,shotR:0.45,shotGrow:0.5,mirrorH:1.8,mirrorDmg:1.5,umbrellaR:2.6,planeR:1.3,planeMorph:{inTime:0.3,outTime:0.5,scale:1.35,y:1.0,spin:2},crossLife:1.1,boxDrop:{none:0.4,heal:0.2},aidRing:0.5,rewindSpeed:24,spongeInvuln:0.25,diceShake:0.6},
         wavePreview:{front:0.6,width:0.24,alpha:0.4},
         leap:{speed:22,life:0.5,time:0.72,height:2.2,tries:12,grace:0.08,land:1.8,shake:0.12,fov:0.7},
         puppet:{alpha:0.95,spin:2.5,ring:0.6,ringR:1.8,drop:0.35,dropH:7,shake:0.55,fov:2.4,stop:70,splat:2.6,waves:3,waveGap:0.12,waveR:3,pull:2.2,near:1.6},
@@ -543,7 +543,7 @@ export const TUNING={
         crayonR:{color:'red',capacity:48,radius:0.16,size:0.22,trailWidth:0.14},
         crayonB:{color:'crayonBlue',capacity:48,radius:0.15,size:0.18,trailWidth:0.11},
         crayonG:{color:'crayonGreen',capacity:64,radius:0.14,size:0.15,trailWidth:0.09},
-        sling:{color:'ink',capacity:24,radius:0.24,size:0.3,trailWidth:0.18,pierce:true},
+        sling:{color:'ink',capacity:24,radius:0.34,wallR:0.24,size:0.3,trailWidth:0.18,pierce:true},
         compass:{color:'nearGray',capacity:16,radius:0.6,wallR:0.3,size:0.8,trailWidth:0.06,pierce:true,boomerang:true,model:'compass',spin:18,returnAccel:0,turnRate:12,propGap:0.4}
     },
     brushStroke:{count:10,height:1.0,fade:0.3,muzzle:0,thickMin:0.3,thickGrow:0.1,arc:1.0,lead:0.35,bow:0.05},

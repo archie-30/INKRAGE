@@ -652,19 +652,6 @@ export const CARDS={
         upgraded:{cost:2,params:{damage:30}},
         effect:(g,t,p)=>g.crossCut(p.damage,p.count,p.speed)
     },
-    scope:{
-        id:'scope',
-        nameKey:'card.scope.name',
-        descKey:'card.scope.desc',
-        cost:2,
-        rarity:'common',
-        type:'utility',
-        mode:'self',
-        targeting:'none',
-        params:{duration:6,bonus:15,assist:2},
-        upgraded:{cost:2,params:{duration:8}},
-        effect:(g,t,p)=>g.scope(p.duration,p.bonus,p.assist)
-    },
     bearTrap:{
         id:'bearTrap',
         nameKey:'card.bearTrap.name',
@@ -688,8 +675,8 @@ export const CARDS={
         type:'defense',
         mode:'self',
         targeting:'none',
-        params:{duration:3,angle:120,pct:30},
-        upgraded:{cost:2,params:{duration:4}},
+        params:{duration:5,angle:120,pct:30},
+        upgraded:{cost:2,params:{duration:6}},
         effect:(g,t,p)=>g.umbrella(p.duration,p.angle,p.pct)
     },
     plant:{
@@ -756,7 +743,7 @@ export const CARDS={
         type:'defense',
         mode:'self',
         targeting:'none',
-        params:{duration:3,per:40,max:100,radius:3},
+        params:{duration:4.5,per:40,max:100,radius:3.6},
         upgraded:{cost:2,params:{max:140}},
         effect:(g,t,p)=>g.sponge(p.duration,p.per,p.max,p.radius)
     },
@@ -871,7 +858,7 @@ export const UNLOCKS={
     11:['inkRain','inkField','spareMag','slowMo'],
     12:['reflect','crossCut','puppet'],
     13:['inkWell','recopy','barrage'],
-    14:['clusterBomb','scope','giantPen'],
+    14:['clusterBomb','giantPen'],
     15:['bearTrap','freezeAll'],
     16:['umbrella','plant','firstAid'],
     17:['alarmClock','slowShot','luckyDice'],

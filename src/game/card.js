@@ -5,6 +5,7 @@ import {t} from '../data/strings.js';
 import {toonMaterial,lineMaterial,unlitMaterial,pal} from '../render/materials.js';
 import {circleVs,clampToBounds} from '../core/collision.js';
 import {carbonFree} from './relic.js';
+import {EASE} from '../core/easing.js';
 
 let nextUid=1;
 
@@ -1635,6 +1636,11 @@ export class CardEffects {
             this.umbrellaMesh.visible=false;
             this.planeMesh.visible=false;
         }
+        if (this.planeAnim) {
+            this.planeAnim=null;
+            this.g.player.moveFrame.scale.setScalar(TUNING.player.visualScale);
+            this.g.player.morphSpin=0;
+        }
         this.reserveArm=0;
         this.aids=[];
         this.queue=[];
@@ -1648,7 +1654,6 @@ export class CardEffects {
         }
         const p=g.player;
         if (p) {
-            p.scopeT=0;
             p.plantT=0;
             p.fullInkT=0;
             p.umbrellaT=0;
@@ -1760,23 +1765,13 @@ export class CardEffects {
         const p=g.player;
         g.pierceBullets.ramp=0;
         for (let i=0;i<count;i++) {
-            const a=Math.PI/4+i*Math.PI*2/count;
+            const a=Math.atan2(p.aimDirZ,p.aimDirX)+i*Math.PI*2/count;
             g.pierceBullets.spawn(p.pos.x+Math.cos(a)*0.6,p.pos.z+Math.sin(a)*0.6,Math.cos(a),Math.sin(a),speed,damage,this.E.kit.crossLife);
         }
         p.sqv+=2;
         g.rings.spawn(p.pos.x,p.pos.z,1.5,'ink',0.25);
         g.fx.cameraShake(0.15);
         g.fx.fovPunch(1.0);
-    }
-
-    scope(duration,bonus,assist) {
-        const g=this.g;
-        const p=g.player;
-        p.scopeT=duration;
-        p.scopeMult=1+bonus/100;
-        p.scopeAssist=assist;
-        g.rings.spawn(p.pos.x,p.pos.z,1.6,'ink',0.3);
-        g.fx.fovPunch(-1.2);
     }
 
     bearTrap(x,z,duration,damage,stun,bossStun) {
@@ -1981,6 +1976,7 @@ export class CardEffects {
         p.planeT=duration;
         p.planeMult=mult;
         this.planeCfg={damage,every,hit:new Map()};
+        this.planeAnim={phase:'in',t:0};
         p.invuln=Math.max(p.invuln,0.2);
         g.fx.fovPunch(2);
         g.particles.burst(p.pos.x,1.0,p.pos.z,18,{color:'farGray',speed:[2,6],up:[2,5],size:[0.08,0.16]});
@@ -2171,10 +2167,55 @@ export class CardEffects {
                 },(x,z)=>g.particles.burst(x,1,z,2,{color:'red',speed:[1,3],up:[1,2],size:[0.05,0.1]}));
             }
             const pm=this.planeMesh;
-            pm.visible=p.planeT>0;
-            if (pm.visible) {
-                const rp=p.renderPos||p.pos;
-                pm.position.set(rp.x,1.3+Math.sin(p.planeT*8)*0.15,rp.z);
+            const PM=K.planeMorph;
+            const A=this.planeAnim;
+            const vs=TUNING.player.visualScale;
+            const rp=p.renderPos||p.pos;
+            if (A) {
+                A.t+=dt;
+                if (A.phase==='in') {
+                    const k=Math.min(1,A.t/PM.inTime);
+                    p.moveFrame.scale.setScalar(vs*Math.max(0.001,1-k));
+                    p.morphSpin=k*Math.PI*PM.spin;
+                    pm.scale.setScalar(PM.scale*Math.max(0.001,k<1?k*(1.2-0.2*k):1));
+                    if (k>=1) {
+                        A.phase='fly';
+                        p.morphSpin=0;
+                        g.particles.burst(rp.x,1.0,rp.z,10,{color:'paper',speed:[1,3],up:[1,3],size:[0.08,0.14]});
+                    }
+                }
+                else if (A.phase==='fly') {
+                    p.moveFrame.scale.setScalar(0.001);
+                    pm.scale.setScalar(PM.scale);
+                    if (p.planeT<=0) {
+                        A.phase='out';
+                        A.t=0;
+                        g.particles.burst(rp.x,1.0,rp.z,22,{color:'farGray',speed:[2,6],up:[2,5],size:[0.08,0.16]});
+                        g.rings.spawn(rp.x,rp.z,1.4,'ink',0.3);
+                        g.fx.fovPunch(-1);
+                    }
+                }
+                else {
+                    const k=Math.min(1,A.t/PM.outTime);
+                    const pk=Math.min(1,k*2);
+                    pm.scale.setScalar(PM.scale*Math.max(0.001,1-pk));
+                    pm.position.set(rp.x,PM.y+pk*1.2,rp.z);
+                    pm.rotation.y+=dt*18;
+                    pm.rotation.x=pk*Math.PI*0.5;
+                    const bk=Math.max(0,(k-0.25)/0.75);
+                    p.moveFrame.scale.setScalar(vs*Math.max(0.001,bk<1?EASE.easeOutBack(bk):1));
+                    p.morphSpin=(1-bk)*Math.PI*PM.spin;
+                    if (k>=1) {
+                        this.planeAnim=null;
+                        p.moveFrame.scale.setScalar(vs);
+                        p.morphSpin=0;
+                        pm.rotation.x=0;
+                    }
+                }
+            }
+            pm.visible=p.planeT>0||!!this.planeAnim;
+            if (p.planeT>0) {
+                pm.position.set(rp.x,PM.y+Math.sin(p.planeT*8)*0.12,rp.z);
                 pm.rotation.y=p.moveYaw||0;
                 pm.rotation.z=Math.sin(p.planeT*5)*0.25;
                 const C=this.planeCfg;

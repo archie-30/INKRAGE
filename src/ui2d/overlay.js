@@ -117,7 +117,7 @@ export class Overlay {
             }
             game.dmgNums.draw(ctx,game.project);
             const training=game.run.mode==='training';
-            if (!training||!settings.training.ammo) {
+            if (!training||!settings.training.ammo||player.W.charge) {
                 this.hud.drawAmmo(ctx,player,game.project,this.tmp||(this.tmp={x:0,y:0}));
             }
             this.hud.drawTimers(ctx,player,game.effects.timers,game.project,this.tmp||(this.tmp={x:0,y:0}));

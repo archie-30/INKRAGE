@@ -7531,6 +7531,9 @@ export class LevelUpView extends Panel {
         this.cards=cards.map(id=>createCard(id));
         this.weapons=weapons;
         this.sounded=0;
+        this.sel=null;
+        this.hoverCard=null;
+        this.cardHits=[];
         this.show();
     }
 
@@ -7539,16 +7542,51 @@ export class LevelUpView extends Panel {
         return U.cardsAt+this.cards.length*U.cardGap+U.cardTime;
     }
 
-    down() {
+    layout() {
+        const w=this.width;
+        const h=this.height;
+        const small=h<600;
+        const bw=Math.min(240,w-48);
+        const bh=small?44:52;
+        this.homeBtn={x:w/2-bw/2,y:h-bh-(small?12:24),w:bw,h:bh};
+        this.buttons=[this.homeBtn];
+    }
+
+    cardAt(x,y) {
+        return (this.cardHits||[]).find(c=>Math.abs(x-c.x)<=c.w/2&&Math.abs(y-c.y)<=c.h/2)||null;
+    }
+
+    hover(x,y) {
+        this.layout();
+        super.hover(x,y);
+        const c=this.t>=this.doneAt()?this.cardAt(x,y):null;
+        this.hoverCard=c?c.card:null;
+    }
+
+    down(x,y) {
         if (!this.open) {
             return false;
         }
-        if (this.t>=this.doneAt()) {
-            this.actions.close();
-        }
-        else {
+        if (this.t<this.doneAt()) {
             this.t=this.doneAt();
+            return true;
         }
+        if (x===undefined) {
+            this.actions.close();
+            return true;
+        }
+        this.layout();
+        if (inRect(this.homeBtn,x,y)) {
+            this.actions.close();
+            return true;
+        }
+        const c=this.cardAt(x,y);
+        if (c) {
+            this.sel=this.sel===c.card?null:c.card;
+            this.actions.sound('ui',1);
+            return true;
+        }
+        this.sel=null;
         return true;
     }
 
@@ -7624,6 +7662,10 @@ export class LevelUpView extends Panel {
             ctx.globalAlpha=1;
         }
         const n=this.cards.length;
+        this.cardHits=[];
+        const done=tt>=this.doneAt();
+        const focus=done?(this.sel||this.hoverCard):null;
+        let tip=null;
         if (n>0) {
             const cs=Math.min(small?0.62:0.95,(w-80)/(n*(CARD_W+18)));
             const cw=CARD_W*cs;
@@ -7635,7 +7677,7 @@ export class LevelUpView extends Panel {
             ctx.fillStyle=PALETTE.nearGray;
             ctx.font='bold '+(small?14:17)+'px '+FONT;
             ctx.textAlign='center';
-            ctx.fillText(t('levelUp.cards'),w/2,cy-ch/2-(small?16:24));
+            ctx.fillText(t('levelUp.cards')+(done?t(this.touch?'levelUp.tapCard.touch':'levelUp.tapCard'):''),w/2,cy-ch/2-(small?16:24));
             ctx.globalAlpha=1;
             this.cards.forEach((c,i)=>{
                 const k=Math.max(0,Math.min(1,(tt-U.cardsAt-i*U.cardGap)/U.cardTime));
@@ -7651,7 +7693,18 @@ export class LevelUpView extends Panel {
                 ctx.rotate((1-e)*(i%2?0.5:-0.5));
                 ctx.scale(Math.max(0.04,Math.abs(flip))*(0.7+0.3*e),0.7+0.3*e);
                 const img=flip>0?art.back(v):art.face(c,v);
+                const on=focus===c;
+                if (on) {
+                    ctx.scale(1.08,1.08);
+                }
                 ctx.drawImage(img,-cw/2,-ch/2,cw,ch);
+                if (on) {
+                    drawShape(ctx,sketchRect(-cw/2-5,-ch/2-5,cw+10,ch+10,{width:2.6,seed:2410+i}),PALETTE.red,v);
+                    tip={card:c,x,y:cy-ch/2-14};
+                }
+                if (k>=1) {
+                    this.cardHits.push({x,y:cy,w:cw,h:ch,card:c});
+                }
                 if (k>=1) {
                     const glow=Math.max(0,1-(tt-U.cardsAt-i*U.cardGap-U.cardTime)*2);
                     if (glow>0) {
@@ -7663,21 +7716,25 @@ export class LevelUpView extends Panel {
                 ctx.restore();
             });
         }
+        this.layout();
         if (this.weapons.length>0) {
             const wk=Math.max(0,Math.min(1,(tt-U.levelAt-0.3)/0.4));
             ctx.globalAlpha=wk;
             ctx.fillStyle=PALETTE.red;
             ctx.font='bold '+(small?15:18)+'px '+FONT;
             ctx.textAlign='center';
-            ctx.fillText(t('levelUp.weapons',{names:this.weapons.map(id=>t('weapon.'+id+'.name')).join(t('ui.list'))}),w/2,h*U.weaponY);
+            ctx.textBaseline='bottom';
+            ctx.fillText(t('levelUp.weapons',{names:this.weapons.map(id=>t('weapon.'+id+'.name')).join(t('ui.list'))}),w/2,Math.min(h*U.weaponY,this.homeBtn.y-(small?6:10)));
             ctx.globalAlpha=1;
         }
-        if (tt>=this.doneAt()) {
-            ctx.globalAlpha=0.6+0.4*Math.sin(time.real*4);
-            ctx.fillStyle=PALETTE.nearGray;
-            ctx.font=(small?'13px ':'15px ')+FONT;
-            ctx.textAlign='center';
-            ctx.fillText(t('levelUp.tap'),w/2,h-(small?22:34));
+        if (done) {
+            this.layout();
+            const bk=Math.min(1,(tt-this.doneAt())/0.3);
+            drawButton(ctx,this.homeBtn,t('levelUp.home'),v,bk,this.hoverIdx===0,small?17:19);
+        }
+        if (tip) {
+            ctx.globalAlpha=1;
+            drawCardTooltip(ctx,tip.card,Math.max(150,Math.min(w-150,tip.x)),tip.y,270,small?0.9:1);
         }
         ctx.restore();
     }
