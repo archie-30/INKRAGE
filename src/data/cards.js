@@ -858,26 +858,26 @@ export const CARDS={
 };
 
 export const UNLOCKS={
-    1:['scatter','pierce','homing','bomb','rapid','pencilWall','eraser','trap','paperShield','inkDash','execute','tsunami','dualWield'],
-    2:['whiteout','shockwave','timeStop'],
-    3:['haste','mark','bounceBall'],
-    4:['inkMine','blot','inkBarrier'],
-    5:['pin','clone','stamp','redraw'],
-    6:['paperBlade','chain','echo'],
-    7:['inkRain','inkField','blackHole'],
-    8:['reflect','inkWell','sketchLeap','barrage'],
-    9:['clusterBomb','giantPen'],
-    10:['miniShield','boxFort','ruler','freezeAll'],
-    11:['spareMag','slowMo'],
-    12:['crossCut','firstAid','puppet'],
-    13:['recopy','scope'],
-    14:['bearTrap','reserve'],
-    15:['umbrella','fullInk'],
-    16:['plant','luckyDice'],
-    17:['alarmClock','rewind'],
-    18:['slowShot','inkStorm'],
-    19:['mirror','sponge'],
-    20:['grudge','planeDash']
+    1:['scatter','pierce','homing','bomb','rapid','pencilWall','eraser','trap','paperShield','execute','tsunami'],
+    2:['whiteout','inkDash','dualWield'],
+    3:['shockwave','bounceBall'],
+    4:['haste','mark'],
+    5:['clone','stamp','inkBarrier'],
+    6:['inkMine','blot'],
+    7:['timeStop','pin'],
+    8:['sketchLeap','miniShield','redraw'],
+    9:['paperBlade','boxFort','echo'],
+    10:['chain','ruler','blackHole'],
+    11:['inkRain','inkField','spareMag','slowMo'],
+    12:['reflect','crossCut','puppet'],
+    13:['inkWell','recopy','barrage'],
+    14:['clusterBomb','scope','giantPen'],
+    15:['bearTrap','freezeAll'],
+    16:['umbrella','plant','firstAid'],
+    17:['alarmClock','slowShot','luckyDice'],
+    18:['mirror','sponge','inkStorm','rewind'],
+    19:['grudge','fullInk'],
+    20:['reserve','planeDash']
 };
 
 export const LEGACY_UNLOCKS={
