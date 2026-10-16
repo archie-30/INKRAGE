@@ -301,6 +301,7 @@ export const STRINGS={
     'device.mouse':'已切換至鍵盤滑鼠操作',
     'exit.again':'再按一次返回鍵離開遊戲',
     'update.ready':'新版本已下載，重新開啟遊戲即可套用',
+    'boot.failed':'載入失敗，請稍後重新整理頁面',
     'menu.subtitle':'狂墨 · 手繪射擊 × 牌組構築',
     'menu.start':'筆記本模式',
     'menu.endless':'課表模式',
