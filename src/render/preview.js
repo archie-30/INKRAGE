@@ -222,6 +222,13 @@ export class Preview {
                 this.showSector(p.x,p.z,base,params.angle,params.range,color);
                 return;
             }
+            if (card.id==='crossCut') {
+                for (let i=0;i<params.count&&i<this.lines.length;i++) {
+                    const a=base+i*Math.PI*2/params.count;
+                    this.setLine(this.lines[i],p.x+Math.cos(a)*0.6,p.z+Math.sin(a)*0.6,Math.cos(a),Math.sin(a),len,i===0?'red':color);
+                }
+                return;
+            }
             const lead=card.def.mode==='dash'?TUNING.effects.dashLead:0;
             for (let i=0;i<count&&i<this.lines.length;i++) {
                 const a=count>1?base+(i/(count-1)-0.5)*spread:base;

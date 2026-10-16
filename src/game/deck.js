@@ -96,7 +96,7 @@ export class Deck {
         return !this.locked;
     }
 
-    remove(card) {
+    remove(card,delay=TUNING.deck.replaceDelay) {
         const i=this.hand.indexOf(card);
         if (i<0) {
             return false;
@@ -104,7 +104,7 @@ export class Deck {
         this.hand.splice(i,1);
         this.discardPile.push(card);
         if (!isUlt(card.id)||this.provider) {
-            this.requestDraw(TUNING.deck.replaceDelay);
+            this.requestDraw(delay);
         }
         return true;
     }
@@ -113,8 +113,8 @@ export class Deck {
         return this.remove(card);
     }
 
-    discard(card) {
-        return this.remove(card);
+    discard(card,delay) {
+        return this.remove(card,delay);
     }
 
     drawUlt(skip) {

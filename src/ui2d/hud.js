@@ -297,6 +297,57 @@ export class Hud {
         ctx.restore();
     }
 
+    drawActive(ctx,list,training) {
+        if (!list||list.length===0) {
+            return;
+        }
+        const H=TUNING.hud;
+        const A=H.active;
+        const k=textScale();
+        const x=training?A.trainX:H.hpPos[0]+A.x;
+        let y=training?A.trainY:H.hpPos[1]+H.hpHeight+A.y;
+        ctx.save();
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        const n=Math.min(list.length,A.max);
+        for (let i=0;i<n;i++) {
+            const q=list[list.length-n+i];
+            const ap=Math.min(1,q.t/A.inTime);
+            const pop=1+Math.sin(Math.min(1,q.t/A.popTime)*Math.PI)*A.pop;
+            const name=t(CARDS[q.id].nameKey);
+            const sec=q.timed&&q.left>0?' '+q.left.toFixed(1)+t('hud.seconds'):'';
+            const fs=Math.round(A.font*k);
+            ctx.font='bold '+fs+'px '+FONT;
+            const nw=ctx.measureText(name).width;
+            ctx.font=Math.round(A.font*0.85*k)+'px '+FONT;
+            const sw=ctx.measureText(sec).width;
+            const w=nw+sw+A.pad*2+8;
+            const h=fs+A.pad*1.4;
+            const end=q.timed&&q.left<A.blink&&Math.floor(time.real*8)%2===0;
+            ctx.save();
+            ctx.globalAlpha=ap;
+            ctx.translate(x-(1-EASE.easeOutCubic(ap))*30,y+h/2);
+            ctx.scale(pop,pop);
+            ctx.fillStyle=rgba('paper',0.88);
+            ctx.fillRect(0,-h/2,w,h);
+            ctx.fillStyle=q.rare?PALETTE.red:PALETTE.ink;
+            ctx.fillRect(0,-h/2,3,h);
+            if (q.timed&&q.full>0) {
+                ctx.fillStyle=rgba(q.rare?'red':'ink',0.5);
+                ctx.fillRect(3,h/2-2,(w-3)*Math.max(0,Math.min(1,q.left/q.full)),2);
+            }
+            ctx.font='bold '+fs+'px '+FONT;
+            ctx.fillStyle=end?PALETTE.red:(q.rare?PALETTE.red:PALETTE.ink);
+            ctx.fillText(name,A.pad+4,0);
+            ctx.font=Math.round(A.font*0.85*k)+'px '+FONT;
+            ctx.fillStyle=PALETTE.nearGray;
+            ctx.fillText(sec,A.pad+4+nw,0);
+            ctx.restore();
+            y+=h+A.gap;
+        }
+        ctx.restore();
+    }
+
     pauseRect(w) {
         return {x:w-62,y:12,w:46,h:46};
     }
@@ -1346,62 +1397,38 @@ export class Hud {
     }
 
     drawTrainingInfo(ctx,st,foes,touch,height) {
-        const T=TUNING.training;
-        const now=st.clock;
-        let win=0;
-        for (const q of st.log) {
-            if (now-q.t<=T.dpsWindow) {
-                win+=q.dmg;
-            }
-        }
-        const span=Math.min(T.dpsWindow,Math.max(1,now-(st.start||now)));
         const rows=[
-            [t('trainInfo.total'),String(Math.round(st.total)),true],
-            [t('trainInfo.dps',{s:T.dpsWindow}),String(Math.round(win/span)),true],
-            [t('trainInfo.max'),String(Math.round(st.max)),false],
-            [t('trainInfo.last'),st.last>0?String(Math.round(st.last)):'—',false],
-            [t('trainInfo.kills'),String(st.kills),false],
-            [t('trainInfo.cards'),String(st.cards),false],
-            [t('trainInfo.hurt'),String(st.hurt),st.hurtT>0],
-            [t('trainInfo.foes'),String(foes),false]
+            [t('trainInfo.hurt'),String(st.hurt),st.hurtT>0,0],
+            [t('trainInfo.max'),String(Math.round(st.max)),false,0],
+            [t('trainInfo.last'),st.last>0?String(Math.round(st.last)):'—',false,Math.max(0,st.lastT)]
         ];
-        const x=16;
-        const y=14;
-        const w=236;
-        const rh=21;
-        const h=40+rows.length*rh+26;
+        const x=18;
+        const y=16;
+        const rh=24;
         ctx.save();
         if (height<600) {
             ctx.translate(x,y);
-            ctx.scale(0.74,0.74);
+            ctx.scale(0.78,0.78);
             ctx.translate(-x,-y);
         }
-        ctx.fillStyle=rgba('paper',0.9);
-        ctx.fillRect(x,y,w,h);
-        drawShape(ctx,sketchRect(x,y,w,h,{width:1.8,seed:1700}),PALETTE.ink);
-        ctx.fillStyle=PALETTE.ink;
-        ctx.font='bold 15px '+FONT;
-        ctx.textAlign='left';
         ctx.textBaseline='middle';
-        ctx.fillText(t('trainInfo.title'),x+14,y+20);
-        drawShape(ctx,sketchLine(x+10,y+36,x+w-10,y+36,{width:1,seed:1701}),PALETTE.midGray);
+        ctx.lineJoin='round';
         for (let i=0;i<rows.length;i++) {
-            const ry=y+48+i*rh;
-            const [label,val,hi]=rows[i];
-            ctx.font='13px '+FONT;
-            ctx.fillStyle=PALETTE.nearGray;
+            const [label,val,hi,pop]=rows[i];
+            const ry=y+10+i*rh;
+            ctx.font='14px '+FONT;
             ctx.textAlign='left';
-            ctx.fillText(label,x+14,ry);
-            const pop=i===3?Math.max(0,st.lastT):0;
-            ctx.font='bold '+Math.round(15+pop*6)+'px '+FONT;
-            ctx.fillStyle=i===6&&st.hurtT>0?PALETTE.red:(hi?PALETTE.ink:PALETTE.nearGray);
-            ctx.textAlign='right';
-            ctx.fillText(val,x+w-14,ry);
+            const lw=ctx.measureText(label+'  ').width;
+            ctx.lineWidth=4;
+            ctx.strokeStyle=rgba('paper',0.85);
+            ctx.strokeText(label,x,ry);
+            ctx.fillStyle=PALETTE.nearGray;
+            ctx.fillText(label,x,ry);
+            ctx.font='bold '+Math.round(16+pop*6)+'px '+FONT;
+            ctx.strokeText(val,x+lw,ry);
+            ctx.fillStyle=hi?PALETTE.red:PALETTE.ink;
+            ctx.fillText(val,x+lw,ry);
         }
-        ctx.font='11px '+FONT;
-        ctx.fillStyle=PALETTE.midGray;
-        ctx.textAlign='left';
-        ctx.fillText(t(touch?'trainInfo.hintTouch':'trainInfo.hint'),x+14,y+h-14);
         ctx.restore();
     }
 }

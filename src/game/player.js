@@ -335,8 +335,14 @@ export class Player {
             arm.rotation.z=sx*0.6;
             sling.add(arm);
         }
-        sling.add(mk(new THREE.BoxGeometry(0.24,0.012,0.012),g?coat:unlitMaterial({color:'red'}),0,0,0.17,0,false));
-        sling.add(mk(new THREE.SphereGeometry(0.04,8,6),ink,0,0,0.1,0,false));
+        const bandMat=g?coat:unlitMaterial({color:'red'});
+        const bandL=mk(new THREE.BoxGeometry(1,0.014,0.014),bandMat,0,0,0.17,0,false);
+        const bandR=mk(new THREE.BoxGeometry(1,0.014,0.014),bandMat,0,0,0.17,0,false);
+        const pouch=mk(new THREE.BoxGeometry(0.07,0.03,0.03),g?coat:unlitMaterial({color:'darkRed'}),0,0,0.17,0,false);
+        const pellet=mk(new THREE.SphereGeometry(0.04,8,6),ink,0,0,0.17,0,false);
+        sling.add(bandL,bandR,pouch,pellet);
+        this.slingRig={bandL,bandR,pouch,pellet};
+        this.setSlingPull(0);
         looks.slingshot=sling;
         for (const k in looks) {
             if (k!=='pen') {
@@ -1034,6 +1040,7 @@ export class Player {
         this.fire(ctx,aim);
         this.shotDmg=null;
         this.cdT=C.cool;
+        this.slingSnapT=TUNING.player.sling.snapTime;
         this.kick=Math.max(this.kick||0,f);
     }
 
@@ -1491,7 +1498,43 @@ export class Player {
         this.bottle.rotation.x=-R.pourTilt*pour;
     }
 
+    setSlingPull(k) {
+        const S=this.slingRig;
+        const C=TUNING.player.sling;
+        const pz=C.restZ-C.pull*k;
+        for (const [m,sx] of [[S.bandL,-1],[S.bandR,1]]) {
+            const dx=-sx*C.tipX;
+            const dz=pz-C.tipZ;
+            m.scale.x=Math.max(0.001,Math.hypot(dx,dz));
+            m.position.set(sx*C.tipX+dx/2,0,C.tipZ+dz/2);
+            m.rotation.set(0,-Math.atan2(dz,dx),0);
+        }
+        S.pouch.position.set(0,0,pz);
+        S.pellet.position.set(0,0,pz-0.01);
+        S.pellet.visible=k>-0.01;
+    }
+
+    syncSling() {
+        const dt=Math.min(0.1,Math.max(0,time.real-(this.slingClock??time.real)));
+        this.slingClock=time.real;
+        if (!this.slingRig||this.weaponId!=='slingshot') {
+            return;
+        }
+        const C=TUNING.player.sling;
+        if (this.slingSnapT>0) {
+            this.slingSnapT=Math.max(0,this.slingSnapT-dt);
+            const q=1-this.slingSnapT/C.snapTime;
+            this.setSlingPull(-Math.sin(q*Math.PI)*C.overshoot*(1-q));
+            this.slingRig.pellet.visible=false;
+            return;
+        }
+        const k=this.slingFull?1:(this.chargeFrac||0);
+        const shake=k>=1?Math.sin(time.real*60)*C.shake:0;
+        this.setSlingPull(k+shake);
+    }
+
     sync(alpha) {
+        this.syncSling();
         this.renderPos.lerpVectors(this.prev,this.pos,alpha);
         this.root.position.copy(this.renderPos);
         if (this.leapT>0||this.leapF>0) {

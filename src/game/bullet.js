@@ -384,10 +384,10 @@ export class BulletSystem {
             let wall=null;
             for (let c=0;c<cols.length&&!this.thruWalls;c++) {
                 const col=cols[c];
-                if (own&&col.passPlayer) {
+                if (own&&col.passPlayer&&!col.shotHit) {
                     continue;
                 }
-                if (this.boomerang&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate')) {
+                if (this.boomerang&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='paperBox')) {
                     if (this.onProp&&circleVs(x,z,r,col,hit)) {
                         this.onProp(col.piece,this.dmg[i]);
                     }

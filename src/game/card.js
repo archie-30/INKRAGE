@@ -138,6 +138,7 @@ export function bouncePath(room,x,z,dx,dz,bounces,maxLen,r) {
 export class CardEffects {
     constructor(g,tuning) {
         this.timers=[];
+        this.active=[];
         this.g=g;
         this.E=tuning.effects;
         this.T=tuning;
@@ -194,8 +195,41 @@ export class CardEffects {
         }
     }
 
+    noteActive(card,params) {
+        const id=card.def.id;
+        const span=params.duration||params.delay||(id==='reserve'?1:0);
+        if (!span&&this.activeLive(id)===null) {
+            return;
+        }
+        const q=this.active.find(o=>o.id===id);
+        if (q) {
+            q.left=Math.max(q.left,span);
+            q.full=Math.max(q.full,span);
+            q.pop=0;
+            return;
+        }
+        this.active.push({id,rare:card.def.rarity==='rare',left:span,full:span,t:0,timed:id!=='reserve'});
+    }
+
+    activeLive(id) {
+        if (id==='reserve') {
+            return this.reserveArm>0;
+        }
+        if (id==='bearTrap') {
+            return (this.traps||[]).some(q=>q.left>0);
+        }
+        if (id==='alarmClock') {
+            return (this.clocks||[]).some(q=>q.left>0);
+        }
+        if (id==='mirror') {
+            return (this.mirrors||[]).some(q=>q.left>0);
+        }
+        return null;
+    }
+
     clear() {
         this.timers.length=0;
+        this.active.length=0;
         this.sweeps.length=0;
         this.clearKit();
         this.pupFx=null;
@@ -295,6 +329,15 @@ export class CardEffects {
                 this.timers.splice(i,1);
             }
         }
+        for (let i=this.active.length-1;i>=0;i--) {
+            const q=this.active[i];
+            q.left-=dt;
+            q.t+=dt;
+            const live=this.activeLive(q.id);
+            if (live===false||(live===null&&q.left<=0)) {
+                this.active.splice(i,1);
+            }
+        }
         for (let i=this.sweeps.length-1;i>=0;i--) {
             const s=this.sweeps[i];
             s.t+=dt;
@@ -342,6 +385,7 @@ export class CardEffects {
             p.pos.z=target.oz;
         }
         card.def.effect(this,target,params);
+        this.noteActive(card,params);
         if (keep) {
             p.pos.x=sx;
             p.pos.z=sz;
@@ -957,6 +1001,7 @@ export class CardEffects {
         g.rings.spawn(g.player.pos.x,g.player.pos.z,2,'red',0.35);
         const params=cardParams(u);
         u.def.effect(this,target.echo||target,params);
+        this.noteActive(u,params);
         if (params.duration&&!this.T.hud.timerSkip.includes(u.def.id)) {
             this.timers.push({id:u.def.id,left:params.duration,full:params.duration});
         }
@@ -1533,25 +1578,55 @@ export class CardEffects {
         this.traps=[];
         for (let i=0;i<3;i++) {
             const grp=new THREE.Group();
-            const base=new THREE.Mesh(new THREE.CylinderGeometry(K.trapR*0.8,K.trapR*0.85,0.08,16),toonMaterial({light:'midGray',mid:'nearGray',dark:'ink'}));
-            base.position.y=0.04;
+            const B=K.trapModel;
+            const steel=toonMaterial({light:'farGray',mid:'midGray',dark:'nearGray'});
+            const dark=toonMaterial({light:'midGray',mid:'nearGray',dark:'ink'});
+            const R=K.trapR*B.jawR;
+            const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.35,R*0.4,0.06,12),dark);
+            base.position.y=0.03;
             grp.add(base);
+            const bar=new THREE.Mesh(new THREE.BoxGeometry(R*2.3,0.06,0.12),dark);
+            bar.position.y=0.05;
+            grp.add(bar);
+            for (const sx of [-1,1]) {
+                const spring=new THREE.Mesh(new THREE.TorusGeometry(0.16,0.045,6,12),steel);
+                spring.rotation.y=Math.PI/2;
+                spring.position.set(sx*R*1.15,0.12,0);
+                grp.add(spring);
+            }
+            const pad=new THREE.Mesh(new THREE.CylinderGeometry(R*0.28,R*0.28,0.05,12),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+            pad.position.y=0.09;
+            grp.add(pad);
+            for (let k=0;k<3;k++) {
+                const link=new THREE.Mesh(new THREE.TorusGeometry(0.08,0.022,5,10),dark);
+                link.rotation.set(Math.PI/2,0,k%2?Math.PI/2:0);
+                link.position.set(R*1.4+k*0.13,0.03,R*0.35+k*0.1);
+                grp.add(link);
+            }
+            const stake=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.3,6),dark);
+            stake.position.set(R*1.4+0.42,0.12,R*0.35+0.32);
+            stake.rotation.x=Math.PI;
+            grp.add(stake);
             const jaws=[];
             for (const s of [-1,1]) {
                 const jaw=new THREE.Group();
-                for (let k=0;k<5;k++) {
-                    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.32,4),toonMaterial({light:'paper',mid:'farGray',dark:'midGray'}));
-                    tooth.position.set((k-2)*0.3,0.16,0);
+                const arc=new THREE.Mesh(new THREE.TorusGeometry(R,0.05,6,18,Math.PI),steel);
+                jaw.add(arc);
+                for (let k=0;k<B.teeth;k++) {
+                    const a=(k+0.5)/B.teeth*Math.PI;
+                    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.24,4),toonMaterial({light:'paper',mid:'farGray',dark:'midGray'}));
+                    tooth.position.set(Math.cos(a)*R,Math.sin(a)*R,-s*0.1);
+                    tooth.rotation.x=-s*Math.PI/2;
                     jaw.add(tooth);
                 }
-                jaw.position.z=s*K.trapR*0.55;
+                jaw.position.y=0.08;
                 jaw.userData.s=s;
                 grp.add(jaw);
                 jaws.push(jaw);
             }
             grp.visible=false;
             g.scene.add(grp);
-            this.traps.push({mesh:grp,jaws,left:0,x:0,z:0,dmg:0,stun:0,bossStun:0,t:0,snap:0});
+            this.traps.push({mesh:grp,jaws,pad,left:0,x:0,z:0,dmg:0,stun:0,bossStun:0,t:0,snap:0});
         }
         this.clocks=[];
         for (let i=0;i<3;i++) {
@@ -1760,12 +1835,12 @@ export class CardEffects {
         });
     }
 
-    crossCut(damage,count,speed) {
+    crossCut(damage,count,speed,dx=null,dz=null) {
         const g=this.g;
         const p=g.player;
         g.pierceBullets.ramp=0;
         for (let i=0;i<count;i++) {
-            const a=Math.atan2(p.aimDirZ,p.aimDirX)+i*Math.PI*2/count;
+            const a=Math.atan2(dz??p.aimDirZ,dx??p.aimDirX)+i*Math.PI*2/count;
             g.pierceBullets.spawn(p.pos.x+Math.cos(a)*0.6,p.pos.z+Math.sin(a)*0.6,Math.cos(a),Math.sin(a),speed,damage,this.E.kit.crossLife);
         }
         p.sqv+=2;
@@ -1780,11 +1855,19 @@ export class CardEffects {
         if (!q) {
             q=this.traps.reduce((a,o)=>o.left<a.left?o:a,this.traps[0]);
         }
-        Object.assign(q,{left:duration,x,z,dmg:damage,stun,bossStun,t:0,snap:0});
+        Object.assign(q,{left:duration,x,z,dmg:damage,stun,bossStun,t:0,snap:0,prey:null});
         q.mesh.visible=true;
         q.mesh.position.set(x,0,z);
+        q.mesh.scale.setScalar(1);
+        this.setJaws(q,1);
         q.mesh.rotation.y=Math.random()*Math.PI;
         g.particles.burst(x,0.3,z,8,{color:'nearGray',speed:[1,3],up:[1,3]});
+    }
+
+    setJaws(q,c) {
+        for (const j of q.jaws) {
+            j.rotation.x=j.userData.s*Math.PI/2*(1-c);
+        }
     }
 
     umbrella(duration,angle,pct) {
@@ -2006,10 +2089,20 @@ export class CardEffects {
                 continue;
             }
             q.t+=dt;
+            const TM=K.trapModel;
             if (q.snap>0) {
                 q.snap-=dt;
-                for (const j of q.jaws) {
-                    j.rotation.x=j.userData.s*Math.min(1.3,(0.5-Math.max(0,q.snap))*6);
+                const st=TM.hold-q.snap;
+                const c=Math.min(1,st/TM.shut);
+                const wob=st>TM.shut?Math.sin(st*70)*0.12*Math.max(0,1-(st-TM.shut)/0.25):0;
+                this.setJaws(q,EASE.easeInCubic(c)+wob*0.2);
+                q.mesh.position.x=q.x+(st<0.3?Math.sin(st*90)*0.05:0);
+                if (q.prey&&q.prey.alive) {
+                    q.prey.pos.x+=(q.x-q.prey.pos.x)*Math.min(1,dt*12);
+                    q.prey.pos.z+=(q.z-q.prey.pos.z)*Math.min(1,dt*12);
+                }
+                if (q.snap<TM.sink) {
+                    q.mesh.scale.setScalar(Math.max(0.01,q.snap/TM.sink));
                 }
                 if (q.snap<=0) {
                     q.left=0;
@@ -2023,15 +2116,23 @@ export class CardEffects {
                 continue;
             }
             if (q.t<K.trapArm) {
+                const a=q.t/K.trapArm;
+                this.setJaws(q,1-EASE.easeOutBack(a));
                 continue;
             }
+            this.setJaws(q,0);
+            q.pad.position.y=0.09+Math.max(0,Math.sin(q.t*4))*0.025;
             const e=g.enemies.nearest(q.x,q.z,K.trapR,true);
             if (e&&!e.def.flying) {
                 g.enemies.damage(e,q.dmg,0,0);
                 if (e.alive) {
                     e.stun(e.def.boss?q.bossStun/(TUNING.bossTempo||1):q.stun,true);
+                    q.prey=e.def.boss?null:e;
                 }
-                q.snap=0.5;
+                q.snap=TM.hold;
+                q.pad.position.y=0.06;
+                g.particles.burst(q.x,0.5,q.z,10,{color:'paper',speed:[3,7],up:[3,6],size:[0.04,0.08]});
+                g.particles.burst(q.x,0.3,q.z,6,{color:'red',speed:[1,3],up:[1,3],size:[0.06,0.12]});
                 g.rings.spawn(q.x,q.z,K.trapR*1.3,'ink',0.3);
                 g.particles.burst(q.x,0.4,q.z,14,{color:'nearGray',speed:[2,5],up:[2,5],size:[0.08,0.14]});
                 g.fx.cameraShake(0.2);

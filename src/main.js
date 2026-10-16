@@ -308,7 +308,7 @@ function boot() {
                 return {len:d,col:null};
             }
             for (const col of room.colliders) {
-                if (!col.passPlayer&&circleVs(px,pz,0.12,col,beamHit)) {
+                if ((!col.passPlayer||col.shotHit)&&circleVs(px,pz,0.12,col,beamHit)) {
                     return {len:d,col};
                 }
             }
@@ -382,7 +382,7 @@ function boot() {
             }
             if (game.room) {
                 for (const pc of game.room.pieces.slice()) {
-                    if (pc.state!=='alive'||!(pc.kind==='barrel'||pc.kind==='crate'||pc.kind==='target')||s.hit.has(pc)) {
+                    if (pc.state!=='alive'||!(pc.kind==='barrel'||pc.kind==='crate'||pc.kind==='target'||pc.kind==='paperBox')||s.hit.has(pc)) {
                         continue;
                     }
                     const d=inArc(pc.x,pc.z,pc.radius+S.propPad);
@@ -506,6 +506,8 @@ function boot() {
         }
         hand.cancelTargeting();
         let ult=null;
+        let n=0;
+        const RD=TUNING.redraw;
         const spare=c=>c!==ult&&isUlt(c.id)&&deck.usable(c);
         for (const v of hand.views.slice()) {
             if (v.state==='idle'||v.state==='draw'||v.state==='hover') {
@@ -516,7 +518,8 @@ function boot() {
                         continue;
                     }
                 }
-                hand.discardView(v);
+                hand.discardView(v,RD.drawDelay+n*RD.stagger);
+                n++;
             }
         }
         if (ult) {
@@ -525,7 +528,6 @@ function boot() {
         hand.redrawFlash=1;
         input.redrawBtn.flash=1;
         audio.play('draw',1.2);
-        particles.burst(player.pos.x,1.2,player.pos.z,10,{color:'farGray',speed:[1,3],up:[2,4],size:[0.06,0.12]});
         return true;
     }
     effects.g.addRedraw=n=>{
@@ -735,7 +737,14 @@ function boot() {
                     fx.fovPunch(TUNING.ultFx.hitFov);
                     effects.run(card,tg);
                     tutNotify('ult');
-                },{params:{...cardParams(echo||card),roll:target.roll},echo});
+                },{params:{...cardParams(echo||card),roll:target.roll},echo,anchor:()=>{
+                    const src=echo||card;
+                    const self=src.def.targeting==='none'||src.def.targeting==='direction'||tg.x===undefined;
+                    const tt=echo?tg.echo:tg;
+                    const o={x:0,y:0};
+                    projectFn(self||!tt?player.pos.x:tt.x,1,self||!tt?player.pos.z:tt.z,o);
+                    return o;
+                }});
                 return;
             }
             effects.run(card,target);
@@ -833,7 +842,7 @@ function boot() {
     enemyBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
     chalkBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
     const playerWall=(x,z,vx,vz,col)=>{
-        if (col&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='target')) {
+        if (col&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='target'||col.piece.kind==='paperBox')) {
             game.room.damagePiece(col.piece,W.damage);
         }
         particles.burst(x,H,z,PT.wallPuff,{color:'nearGray',speed:[1,3.5],up:[1,3],size:[0.06,0.12],life:[0.2,0.4],dirX:-vx,dirZ:-vz,cone:1.3});
