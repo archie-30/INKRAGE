@@ -3462,7 +3462,7 @@ export const WEAPON_ANIMS={
             for (const [id,x] of [['doodle',7.5],['blob',10],['eraserMonster',12.6]]) {
                 S.target(id,x,PY,k,rel+0.3*(x-PX-0.9)/(15-PX-0.9));
             }
-            S.num('45',10,PY-0.6,seg(k,rel+0.12,rel+0.4),PALETTE.red);
+            S.num('60',10,PY-0.6,seg(k,rel+0.12,rel+0.4),PALETTE.red);
         }
     },
     crayon:{
