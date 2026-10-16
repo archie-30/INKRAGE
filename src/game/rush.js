@@ -104,12 +104,18 @@ export const RushMixin={
         this.enterRush(plan);
     },
 
+    rushRamp(i=this.rush.idx) {
+        const X=B().ramp;
+        return {hp:Math.min(X.hpMax,1+i*X.hpPer),tier:X.tiers[Math.min(i,X.tiers.length-1)]};
+    },
+
     planRushBoss() {
         const R=this.rush;
         const A=ACTS[0];
         const type=R.order[R.idx];
         const last=R.idx>=R.order.length-1;
-        return {act:0,index:R.idx,rush:true,boss:true,bossType:type,tier:0,node:'boss',layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:A.bossMult,bossHp:A.bossHp,waves:[[{type,boss:true}]],exits:last?[]:[{kind:'infirmary'}],barrels:0,crates:0};
+        const ramp=this.rushRamp();
+        return {act:0,index:R.idx,rush:true,boss:true,bossType:type,tier:ramp.tier,ramp:ramp.hp,node:'boss',layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:A.bossMult*ramp.hp,bossHp:A.bossHp,waves:[[{type,boss:true}]],exits:last?[]:[{kind:'infirmary'}],barrels:0,crates:0};
     },
 
     pickCards(count,rareFn,exclude=[],upgraded=false) {
@@ -223,7 +229,7 @@ export const RushMixin={
         this.director=new RoomDirector(plan,this.hooks.enemies,this.room,this.rng);
         this.state='combat';
         this.roomTaken=this.stats.taken;
-        R.fight={boss:plan.bossType,t:0,dodges:0,card:0,weapon:0,weak:0,total:0,hurt:0,done:false};
+        R.fight={boss:plan.bossType,ramp:plan.ramp||1,t:0,dodges:0,card:0,weapon:0,weak:0,total:0,hurt:0,done:false};
         this.hooks.banner('boss',this);
         this.hooks.rushFight(plan);
     },
@@ -273,7 +279,7 @@ export const RushMixin={
             return;
         }
         f.done=true;
-        R.recs.push({boss:f.boss,time:f.t,dodges:f.dodges,card:f.card,weapon:f.weapon,weak:f.weak,total:f.total,hurt:f.hurt,cleared:true});
+        R.recs.push({boss:f.boss,ramp:f.ramp,time:f.t,dodges:f.dodges,card:f.card,weapon:f.weapon,weak:f.weak,total:f.total,hurt:f.hurt,cleared:true});
         this.stats.score=rushTotals(R.recs,R.order).total;
         bump('bossRush');
     },
@@ -493,7 +499,7 @@ export function rushPart(rec) {
     if (!rec||!rec.cleared) {
         return {time:0,dodge:0,skill:0,hurt:0,total:0};
     }
-    const par=B().par[rec.boss]||80;
+    const par=(B().par[rec.boss]||80)*(1+((rec.ramp||1)-1)*B().ramp.parScale);
     const fast=par*S.fast;
     const slow=par*S.slow;
     const tf=rec.time<=fast?1:(rec.time>=slow?0:1-(rec.time-fast)/(slow-fast));

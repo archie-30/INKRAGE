@@ -55,7 +55,7 @@ export function courseGuide(id) {
 }
 
 export function modeGuide(mode) {
-    const n={story:4,endless:5,bossrush:6}[mode];
+    const n={story:4,endless:5,bossrush:7}[mode];
     return {title:t('modeinfo.'+mode+'.title'),icon:null,blocks:[
         {kind:'text',text:t('modeinfo.'+mode+'.intro')},
         {kind:'head',text:t('modeinfo.head')},
