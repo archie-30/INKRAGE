@@ -231,6 +231,8 @@ export class Enemy {
         this.act=o.act||0;
         this.tier=o.tier||0;
         this.summons=!!o.summon;
+        this.tempo=o.tempo||0;
+        this.summonCap=o.summonCap||0;
         this.minionT=TUNING.bossScale.summonFirst;
         this.minionWaves=[];
         this.elite=!!o.elite;
@@ -456,7 +458,7 @@ export class Enemy {
         }
         const k=Math.max(0,Math.min(this.tier,B.summonEvery.length)-1);
         this.minionT=(this.tier>=B.lateTier?B.lateSummon:B.summonEvery[k])*(this.def.summonMult||1);
-        if (ctx.enemyMgr.list.length>=B.summonCap) {
+        if (ctx.enemyMgr.list.length>=(this.summonCap||B.summonCap)) {
             return;
         }
         const list=B.minions[k].map(type=>{
@@ -467,6 +469,18 @@ export class Enemy {
             ctx.particles.burst(e.pos.x,0.4,e.pos.z,8,{color:'midGray',speed:[1,4],up:[1,4]});
             this.sqv+=0.7;
         }
+    }
+
+    minionsAlive() {
+        return (this.minionWaves||[]).some(w=>w.some(q=>q.e.alive&&q.e.uid===q.uid));
+    }
+
+    bossTempo() {
+        const B=TUNING.bossScale;
+        if (this.tempo>0) {
+            return TUNING.bossTempo*(this.minionsAlive()?1:this.tempo);
+        }
+        return TUNING.bossTempo*(1+Math.min(this.tier,B.tempoTierMax)*B.tempo);
     }
 
     canSummon() {
@@ -5663,7 +5677,7 @@ export class EnemyManager {
             e=new C(type,ENEMIES[type],this.parent,this.fxScene);
             pool.push(e);
         }
-        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0,summon:o.summon});
+        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0,summon:o.summon,tempo:o.tempo,summonCap:o.summonCap});
         this.list.push(e);
         if (this.onSpawned) {
             this.onSpawned(e);
@@ -5708,7 +5722,7 @@ export class EnemyManager {
         }
         for (const e of arr) {
             if (e.alive) {
-                e.update(e.def.boss?dt*TUNING.bossTempo*(1+Math.min(e.tier,TUNING.bossScale.tempoTierMax)*TUNING.bossScale.tempo):dt,ctx);
+                e.update(e.def.boss?dt*e.bossTempo():dt,ctx);
             }
         }
         if (D&&D.active) {

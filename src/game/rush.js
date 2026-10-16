@@ -106,7 +106,7 @@ export const RushMixin={
 
     rushRamp(i=this.rush.idx) {
         const X=B().ramp;
-        return {hp:Math.min(X.hpMax,1+i*X.hpPer),tier:X.tiers[Math.min(i,X.tiers.length-1)]};
+        return {hp:Math.min(X.hpMax,1+i*X.hpPer),tier:X.tiers[Math.min(i,X.tiers.length-1)],tempo:Math.min(X.tempoMax,1+i*X.tempoPer)};
     },
 
     planRushBoss() {
@@ -115,7 +115,7 @@ export const RushMixin={
         const type=R.order[R.idx];
         const last=R.idx>=R.order.length-1;
         const ramp=this.rushRamp();
-        return {act:0,index:R.idx,rush:true,boss:true,bossType:type,tier:ramp.tier,ramp:ramp.hp,node:'boss',layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:A.bossMult*ramp.hp,bossHp:A.bossHp,waves:[[{type,boss:true}]],exits:last?[]:[{kind:'infirmary'}],barrels:0,crates:0};
+        return {act:0,index:R.idx,rush:true,boss:true,bossType:type,tier:ramp.tier,ramp:ramp.hp,tempo:ramp.tempo,node:'boss',layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:A.bossMult*ramp.hp,bossHp:A.bossHp,waves:[[{type,boss:true}]],exits:last?[]:[{kind:'infirmary'}],barrels:0,crates:0};
     },
 
     pickCards(count,rareFn,exclude=[],upgraded=false) {

@@ -278,7 +278,7 @@ export const STRINGS_EN={
     'modeinfo.bossrush.pt.4':'Each boss is worth up to 10000: clear time, perfect dodges, skill and damage taken',
     'modeinfo.bossrush.pt.5':'Total out of 70000 sets your S++–D grade and gold coins',
     'modeinfo.bossrush.pt.6':'Progress saves after every boss, so you can step away and continue',
-    'modeinfo.bossrush.pt.7':'Each boss is tougher than the last: from the 2nd boss, +15% HP each (capped at ×1.8) and a higher tier, maxing out from the 4th; every boss summons minions (with an on-field cap)',
+    'modeinfo.bossrush.pt.7':'Each boss is tougher than the last: from the 2nd boss, +10% HP each (capped at ×1.6) and +5% action/attack speed each (capped at +20%); every boss summons up to 3 minions, and slows back to its base speed while they are alive',
     'rush.unlock.title':'Unlocked: Boss Rush',
     'rush.unlock.body':'A new mode, Boss Rush, is now open! Seven bosses back to back, each fight graded. Start it from Play on the main menu.',
     'menu.best':'Best: {score}',
