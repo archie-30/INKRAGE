@@ -230,6 +230,7 @@ export class Enemy {
         this.hp=d.hp*(o.hpMult||1);
         this.act=o.act||0;
         this.tier=o.tier||0;
+        this.summons=!!o.summon;
         this.minionT=TUNING.bossScale.summonFirst;
         this.minionWaves=[];
         this.elite=!!o.elite;
@@ -453,7 +454,7 @@ export class Enemy {
         if (this.minionT>0) {
             return;
         }
-        const k=Math.min(this.tier,B.summonEvery.length)-1;
+        const k=Math.max(0,Math.min(this.tier,B.summonEvery.length)-1);
         this.minionT=(this.tier>=B.lateTier?B.lateSummon:B.summonEvery[k])*(this.def.summonMult||1);
         if (ctx.enemyMgr.list.length>=B.summonCap) {
             return;
@@ -550,7 +551,7 @@ export class Enemy {
         }
         else {
             this.think(dt,ctx);
-            if (d.boss&&this.tier>0&&ctx.enemyMgr) {
+            if (d.boss&&(this.tier>0||this.summons)&&ctx.enemyMgr) {
                 this.summonTick(dt,ctx);
             }
         }
@@ -5662,7 +5663,7 @@ export class EnemyManager {
             e=new C(type,ENEMIES[type],this.parent,this.fxScene);
             pool.push(e);
         }
-        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0});
+        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0,summon:o.summon});
         this.list.push(e);
         if (this.onSpawned) {
             this.onSpawned(e);

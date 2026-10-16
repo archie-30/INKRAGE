@@ -25,7 +25,7 @@ import {ACC_SLOTS,ACC_DEFAULT} from '../data/cosmetics.js';
 import {ownsTone,ownsAcc,owns,presetOwned,presetItems,saveOutfit,clampSkin,chestsReady,levelChestsReady,randomSkin} from '../core/meta.js';
 import {drawAcc,drawAccIcon,drawLock,drawWallet,drawCoin,drawMiniChest,drawItemIcon} from './meta.js';
 import {drawRelicIcon} from './relicIcons.js';
-import {RELIC_ORDER} from '../data/relics.js';
+import {RELIC_ORDER,relicParams} from '../data/relics.js';
 import {drawRushSummary,rushReady} from './rushSummary.js';
 import {drawMenuButton} from './menuButtons.js';
 
@@ -8152,7 +8152,7 @@ export class ChoicePanel extends Panel {
             ctx.font=C.descSize+'px '+FONT;
             ctx.fillStyle=PALETTE.nearGray;
             ctx.textBaseline='top';
-            const dl=t(dk,o).split('\n').flatMap(q=>wrapText(ctx,q,r.w-C.textPad*2));
+            const dl=t(dk,this.spec.kind==='drop'?{...relicParams(o.id),...o}:o).split('\n').flatMap(q=>wrapText(ctx,q,r.w-C.textPad*2));
             for (let k=0;k<dl.length&&k<C.descMax;k++) {
                 ctx.fillText(dl[k],r.w/2,C.iconY+C.cardIconR+44+k*C.descLine);
             }

@@ -103,14 +103,11 @@ function drawRow(S,ctx,row,i,T,x0,y,pw,rh,small,v) {
             const pe=EASE.easeOutCubic(pk);
             const cx=x0+rh+nameW+partW*j+partW/2;
             ctx.textAlign='center';
-            ctx.font=(small?10:11)+'px '+FONT;
-            ctx.fillStyle=PALETTE.nearGray;
-            ctx.fillText(t('rush.part.'+p),cx,y+rh*0.24);
-            ctx.font='bold '+(small?12:15)+'px '+FONT;
-            ctx.fillStyle=PALETTE.ink;
-            ctx.fillText(Math.round(row.part[p]*pe)+'／'+maxes[p],cx,y+rh*0.56);
+            ctx.font='bold '+(small?13:16)+'px '+FONT;
+            ctx.fillStyle=row.part[p]>=maxes[p]?PALETTE.red:PALETTE.ink;
+            ctx.fillText(Math.round(row.part[p]*pe).toLocaleString('en-US'),cx,y+rh*0.42);
             const bw=partW*0.7;
-            const by=y+rh*0.8;
+            const by=y+rh*0.72;
             ctx.fillStyle=rgba('midGray',0.35);
             ctx.fillRect(cx-bw/2,by,bw,3);
             const f=row.part[p]/maxes[p]*pe;
@@ -121,17 +118,85 @@ function drawRow(S,ctx,row,i,T,x0,y,pw,rh,small,v) {
     const cnt=Math.round(row.part.total*ce);
     const bump=cp>=1?Math.max(0,1-(T-at-U.rowIn*0.5-U.count)*5):0;
     ctx.save();
-    ctx.translate(x0+pw-10,y+rh/2-(small?3:5));
+    ctx.translate(x0+pw-10,y+rh/2);
     ctx.scale(1+bump*0.25,1+bump*0.25);
     ctx.textAlign='right';
     ctx.font='bold '+(small?16:20)+'px '+FONT;
     ctx.fillStyle=cleared?PALETTE.red:PALETTE.midGray;
     ctx.fillText(cnt.toLocaleString('en-US'),0,0);
     ctx.restore();
-    ctx.textAlign='right';
-    ctx.font=(small?9:10)+'px '+FONT;
-    ctx.fillStyle=PALETTE.nearGray;
-    ctx.fillText('／'+B.boss.toLocaleString('en-US'),x0+pw-10,y+rh/2+(small?9:12));
+    ctx.restore();
+}
+
+function cols(pw,rh,small) {
+    const U=TUNING.rushSummaryUi;
+    const nameW=small?U.nameWSmall:U.nameW;
+    const subW=small?U.subWSmall:U.subW;
+    const partW=(pw-nameW-subW-rh)/4;
+    const out=[0,rh+nameW];
+    for (let j=1;j<=4;j++) {
+        out.push(rh+nameW+partW*j);
+    }
+    out.push(pw);
+    return out;
+}
+
+function drawHeader(ctx,T,x0,y,pw,hh,rh,small,v) {
+    const U=TUNING.rushSummaryUi;
+    const B=TUNING.bossRush.score;
+    const k=clamp01((T-U.rowStart+0.3)/0.4);
+    if (k<=0) {
+        return;
+    }
+    const c=cols(pw,rh,small);
+    const heads=[['rush.sum.colBoss',null],['rush.part.time',B.time],['rush.part.dodge',B.dodgeMax],['rush.part.skill',B.card+B.weak],['rush.part.hurt',B.hurt],['rush.sum.colTotal',B.boss]];
+    ctx.save();
+    ctx.globalAlpha=k;
+    ctx.translate(0,(1-EASE.easeOutCubic(k))*-10);
+    ctx.fillStyle=rgba('ink',0.08);
+    ctx.fillRect(x0,y,pw,hh);
+    ctx.textBaseline='middle';
+    heads.forEach(([key,max],j)=>{
+        const a=c[j];
+        const b=c[j+1];
+        const left=j===0;
+        const right=j===heads.length-1;
+        const label=t(key);
+        ctx.font='bold '+(small?11:13)+'px '+FONT;
+        const lw=ctx.measureText(label).width;
+        ctx.font=(small?9:10)+'px '+FONT;
+        const mtxt=max?' ／'+max.toLocaleString('en-US'):'';
+        const mw=ctx.measureText(mtxt).width;
+        let x=left?x0+a+8:(right?x0+b-10-lw-mw:x0+(a+b)/2-(lw+mw)/2);
+        ctx.textAlign='left';
+        ctx.font='bold '+(small?11:13)+'px '+FONT;
+        ctx.fillStyle=PALETTE.ink;
+        ctx.fillText(label,x,y+hh/2);
+        x+=lw;
+        ctx.font=(small?9:10)+'px '+FONT;
+        ctx.fillStyle=PALETTE.nearGray;
+        ctx.fillText(mtxt,x,y+hh/2+1);
+    });
+    drawShape(ctx,sketchLine(x0,y+hh,x0+pw,y+hh,{width:2,seed:3950}),PALETTE.ink,v);
+    ctx.restore();
+}
+
+function drawGrid(ctx,T,x0,y0,y1,pw,rh,small) {
+    const U=TUNING.rushSummaryUi;
+    const k=clamp01((T-U.rowStart)/0.5);
+    if (k<=0) {
+        return;
+    }
+    const c=cols(pw,rh,small);
+    ctx.save();
+    ctx.strokeStyle=rgba('ink',0.18);
+    ctx.lineWidth=1;
+    for (let j=1;j<c.length-1;j++) {
+        ctx.beginPath();
+        ctx.moveTo(x0+c[j],y0);
+        ctx.lineTo(x0+c[j],y0+(y1-y0)*EASE.easeOutCubic(k));
+        ctx.stroke();
+    }
     ctx.restore();
 }
 
@@ -289,17 +354,21 @@ export function drawRushSummary(S,ctx) {
         ctx.fillText(t('rush.sum.meta',{time:clock(R.time),d:R.dodges,h:R.hurt,c:R.coins}),w/2,metaY);
         ctx.restore();
     }
-    const top=metaY+(small?12:16);
+    const head=metaY+(small?12:16);
+    const hh=small?U.headHSmall:U.headH;
+    const top=head+hh+4;
     const foot=small?U.footSmall:U.foot;
     const n=R.rows.length;
     const rh=Math.min(small?U.rowHSmall:U.rowH,(h-top-foot)/n);
+    drawHeader(ctx,T,x0,head,pw,hh,rh,small,v);
+    drawGrid(ctx,T,x0,head,top+n*rh,pw,rh,small);
     ctx.strokeStyle=rgba('ink',0.5);
     ctx.lineWidth=1.4;
     const lk=clamp01((T-U.rowStart+0.2)/0.4);
     if (lk>0) {
         ctx.beginPath();
-        ctx.moveTo(w/2-pw/2*lk,top-4);
-        ctx.lineTo(w/2+pw/2*lk,top-4);
+        ctx.moveTo(w/2-pw/2*lk,head);
+        ctx.lineTo(w/2+pw/2*lk,head);
         ctx.stroke();
     }
     R.rows.forEach((row,i)=>drawRow(S,ctx,row,i,T,x0,top+i*rh,pw,rh,small,v));

@@ -1564,11 +1564,7 @@ function boot() {
             return player.hp-before;
         },
         rushFight:plan=>{
-            ink.value=TUNING.ink.start;
-            if (hasRelic('inkVial')) {
-                ink.add(TUNING.bossRush.inkVial);
-                flashRelic('inkVial');
-            }
+            ink.value=ink.max;
         },
         replaceNpc:(i,spec)=>{
             npcs.replace(game.room,i,spec);
