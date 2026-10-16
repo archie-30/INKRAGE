@@ -1823,6 +1823,9 @@ function boot() {
         doors.clear();
         npcs.clear();
         renderer.post.resetDeath();
+        bleed=0;
+        heart=0;
+        renderer.post.uniforms.uBleed.value=0;
         if (game.room) {
             game.room.destroy();
         }
@@ -3555,6 +3558,12 @@ function boot() {
         }
     }
     function updateDamageFx(dt) {
+        if (game.mode==='menu') {
+            bleed=0;
+            heart=0;
+            renderer.post.uniforms.uBleed.value=0;
+            return;
+        }
         bleed=Math.max(0,bleed-DF.bleedDecay*dt);
         let low=0;
         const f=player.hp/player.maxHp;

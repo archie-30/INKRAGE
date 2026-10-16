@@ -1761,7 +1761,7 @@ export const STRINGS={
     'reward.skipSure':'確定跳過',
     'course.dodge.name':'訓導課',
     'course.dodge.intro':'老師氣得丟粉筆，看準時機閃過去！',
-    'course.dodge.fx.1':'每 {every} 秒老師從附近丟一支粉筆過來（出手前地上先出現紅圈）',
+    'course.dodge.fx.1':'每 {every} 秒老師從附近丟一支粉筆過來（出手前先畫出粉筆的飛行軌跡）',
     'course.dodge.fx.2':'衝刺冷卻 −{dash}%',
     'course.dodge.ch.1':'衝刺閃過子彈 {goal} 次',
     'course.music.name':'音樂課',
