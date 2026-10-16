@@ -498,10 +498,12 @@ export const TUNING={
         xpScore:0.02
     },
     ultFx:{
-        fx:{iris:0.12,punch:0.14,ghosts:3,quake:16,shineFrom:0.18,shineTo:0.4},
+        fx:{iris:0.12,rays:18,raySpin:0.9,drops:26,dropFall:0.35,scraps:16,scrapFall:0.5,burstTime:0.42,halftone:24,punch:0.14,ghosts:3,ringW:14,cracks:9,shockTime:0.22,quake:16,shineFrom:0.18,shineTo:0.4,icons:8},
+        world:{flash:0.35,flashTime:0.3,ring:4,ringTime:0.5,drops:26},
+        tone:{slowMo:'ink',rewind:'ink',freezeAll:'ink',blackHole:'ink',inkStorm:'ink',tsunami:'ink',echo:'ink'},
         time:1.7,
         release:0.8,
-        hand:{fadeFrom:0.6,fadeTo:0.68,flyFrom:0.6,land:0.12,big:0.26,small:0.07,arc:0.12,spin:0.5,ringGrow:2.4},
+        hand:{burst:6,fadeFrom:0.6,fadeTo:0.68,flyFrom:0.6,land:0.18,big:0.26,small:0.07,arc:0.12,spin:0.5,ringGrow:2.4},
         hitShake:0.9,
         hitFov:3,
         impact:0.26,
