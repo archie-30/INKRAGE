@@ -95,6 +95,7 @@ export const TUNING={
         fovPunchDecay:9
     },
     player:{
+        sling:{tipX:0.12,tipZ:0.17,restZ:0.15,pull:0.42,shake:0.03,snapTime:0.16,overshoot:0.35},
         weaponHull:false,
         weaponSoft:0.85,
         arm:{drawTime:0.45,stowTime:0.3,ready:0.7,spin:3.2,lift:0.5,back:0.4,raise:0.9},
@@ -239,7 +240,7 @@ export const TUNING={
         popupTime:1.1,
         popupRise:34
     },
-    redraw:{perPage:1},
+    redraw:{perPage:1,drawDelay:0.12,stagger:0.08,slideTime:0.16},
     deck:{maxCopies:4,
         handSize:2,
         burnDelay:0.45,
@@ -424,7 +425,7 @@ export const TUNING={
         wheelLine:40
     },
     effects:{
-        kit:{trapR:1.2,trapArm:0.3,alarmTick:0.5,shotSpeed:6,shotLife:4.5,shotR:0.45,shotGrow:0.5,mirrorH:1.8,mirrorDmg:1.5,umbrellaR:2.6,planeR:1.3,planeMorph:{inTime:0.3,outTime:0.5,scale:1.35,y:1.0,spin:2},crossLife:1.1,boxDrop:{none:0.4,heal:0.2},aidRing:0.5,rewindSpeed:24,spongeInvuln:0.25,diceShake:0.6},
+        kit:{trapR:1.2,trapArm:0.3,alarmTick:0.5,shotSpeed:6,shotLife:4.5,shotR:0.45,shotGrow:0.5,mirrorH:1.8,mirrorDmg:1.5,umbrellaR:2.6,trapModel:{jawR:0.62,teeth:7,shut:0.07,hold:0.9,sink:0.25},planeR:1.3,planeMorph:{inTime:0.3,outTime:0.5,scale:1.35,y:1.0,spin:2},crossLife:1.1,boxDrop:{none:0.4,heal:0.2},aidRing:0.5,rewindSpeed:24,spongeInvuln:0.25,diceShake:0.6},
         wavePreview:{front:0.6,width:0.24,alpha:0.4},
         leap:{speed:22,life:0.5,time:0.72,height:2.2,tries:12,grace:0.08,land:1.8,shake:0.12,fov:0.7},
         puppet:{alpha:0.95,spin:2.5,ring:0.6,ringR:1.8,drop:0.35,dropH:7,shake:0.55,fov:2.4,stop:70,splat:2.6,waves:3,waveGap:0.12,waveR:3,pull:2.2,near:1.6},
@@ -497,9 +498,10 @@ export const TUNING={
         xpScore:0.02
     },
     ultFx:{
-        fx:{iris:0.12,rays:18,raySpin:0.9,slashes:[[0.02,0.22,0.5,0.07],[0.06,0.85,0.35,0.05],[0.1,0.1,0.12,0.03]],slashTime:0.1,slashHold:0.14,drops:26,dropFall:0.35,scraps:16,scrapFall:0.5,burstTime:0.42,halftone:24,punch:0.14,ghosts:3,ringW:14,cracks:9,shockTime:0.22,quake:16,shineFrom:0.18,shineTo:0.4},
+        fx:{iris:0.12,punch:0.14,ghosts:3,quake:16,shineFrom:0.18,shineTo:0.4},
         time:1.7,
         release:0.8,
+        hand:{fadeFrom:0.6,fadeTo:0.68,flyFrom:0.6,land:0.12,big:0.26,small:0.07,arc:0.12,spin:0.5,ringGrow:2.4},
         hitShake:0.9,
         hitFov:3,
         impact:0.26,
@@ -760,6 +762,7 @@ export const TUNING={
         timer:{offset:42,cloneOffset:14,width:76,height:5},
         timerSkip:['clone','trap','bearTrap','mirror'],
         enemyHp:{minTicks:4,maxTicks:12,hpPerTick:8,radius:30,radiusScale:20,span:0.5,offset:26,follow:0.08,tickW:3.5,tickH:10},
+        active:{x:178,y:22,trainX:18,trainY:96,max:5,font:13,pad:5,gap:4,inTime:0.25,popTime:0.3,pop:0.12,blink:1.5},
         hpPos:[24,22],
         hpLength:220,
         hpHeight:22,

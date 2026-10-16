@@ -463,11 +463,13 @@ export class Hand {
         return true;
     }
 
-    discardView(v) {
-        this.api.deck.discard(v.card);
+    discardView(v,quick=-1) {
+        this.api.deck.discard(v.card,quick>=0?quick:undefined);
         this.removeView(v);
-        v.state='crumple';
+        v.state=quick>=0?'slide':'crumple';
         v.t=0;
+        v.fromX=v.x;
+        v.fromY=v.y;
         this.flying.push(v);
         this.lastDiscard=v.card;
     }
@@ -964,7 +966,7 @@ export class Hand {
         }
         for (let i=this.flying.length-1;i>=0;i--) {
             const v=this.flying[i];
-            if (frozen&&v.state!=='ball'&&v.state!=='crumple') {
+            if (frozen&&v.state!=='ball'&&v.state!=='crumple'&&v.state!=='slide') {
                 continue;
             }
             v.t+=dt;
@@ -1007,6 +1009,17 @@ export class Hand {
                 v.rot+=dt*4*(v.fromX<this._tmp.x?1:-1);
                 if (p>=1) {
                     this.dissolve(v);
+                    this.flying.splice(i,1);
+                }
+            }
+            else if (v.state==='slide') {
+                const p=Math.min(1,v.t/TUNING.redraw.slideTime);
+                const e=EASE.easeInCubic(p);
+                const [dx,dy]=this.pileCenter(this.discardRect);
+                v.x=v.fromX+(dx-v.fromX)*e;
+                v.y=v.fromY+(dy-v.fromY)*e;
+                v.scale=1-0.38*e;
+                if (p>=1) {
                     this.flying.splice(i,1);
                 }
             }

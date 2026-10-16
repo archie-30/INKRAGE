@@ -1063,7 +1063,7 @@ export class Room {
 
     addPaperBox(x,z,hits) {
         const res=buildInteractive('paperBox',x,z,this.group);
-        const piece=this.addPiece('paperBox',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:hits,passPlayer:true});
+        const piece=this.addPiece('paperBox',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:1,passPlayer:true});
         piece.flash=0;
         return piece;
     }
@@ -1102,6 +1102,7 @@ export class Room {
         for (const c of colliders) {
             c.piece=piece;
             c.passPlayer=!!o.passPlayer;
+            c.shotHit=kind==='paperBox';
         }
         this.pieces.push(piece);
         this.rebuildColliders();

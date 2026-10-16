@@ -596,8 +596,8 @@ export const CARDS={
         mode:'place',
         targeting:'point',
         range:9,
-        params:{count:3,hits:3},
-        upgraded:{cost:1,params:{hits:4}},
+        params:{count:3,hits:1},
+        upgraded:{cost:1,params:{count:4}},
         effect:(g,t,p)=>g.boxFort(t.x,t.z,p.count,p.hits)
     },
     spareMag:{
@@ -646,11 +646,12 @@ export const CARDS={
         cost:2,
         rarity:'common',
         type:'attack',
-        mode:'around',
-        targeting:'none',
+        mode:'shoot',
+        targeting:'direction',
+        range:12,
         params:{damage:22,count:4,speed:30},
         upgraded:{cost:2,params:{damage:30}},
-        effect:(g,t,p)=>g.crossCut(p.damage,p.count,p.speed)
+        effect:(g,t,p)=>g.crossCut(p.damage,p.count,p.speed,t.dx,t.dz)
     },
     bearTrap:{
         id:'bearTrap',

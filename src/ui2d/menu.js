@@ -4182,6 +4182,8 @@ export class SkinEditor extends Panel {
         this.dice=0;
         this.wSel=settings.weapon||'pen';
         this.wSelT=1;
+        this.jumpEq=true;
+        this.eqTop=undefined;
     }
 
     clampScroll() {
@@ -4381,6 +4383,8 @@ export class SkinEditor extends Panel {
                     this.wSelT=1;
                     this.scroll=0;
                     this.scrollTo=0;
+                    this.jumpEq=true;
+                    this.eqTop=undefined;
                     this.actions.select();
                 }
                 return true;
@@ -4825,22 +4829,17 @@ export class SkinEditor extends Panel {
         const x=P.x+18;
         const w=P.w-36;
         const list=[RANDOM_WEAPON.id,...WEAPON_ORDER];
-        ctx.font='12px '+FONT;
-        ctx.fillStyle=PALETTE.nearGray;
-        ctx.textAlign='left';
-        ctx.textBaseline='top';
-        const hl=wrapText(ctx,t('weapon.hint'),w);
-        for (const ln of hl) {
-            ctx.fillText(ln,x,y);
-            y+=16;
-        }
-        y+=6;
+        const top=y;
         for (let i=0;i<list.length;i++) {
             const id=list[i];
             const rnd=id===RANDOM_WEAPON.id;
             const unlocked=weaponUnlocked(id,lv);
             const eq=(settings.weapon||'pen')===id;
             const seld=this.wSel===id;
+            if (eq) {
+                this.eqTop=y-top;
+                this.eqH=ch;
+            }
             const r={x,y,w,h:ch};
             const hv=inRect(r,this.hx,this.hy);
             const pu=this.pulse['w'+id]||0;
@@ -4966,9 +4965,11 @@ export class SkinEditor extends Panel {
         ctx.fillStyle=PALETTE.nearGray;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        ctx.fillText(t(this.weaponOnly?'arms.hint':'skin.hint'),P.x+18,P.y+(small?36:50));
+        if (!this.weaponOnly) {
+            ctx.fillText(t('skin.hint'),P.x+18,P.y+(small?36:50));
+        }
         this.hits=[];
-        let y=this.drawTabs(ctx,P.x+14,P.y+(small?52:72),P.w-28,v,small);
+        let y=this.drawTabs(ctx,P.x+14,P.y+(this.weaponOnly?(small?40:54):(small?52:72)),P.w-28,v,small);
         const winfo=this.tab==='weapon'?this.weaponInfo(ctx,P,small):null;
         this.V={x:P.x,y:y-2,w:P.w,h:this.resetBtn.y-8-(y-2)-(winfo?winfo.h+8:0)};
         const V=this.V;
@@ -4991,6 +4992,12 @@ export class SkinEditor extends Panel {
         ctx.restore();
         this.contentH=y-y0+6;
         ctx.restore();
+        if (this.jumpEq&&this.tab==='weapon'&&this.eqTop!==undefined) {
+            this.jumpEq=false;
+            this.scrollTo=this.eqTop-(V.h-this.eqH)/2;
+            this.clampScroll();
+            this.scroll=this.scrollTo;
+        }
         if (winfo) {
             const ik=EASE.easeOutCubic(Math.max(0,Math.min(1,(this.tabT-TUNING.weaponUi.infoDelay)/TUNING.weaponUi.itemTime)));
             const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));

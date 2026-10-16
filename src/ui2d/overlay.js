@@ -130,6 +130,7 @@ export class Overlay {
                 this.hud.drawHp(ctx,player);
                 this.hud.drawInk(ctx,game.ink);
             }
+            this.hud.drawActive(ctx,game.effects.active,training&&!(game.run.plan&&game.run.plan.trainGame));
             this.hud.drawFacing(ctx,player,game.project,input.lastDevice==='touch'&&settings.aimGuide);
             game.marks.draw(ctx,game,input.lastDevice==='touch',this.height,this.width);
             game.hand.draw(ctx,game.art);
