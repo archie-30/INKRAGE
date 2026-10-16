@@ -356,7 +356,7 @@ function boot() {
                 const m=e.damageMult(e.pos.x,e.pos.z);
                 const nx=(e.pos.x-s.x)/(d||1);
                 const nz=(e.pos.z-s.z)/(d||1);
-                const dmg=band*m*cutter(e.pos.x,e.pos.z);
+                const dmg=band*m*cutter(e);
                 s.dealt+=dmg;
                 enemies.src='weapon';
                 enemies.damage(e,dmg,nx,nz,false,m>1);
@@ -422,7 +422,7 @@ function boot() {
             if (px*px+pz*pz<(e.def.radius+hw)*(e.def.radius+hw)) {
                 const m=e.damageMult(x+dx*t,z+dz*t);
                 enemies.src='weapon';
-                enemies.damage(e,PW.damage*m*cutter(e.pos.x,e.pos.z),dx,dz,true,m>1);
+                enemies.damage(e,PW.damage*m*cutter(e),dx,dz,true,m>1);
             }
         }
         beamMerge=false;
@@ -708,7 +708,7 @@ function boot() {
     const hitEnemies=(x,z,r,dmg,vx,vz,sys,i)=>{
         const weapon=!!(sys.tag[i]&TUNING.relics.weaponTag);
         enemies.src=weapon?'weapon':'card';
-        const out=enemies.hitBullet(x,z,r,weapon?dmg*cutter(x,z):dmg,vx,vz,sys,i);
+        const out=enemies.hitBullet(x,z,r,weapon?e=>dmg*cutter(e):dmg,vx,vz,sys,i);
         enemies.src=null;
         return out;
     };
@@ -1109,9 +1109,9 @@ function boot() {
             flashRelic('masochist');
         }
     };
-    const cutter=(x,z)=>{
+    const cutter=e=>{
         const C=TUNING.relics.boxCutter;
-        if (!hasRelic('boxCutter')||Math.hypot(x-player.pos.x,z-player.pos.z)>C.range) {
+        if (!hasRelic('boxCutter')||Math.hypot(e.pos.x-player.pos.x,e.pos.z-player.pos.z)-e.def.radius>C.range) {
             return 1;
         }
         flashRelic('boxCutter',0.35);
@@ -1962,7 +1962,7 @@ function boot() {
         return true;
     }
     function checkRushUnlock() {
-        if (progress.rushSeen||game.mode!=='menu'||!(mainMenu.open||modeSelect.open)||transition.active||langPick.open||!settings.tutorialSeen||progress.notesVer!==TUNING.notes.ver) {
+        if (progress.rushSeen||game.mode!=='menu'||!(mainMenu.open||modeSelect.open)||transition.active||langPick.open||!settings.tutorialSeen) {
             return;
         }
         if (popup.shown()||guide.shown()||confirmPop.shown()||chestView.shown()||levelUp.open||settingsMenu.open||codex.open||levelView.open||relicView.open||skinEditor.open||achView.open||buyPrompt.open) {
@@ -1975,31 +1975,6 @@ function boot() {
         saveProgress();
         audio.play('clear',1.2);
         guide.open2({title:t('rush.unlock.title'),icon:null,blocks:[{kind:'text',text:t('rush.unlock.body')}]},{ok:t('notice.ok'),fit:true});
-    }
-    function checkNotes() {
-        const N=TUNING.notes;
-        if (progress.notesVer===N.ver||game.mode!=='menu'||!mainMenu.open||transition.active||langPick.open||!settings.langChosen||!settings.tutorialSeen||time.real<TUNING.ui.loaderMin+TUNING.ui.loaderFade+N.delay) {
-            return;
-        }
-        if (popup.shown()||guide.shown()||confirmPop.shown()||chestView.shown()||settingsMenu.open||codex.open||levelUp.open||levelView.open||relicView.open||skinEditor.open||trainingPicker.open||achView.open||buyPrompt.open) {
-            return;
-        }
-        progress.notesVer=N.ver;
-        saveProgress();
-        const gift=!progress.betaGift;
-        const blocks=gift?[{kind:'text',text:t('notes.gift',{n:N.gift})}]:[];
-        for (let i=1;i<=N.lines;i++) {
-            blocks.push({kind:'bullet',text:t('notes.'+i)});
-        }
-        audio.play('ui');
-        guide.open2({title:t('notes.title'),icon:null,blocks},{ok:t(gift?'notes.claim':'notice.ok'),lock:N.lock,onOk:()=>{
-            if (!gift||progress.betaGift) {
-                return;
-            }
-            progress.betaGift=true;
-            const items=grantCoins(N.gift);
-            chestView.open2(items,t('notes.giftTitle'),settings.skin,null);
-        }});
     }
     let pendingGuide=null;
     let pendingBoss=null;
@@ -3732,7 +3707,6 @@ function boot() {
             achToast.push(achQueue.shift());
             audio.play('equip',1.2);
         }
-        checkNotes();
         checkRushUnlock();
         for (let i=laterQ.length-1;i>=0;i--) {
             laterQ[i].t-=dt;
