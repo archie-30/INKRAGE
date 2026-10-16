@@ -3888,12 +3888,28 @@ export class LevelView extends Panel {
         this.scroll+=(this.scrollTo-this.scroll)*(1-Math.exp(-TUNING.codex.follow*dt));
     }
 
-    chips(ctx,ids,x,y,maxW,v,dim) {
+    chips(ctx,ids,x,y,maxW,v,dim,wids=[]) {
         let cx=x;
         let cy=y;
         ctx.font='13px '+FONT;
         ctx.textBaseline='middle';
         ctx.textAlign='left';
+        for (const wid of wids) {
+            const label=t('levels.weapon',{name:t('weapon.'+wid+'.name')});
+            const cw=ctx.measureText(label).width+16;
+            if (cx+cw>x+maxW&&cx>x) {
+                cx=x;
+                cy+=28;
+            }
+            ctx.fillStyle=dim?rgba('farGray',0.5):rgba('paper',0.95);
+            ctx.fillRect(cx,cy,cw,22);
+            drawShape(ctx,sketchRect(cx,cy,cw,22,{width:1.8,seed:1460+wid.length*7}),dim?PALETTE.midGray:PALETTE.ink,v);
+            ctx.fillStyle=dim?PALETTE.midGray:PALETTE.ink;
+            ctx.font='bold 13px '+FONT;
+            ctx.fillText(label,cx+8,cy+12);
+            ctx.font='13px '+FONT;
+            cx+=cw+8;
+        }
         for (const id of ids) {
             const rare=CARDS[id].rarity==='rare';
             const label=t(CARDS[id].nameKey);
@@ -3983,7 +3999,8 @@ export class LevelView extends Panel {
             const reached=n<=lv;
             const cur=n===real;
             const ids=(UNLOCKS[n]||[]).slice().sort((a,b)=>(CARDS[a].rarity==='rare'?1:0)-(CARDS[b].rarity==='rare'?1:0));
-            const tmpH=ids.length>0?R.rowH:48;
+            const wids=WEAPON_ORDER.filter(id=>WEAPONS[id].unlock===n);
+            const tmpH=ids.length+wids.length>0?R.rowH:48;
             const rowTop=y;
             if (cur) {
                 this.curTop=rowTop+this.scroll-V.y;
@@ -4001,7 +4018,7 @@ export class LevelView extends Panel {
             const tag=cur?t('levels.here'):(reached?t('levels.done'):t('levels.need',{xp:total}));
             ctx.fillText(tag,V.x+14,rowTop+34);
             const box=n%L.chestEvery===0;
-            const ch=this.chips(ctx,ids,V.x+120,rowTop+10,V.w-134-(box?R.chestW:0),v,!reached);
+            const ch=this.chips(ctx,ids,V.x+120,rowTop+10,V.w-134-(box?R.chestW:0),v,!reached,wids);
             const rowH=Math.max(tmpH,ch+26);
             if (box) {
                 const st=n>real?'locked':(progress.lvChests.includes(n)?'claimed':'ready');
@@ -7464,6 +7481,19 @@ export function drawWeaponIcon(ctx,id,x,y,s,v,locked) {
         shape([[-28,-9],[14,-9],[14,9],[-28,9]],locked?fill:'#EDD6A6');
         shape([[-36,-10],[-26,-10],[-26,10],[-36,10]],locked?fill:PALETTE.red);
         shape([[14,-7],[26,-3],[26,3],[14,7]],ink);
+    }
+    else if (id==='slingshot') {
+        shape([[-3,6],[3,6],[3,30],[-3,30]],locked?fill:'#AC8E64');
+        shape([[-3,6],[3,6],[-16,-24],[-22,-21]],locked?fill:'#AC8E64');
+        shape([[-3,6],[3,6],[22,-21],[16,-24]],locked?fill:'#AC8E64');
+        ctx.strokeStyle=locked?ink:PALETTE.red;
+        ctx.lineWidth=2.6;
+        ctx.beginPath();
+        ctx.moveTo(-19,-22);
+        ctx.lineTo(0,-2);
+        ctx.lineTo(19,-22);
+        ctx.stroke();
+        shape([[-4,-6],[4,-6],[4,2],[-4,2]],ink);
     }
     else {
         shape([[-4,-30],[4,-30],[4,-20],[-4,-20]],fill);

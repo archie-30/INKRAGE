@@ -179,11 +179,23 @@ function boot() {
     let quietEquip=false;
     const player=new Player(actors);
     player.applySkin(clampSkin(settings.skin));
+    const lastWeapon=lv=>unlockedWeapons(lv).slice(-1)[0]||'pen';
+    let weaponSwapNote=false;
     const equipWeapon=(play=false)=>{
         const lv=effectiveLevel();
-        let id=weaponUnlocked(settings.weapon,lv)?settings.weapon:'pen';
+        let id=settings.weapon;
+        if (!weaponUnlocked(id,lv)) {
+            id=lastWeapon(lv);
+            settings.weapon=id;
+            saveSettings();
+            weaponSwapNote=true;
+        }
+        if (play&&weaponSwapNote) {
+            weaponSwapNote=false;
+            tweens.delay(1.2,()=>overlay.hud.toast(t('weapon.locked.swapped')));
+        }
         if (id===RANDOM_WEAPON.id) {
-            id=play?pickWeapon(lv,settings.lastWeapon):(weaponUnlocked(settings.lastWeapon,lv)&&settings.lastWeapon!==RANDOM_WEAPON.id?settings.lastWeapon:'pen');
+            id=play?pickWeapon(lv,settings.lastWeapon):(weaponUnlocked(settings.lastWeapon,lv)&&settings.lastWeapon!==RANDOM_WEAPON.id?settings.lastWeapon:lastWeapon(lv));
         }
         player.setWeapon(id);
         if (play) {
@@ -770,7 +782,7 @@ function boot() {
         if (!cardUnlocked(c.id,effectiveLevel())) {
             return 'locked';
         }
-        if (c.id==='fullInk'&&player.weaponId==='compass') {
+        if (c.id==='fullInk'&&(player.weaponId==='compass'||player.weaponId==='slingshot')) {
             return 'compass';
         }
         return null;
@@ -972,6 +984,10 @@ function boot() {
         particles.burst(x,1.0,z,PT.redKill,{color:'red',dirX:dx,dirZ:dz,cone:0.8,speed:[4,10],up:[1,5],size:[0.08,0.18]});
     };
     player.events.onReload=()=>audio.play('reload');
+    player.events.onChargeFull=p=>{
+        audio.play('ui',1.6);
+        particles.burst(p.pos.x,1.4,p.pos.z,8,{color:'red',speed:[1,3],up:[1,3],size:[0.05,0.1]});
+    };
     player.events.onLand=p=>{
         audio.play('dash',0.7);
         effects.landed(p);
@@ -2007,7 +2023,7 @@ function boot() {
         pendingGuide=null;
         pendingBoss=null;
         restoreRelic(s.relic&&typeof s.relic==='object'?s.relic:null);
-        player.setWeapon(WEAPONS[s.weapon]?s.weapon:'pen');
+        player.setWeapon(WEAPONS[s.weapon]&&weaponUnlocked(s.weapon,effectiveLevel())?s.weapon:lastWeapon(effectiveLevel()));
         resetTrainStats();
         deck.provider=null;
         effects.lastUlt=null;
@@ -2710,7 +2726,7 @@ function boot() {
     const lockWeapons=()=>{
         for (const q of [settings,settings.training]) {
             if (!weaponUnlocked(q.weapon,effectiveLevel())) {
-                q.weapon='pen';
+                q.weapon=lastWeapon(effectiveLevel());
             }
         }
         if (!weaponUnlocked(settings.lastWeapon,effectiveLevel())) {

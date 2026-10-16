@@ -95,6 +95,10 @@ export function magBonus(weaponId) {
     return hasRelic('refill')?(R.refill[weaponId]||0):0;
 }
 
+export function chargeMult() {
+    return hasRelic('sharpener')?R.sharpener.charge:1;
+}
+
 export function reloadMult() {
     return hasRelic('sharpener')?R.sharpener.reload:1;
 }

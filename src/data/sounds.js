@@ -206,6 +206,15 @@ export const SOUNDS={
             {kind:'tone',wave:'sawtooth',f0:180,dur:0.12,attack:0.03,gain:0.04,filter:{type:'lowpass',f0:900}}
         ]
     },
+    wSling:{
+        gap:0.08,
+        gain:0.5,
+        vary:0.08,
+        layers:[
+            {kind:'tone',wave:'triangle',f0:220,f1:620,dur:0.09,gain:0.22},
+            {kind:'noise',dur:0.07,gain:0.3,filter:{type:'bandpass',f0:1800,f1:900,q:1.4}}
+        ]
+    },
     wCompass:{
         gap:0.2,
         gain:0.5,

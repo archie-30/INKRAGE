@@ -543,6 +543,7 @@ export const TUNING={
         crayonR:{color:'red',capacity:48,radius:0.16,size:0.22,trailWidth:0.14},
         crayonB:{color:'crayonBlue',capacity:48,radius:0.15,size:0.18,trailWidth:0.11},
         crayonG:{color:'crayonGreen',capacity:64,radius:0.14,size:0.15,trailWidth:0.09},
+        sling:{color:'ink',capacity:24,radius:0.24,size:0.3,trailWidth:0.18,pierce:true},
         compass:{color:'nearGray',capacity:16,radius:0.6,wallR:0.3,size:0.8,trailWidth:0.06,pierce:true,boomerang:true,model:'compass',spin:18,returnAccel:0,turnRate:12,propGap:0.4}
     },
     brushStroke:{count:10,height:1.0,fade:0.3,muzzle:0,thickMin:0.3,thickGrow:0.1,arc:1.0,lead:0.35,bow:0.05},
@@ -820,7 +821,7 @@ export const TUNING={
         flash:0.9,
         refill:{pen:2,pencil:4,brush:1,stapler:3,highlighter:4,crayon:3},
         whiteout:{guards:1,invuln:0.35},
-        sharpener:{reload:0.9},
+        sharpener:{reload:0.9,charge:0.9},
         bandage:{heal:1,every:4},
         inkVial:{min:3},
         styptic:{invuln:0.3},
