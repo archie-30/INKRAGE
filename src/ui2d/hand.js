@@ -8,6 +8,7 @@ import {CARD_W,CARD_H,drawCost,rareBorderPath} from './cardView.js';
 import {sketchPath,sketchRect,drawShape} from './sketch.js';
 import {cardCost,cardRange,cardParams} from '../game/card.js';
 import {isUlt} from '../data/cards.js';
+import {textScale} from '../core/settings.js';
 
 const C=TUNING.cards;
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
@@ -1246,7 +1247,8 @@ export class Hand {
     drawLabels(ctx) {
         const s=this.s;
         const y=this.height-CARD_H*s*C.restShow-18*s;
-        ctx.font='bold '+Math.round(16*s)+'px '+FONT;
+        const k=s*textScale();
+        ctx.font='bold '+Math.round(16*k)+'px '+FONT;
         ctx.textAlign='center';
         ctx.textBaseline='bottom';
         if (this.reshuffling) {
@@ -1265,11 +1267,11 @@ export class Hand {
         else if (this.targetView&&!(this.api.showKeys&&this.api.showKeys())) {
             const tgt=this.targetView.card.def.targeting;
             const txt=t(tgt==='drawPath'?'hand.touchHintPath':(tgt==='aura'?'hand.touchHintAura':'hand.touchHint'));
-            ctx.font='bold '+Math.round(14*s)+'px '+FONT;
+            ctx.font='bold '+Math.round(14*k)+'px '+FONT;
             const hy=y-C.targetLift*s-8*s;
-            const w=ctx.measureText(txt).width+24*s;
+            const w=ctx.measureText(txt).width+24*k;
             ctx.fillStyle=rgba('paper',0.85);
-            ctx.fillRect(this.width/2-w/2,hy-22*s,w,26*s);
+            ctx.fillRect(this.width/2-w/2,hy-22*k,w,26*k);
             ctx.fillStyle=PALETTE.ink;
             ctx.fillText(txt,this.width/2,hy);
         }
@@ -1277,11 +1279,11 @@ export class Hand {
             const v=this.targetView;
             const hy=y-C.targetLift*s-(C.keycap.size+C.keycap.gap)*s-8*s;
             const key=v.card.def.targeting==='drawPath'?'hand.hintPath':(v.card.def.targeting==='aura'?'hand.hintAura':'hand.hint');
-            ctx.font='bold '+Math.round(15*s)+'px '+FONT;
+            ctx.font='bold '+Math.round(15*k)+'px '+FONT;
             const txt=t(key,{key:v.slot+1});
-            const w=ctx.measureText(txt).width+24*s;
+            const w=ctx.measureText(txt).width+24*k;
             ctx.fillStyle=rgba('paper',0.85);
-            ctx.fillRect(this.width/2-w/2,hy-24*s,w,28*s);
+            ctx.fillRect(this.width/2-w/2,hy-24*k,w,28*k);
             ctx.fillStyle=PALETTE.ink;
             ctx.fillText(txt,this.width/2,hy);
         }

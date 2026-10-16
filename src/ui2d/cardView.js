@@ -675,18 +675,10 @@ const ICONS={
         ctx.fillText('×2',cx+30,cy-20);
     },
     crossCut(ctx,v,cx,cy) {
-        for (const [dx,dy,i] of [[1,1,0],[-1,1,1],[1,-1,2],[-1,-1,3]]) {
-            drawShape(ctx,sketchLine(cx+dx*6,cy+dy*6,cx+dx*34,cy+dy*30,{width:3,seed:1050+i,taper:0.2}),PALETTE.ink,v);
+        for (const [dx,dy,i] of [[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]]) {
+            drawShape(ctx,sketchLine(cx+dx*8,cy+dy*8,cx+dx*36,cy+dy*32,{width:3,seed:1050+i,taper:0.2}),i===0?PALETTE.red:PALETTE.ink,v);
         }
         dot(ctx,cx,cy,6,PALETTE.red);
-    },
-    scope(ctx,v,cx,cy) {
-        drawShape(ctx,sketchCircle(cx,cy,24,{width:2.4,seed:1060}),PALETTE.ink,v);
-        drawShape(ctx,sketchCircle(cx,cy,12,{width:1.2,seed:1061}),PALETTE.midGray,v);
-        for (const [x1,y1,x2,y2,i] of [[-30,0,-8,0,0],[8,0,30,0,1],[0,-30,0,-8,2],[0,8,0,30,3]]) {
-            drawShape(ctx,sketchLine(cx+x1,cy+y1,cx+x2,cy+y2,{width:1.6,seed:1062+i}),PALETTE.ink,v);
-        }
-        dot(ctx,cx,cy,3,PALETTE.red);
     },
     bearTrap(ctx,v,cx,cy) {
         drawShape(ctx,sketchCircle(cx,cy+8,26,{width:2,seed:1070}),PALETTE.ink,v);

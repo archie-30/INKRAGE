@@ -1217,7 +1217,7 @@ function boot() {
             flashRelic('masochist');
         }
     };
-    const weaponBuff=()=>(player.scopeT>0?player.scopeMult:1)*(player.plantT>0&&player.still?player.plantMult:1)*(player.fullInkT>0?player.fullInkMult:1);
+    const weaponBuff=()=>(player.plantT>0&&player.still?player.plantMult:1)*(player.fullInkT>0?player.fullInkMult:1);
     const cutter=e=>{
         const C=TUNING.relics.boxCutter;
         if (!hasRelic('boxCutter')||Math.hypot(e.pos.x-player.pos.x,e.pos.z-player.pos.z)-e.def.radius>C.range) {
@@ -1841,6 +1841,7 @@ function boot() {
                     if (pendingLevel) {
                         const q=pendingLevel;
                         art.warm(q.cards.map(id=>createCard(id)));
+                        levelUp.touch=input.lastDevice==='touch';
                         levelUp.open2(q.from,q.to,q.cards,q.weapons);
                     }
                     pendingLevel=null;
@@ -2129,7 +2130,7 @@ function boot() {
             openTrainingMenu();
             return;
         }
-        if (game.mode!=='play'||pauseMenu.open||summary.open||reward.open||upgradeView.open||choice.open||deckPick.open||transition.active) {
+        if (game.mode!=='play'||pauseMenu.open||trainingPicker.open||trainingMenu.open||summary.open||reward.open||upgradeView.open||choice.open||deckPick.open||transition.active) {
             return;
         }
         audio.play('ui');
@@ -3322,6 +3323,7 @@ function boot() {
             gestureFull();
         }
     });
+    const canAutoPause=()=>game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open&&!trainingPicker.open&&!fx.cutin;
     const autoPause=()=>{
         if (metaDirty()) {
             flushMeta();
@@ -3331,7 +3333,7 @@ function boot() {
         if (time.real<startGrace&&!document.hidden) {
             return;
         }
-        if (game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open&&!trainingPicker.open&&!fx.cutin) {
+        if (canAutoPause()) {
             openPause();
         }
     };
@@ -3346,7 +3348,7 @@ function boot() {
     window.addEventListener('blur',autoPause);
     document.addEventListener('fullscreenchange',()=>{
         setTimeout(resize,60);
-        if (!document.fullscreenElement&&settings.fullscreen&&game.mode==='play'&&!pauseMenu.open&&!trainingMenu.open&&time.real>=startGrace) {
+        if (!document.fullscreenElement&&settings.fullscreen&&canAutoPause()&&time.real>=startGrace) {
             openPause();
         }
     });
@@ -3361,9 +3363,7 @@ function boot() {
     const gameUi={confirmPop,achView,chestView,buyPrompt,revivePopup,achToast,effects,clones,dmgNums,project:projectFn,ink,hand,art,deckView,deck,run,enemies,reward,upgradeView,summary,transition,dt:0,mode:'menu',mainMenu,modeSelect,deckDraft,pause:pauseMenu,settingsMenu,codex,levelView,trainingPicker,skinEditor,trainingMenu,trainStats,ultCutin,coach,langPick,relicView,popup,guide,choice,deckPick,doors,npcs,marks,levelUp,minis,player};
     let aimTarget=null;
     function applyAimAssist() {
-        const A0=TUNING.aimAssist;
-        const sm=player.scopeT>0?player.scopeAssist:1;
-        const A=sm===1?A0:{...A0,acquire:A0.acquire*sm,release:A0.release*sm,stickCone:A0.stickCone*sm,stickRange:A0.stickRange*sm};
+        const A=TUNING.aimAssist;
         if (!settings.aimAssist||game.mode!=='play'||hand.targetView||hand.press) {
             aimTarget=null;
             gameUi.aimTarget=null;
