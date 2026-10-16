@@ -1621,6 +1621,8 @@ export const STRINGS={
     'node.library':'圖書館',
     'peace.library':'向兩位守卡人領卡，再向圖書管理員挑一件遺物',
     'exit.library':'圖書館',
+    'intro.infirmary':'保健室：回復 3 點生命，可以選牌、拿遺物，右邊兩區擇一使用。',
+    'intro.rushNext':'前往下一隻頭目，進去就開打。',
     'intro.library':'圖書館：領一般卡與特殊技卡，並免費挑一件遺物。',
     'npc.cardKeeper':'守卡人',
     'npc.ultKeeper':'特殊技守卡人',

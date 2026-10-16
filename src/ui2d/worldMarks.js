@@ -303,7 +303,9 @@ export class WorldMarks {
         if (doors.focus>=0&&game.run.canExit()) {
             const d=doors.list[doors.focus];
             game.project(d.x,D.height+W.enterLift,d.z-d.t-D.alcove*0.5,p);
-            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('door.enter',{name:exitLabel(d.exit)}),v,2340,t('intro.'+(d.exit.kind==='node'?d.exit.node:d.exit.kind)));
+            const ik='intro.'+(d.exit.intro||(d.exit.kind==='node'?d.exit.node:d.exit.kind));
+            const it=t(ik);
+            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('door.enter',{name:exitLabel(d.exit)}),v,2340,it===ik?'':it);
         }
         const qb=game.enemies.boss();
         const tile=qb&&qb.onTile?qb.onTile(game.player):null;

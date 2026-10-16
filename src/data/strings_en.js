@@ -1619,6 +1619,8 @@ export const STRINGS_EN={
     'node.library':'Library',
     'peace.library':'Collect cards from the two Keepers, then pick a relic from the Librarian',
     'exit.library':'Library',
+    'intro.infirmary':'Infirmary: heal 3, pick a card, take a relic, and use one of the two zones on the right.',
+    'intro.rushNext':'On to the next boss — the fight starts as soon as you enter.',
     'intro.library':'Library: take a normal card and an ultimate card, and pick one relic for free.',
     'npc.cardKeeper':'Card Keeper',
     'npc.ultKeeper':'Ultimate Keeper',
