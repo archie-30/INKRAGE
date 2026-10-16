@@ -299,6 +299,7 @@ export const STRINGS_EN={
     'device.mouse':'Switched to keyboard & mouse',
     'exit.again':'Press back again to exit',
     'update.ready':'Update downloaded. Restart the game to apply it',
+    'boot.failed':'Loading failed. Please refresh the page in a moment.',
     'menu.subtitle':'Ink Rage · hand-drawn shooter × deckbuilder',
     'menu.start':'Notebook Mode',
     'menu.endless':'Timetable Mode',
