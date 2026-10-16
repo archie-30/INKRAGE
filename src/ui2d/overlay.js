@@ -140,6 +140,7 @@ export class Overlay {
                 this.screenSpace(true);
                 this.drawDash(input,player);
                 this.drawReload(input,player);
+                this.drawRedraw(input,game.hand);
                 if (game.hand.visible()) {
                     this.drawSkills(input,game.hand,game.ink,game.art);
                 }
@@ -531,6 +532,30 @@ export class Overlay {
         ctx.textAlign='center';
         ctx.textBaseline='middle';
         ctx.fillText(t('ui.dash'),d.x,d.y+1);
+    }
+
+    drawRedraw(input,hand) {
+        const D=input.redrawBtn;
+        const R=hand.api.redrawInfo?hand.api.redrawInfo():null;
+        D.show=!!R&&R.show;
+        if (!D.show) {
+            return;
+        }
+        const ctx=this.ctx;
+        const r=D.r*(D.id>=0?0.92:1);
+        ctx.fillStyle=rgba('paper',R.can?0.6:0.35);
+        ctx.beginPath();
+        ctx.arc(D.x,D.y,r,0,Math.PI*2);
+        ctx.fill();
+        this.ring(D.x,D.y,r,R.can?3:2,R.can?PALETTE.ink:rgba('ink',0.35),75);
+        ctx.fillStyle=R.can?PALETTE.ink:PALETTE.midGray;
+        ctx.font='bold 13px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('ui.redraw'),D.x,D.y-5);
+        ctx.font='bold 11px '+FONT;
+        ctx.fillStyle=R.can?PALETTE.red:PALETTE.midGray;
+        ctx.fillText(R.unlimited?'∞':'×'+R.left,D.x,D.y+10);
     }
 
     drawReload(input,player) {

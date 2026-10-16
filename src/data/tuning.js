@@ -239,6 +239,7 @@ export const TUNING={
         popupTime:1.1,
         popupRise:34
     },
+    redraw:{perPage:1},
     deck:{maxCopies:4,
         handSize:2,
         burnDelay:0.45,
@@ -423,6 +424,7 @@ export const TUNING={
         wheelLine:40
     },
     effects:{
+        kit:{trapR:1.2,trapArm:0.3,alarmTick:0.5,shotSpeed:6,shotLife:4.5,shotR:0.45,shotGrow:0.5,mirrorH:1.8,mirrorDmg:1.5,umbrellaR:2.6,planeR:1.3,crossLife:1.1,boxDrop:{none:0.4,heal:0.2},aidRing:0.5,rewindSpeed:24,spongeInvuln:0.25,diceShake:0.6},
         wavePreview:{front:0.6,width:0.24,alpha:0.4},
         leap:{speed:22,life:0.5,time:0.72,height:2.2,tries:12,grace:0.08,land:1.8,shake:0.12,fov:0.7},
         puppet:{alpha:0.95,spin:2.5,ring:0.6,ringR:1.8,drop:0.35,dropH:7,shake:0.55,fov:2.4,stop:70,splat:2.6,waves:3,waveGap:0.12,waveR:3,pull:2.2,near:1.6},
@@ -481,7 +483,7 @@ export const TUNING={
         cloneRange:14
     },
     levels:{
-        max:15,
+        max:20,
         unlockVer:2,
         chestEvery:5,
         chest:{dots:5,colors:1,accs:1},
@@ -755,7 +757,7 @@ export const TUNING={
         progress:{y:30,segW:340,minSeg:160,side:240,actGap:12,dotR:6,bossR:8.5,curR:9,anim:0.8,hop:14,pulse:0.12,pulseRate:4,actSize:15,tagSize:14,tagY:20,below:58,show:4,fade:0.8,pauseY:34},
         score:{right:78,y:12,labelSize:12,size:30,pop:0.35,popDecay:2.5,rate:6,shake:4,shakeRate:55,shakeDecay:2.2},
         timer:{offset:42,cloneOffset:14,width:76,height:5},
-        timerSkip:['clone','trap'],
+        timerSkip:['clone','trap','bearTrap','mirror'],
         enemyHp:{minTicks:4,maxTicks:12,hpPerTick:8,radius:30,radiusScale:20,span:0.5,offset:26,follow:0.08,tickW:3.5,tickH:10},
         hpPos:[24,22],
         hpLength:220,

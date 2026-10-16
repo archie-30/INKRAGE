@@ -173,7 +173,7 @@ export function addXp(amount) {
     const unlocked=[];
     for (let lv=before+1;lv<=progress.level;lv++) {
         if (UNLOCKS[lv]) {
-            unlocked.push(...UNLOCKS[lv].filter(id=>!KEPT_CARDS.includes(id)));
+            unlocked.push(...UNLOCKS[lv]);
         }
     }
     saveProgress();

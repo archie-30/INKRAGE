@@ -28,7 +28,7 @@ import {circleVs} from './core/collision.js';
 import {Ink} from './game/ink.js';
 import {Deck} from './game/deck.js';
 import {CardEffects,createCard,cardParams} from './game/card.js';
-import {STARTING_DECK,ALL_CARDS,CARDS,isUlt,unlockedCards,TUTORIAL_MERGE} from './data/cards.js';
+import {STARTING_DECK,ALL_CARDS,CARDS,isUlt,unlockedCards,cardUnlocked,TUTORIAL_MERGE} from './data/cards.js';
 import {progress,loadProgress,saveProgress,addXp,markSeen,markBeaten,markBossIntro,godMode,effectiveLevel,xpToNext} from './core/progress.js';
 import {CardArt} from './ui2d/cardView.js';
 import {Hand} from './ui2d/hand.js';
@@ -474,6 +474,58 @@ function boot() {
         return uiMp;
     };
     const ultCutin=new UltCutin();
+    const redrawState={left:TUNING.redraw.perPage};
+    function redrawInfo() {
+        const show=game.mode==='play'&&!run.tutorial()&&hand.visible()&&(run.state==='combat'||run.mode==='training');
+        const unlimited=run.mode==='training';
+        const can=show&&!deck.locked&&!fx.cutin&&(unlimited||redrawState.left>0)&&deck.hand.length>0;
+        return {show,unlimited,left:redrawState.left,can};
+    }
+    function doRedraw(free) {
+        const R=redrawInfo();
+        if (!R.show||deck.locked||(!free&&!R.can)) {
+            if (R.show&&!free) {
+                audio.play('ui',0.6);
+            }
+            return false;
+        }
+        if (!free&&!R.unlimited) {
+            redrawState.left--;
+        }
+        hand.cancelTargeting();
+        let ult=null;
+        const spare=c=>c!==ult&&isUlt(c.id)&&deck.usable(c);
+        for (const v of hand.views.slice()) {
+            if (v.state==='idle'||v.state==='draw'||v.state==='hover') {
+                if (isUlt(v.card.id)) {
+                    ult=v.card;
+                    if (!deck.drawPile.some(spare)&&!deck.discardPile.some(spare)) {
+                        ult=null;
+                        continue;
+                    }
+                }
+                hand.discardView(v);
+            }
+        }
+        if (ult) {
+            deck.drawUlt(ult);
+        }
+        hand.redrawFlash=1;
+        input.redrawBtn.flash=1;
+        audio.play('draw',1.2);
+        particles.burst(player.pos.x,1.2,player.pos.z,10,{color:'farGray',speed:[1,3],up:[2,4],size:[0.06,0.12]});
+        return true;
+    }
+    effects.g.addRedraw=n=>{
+        redrawState.left+=n;
+        hand.redrawFlash=1;
+    };
+    effects.g.redrawFree=()=>doRedraw(true);
+    effects.g.onAlarm=()=>audio.play('kill',0.7);
+    effects.g.onDice=(n,x,z)=>{
+        dmgNums.spawn(x,2.6,z,n,n===6,0);
+        audio.play(n===6?'ultHit':'card',n===6?1:1.4);
+    };
     let pickerReturn=null;
     let trainFixed=[];
     const trainStats={total:0,max:0,last:0,lastT:0,kills:0,cards:0,hurt:0,hurtT:0,log:[],start:0,clock:0};
@@ -558,7 +610,7 @@ function boot() {
         }
         const normals=ids.filter(id=>!isUlt(id));
         const ult=ids.find(id=>isUlt(id));
-        trainFixed=ids.map(id=>({id,upgraded}));
+        trainFixed=ids.filter(id=>cardUnlocked(id,effectiveLevel())).map(id=>({id,upgraded}));
         if (normals.length>0) {
             const old=hand.normals().filter(v=>v.state==='idle'||v.state==='draw');
             const drop=Math.max(0,Math.min(old.length,deck.normalCount()+normals.length-TUNING.deck.handSize));
@@ -651,8 +703,13 @@ function boot() {
             return e?e.pos:null;
         },
         mouseScreen:()=>input.lastDevice==='mouse'&&input.mouse.inside?uiMouse():null,
+        redrawInfo:()=>redrawInfo(),
+        redraw:()=>doRedraw(false),
         execute:(card,target)=>{
             if (card.def.rarity==='rare') {
+                if (card.id==='luckyDice') {
+                    target.roll=1+Math.floor(Math.random()*6);
+                }
                 const echo=card.def.id==='echo'?effects.lastUlt:null;
                 const tg=echo?{...target,echo:hand.stickTarget(echo,0,0,0)}:target;
                 fx.cutin=true;
@@ -666,7 +723,7 @@ function boot() {
                     fx.fovPunch(TUNING.ultFx.hitFov);
                     effects.run(card,tg);
                     tutNotify('ult');
-                },{params:cardParams(echo||card),echo});
+                },{params:{...cardParams(echo||card),roll:target.roll},echo});
                 return;
             }
             effects.run(card,target);
@@ -675,8 +732,12 @@ function boot() {
         openDeck,
         onCancel:()=>tutNotify('cancel'),
         showKeys:()=>input.lastDevice==='mouse'&&!device.mobile,
-        onPlayStart:card=>{
+        canCast:()=>!(player.planeT>0),
+        onPlayStart:(card,target)=>{
             hand.idleT=0;
+            if (card&&target) {
+                effects.takeReserve(card,target);
+            }
             if (card&&run.mode!=='training') {
                 cardRelic(card.def.rarity==='rare');
             }
@@ -701,7 +762,19 @@ function boot() {
         audio.play('draw',0.9+Math.random()*0.3);
     };
     deck.events.onReshuffleStart=n=>hand.onReshuffleStart(n);
-    deck.events.onBurn=c=>hand.onBurn(c);
+    deck.events.onBurn=(c,why)=>hand.onBurn(c,why);
+    deck.blocked=c=>{
+        if (deckParam==='all'||run.mode==='tutorial') {
+            return null;
+        }
+        if (!cardUnlocked(c.id,effectiveLevel())) {
+            return 'locked';
+        }
+        if (c.id==='fullInk'&&player.weaponId==='compass') {
+            return 'compass';
+        }
+        return null;
+    };
     deck.events.onReshuffleEnd=()=>{
         hand.onReshuffleEnd();
         if (game.mode==='play') {
@@ -1090,6 +1163,18 @@ function boot() {
                 }
             });
         }
+        else if (piece.kind==='paperBox') {
+            audio.play('wall',1.6);
+            const D=TUNING.effects.kit.boxDrop;
+            const r=Math.random();
+            if (r>=D.none&&r<D.none+D.heal) {
+                dropAt('heal',piece.x,piece.z);
+            }
+            else if (r>=D.none+D.heal) {
+                dropAt('ink',piece.x,piece.z);
+            }
+            particles.burst(piece.x,0.6,piece.z,12,{color:'farGray',speed:[2,5],up:[2,5]});
+        }
         else {
             if (piece.kind==='crate') {
                 bump('crates');
@@ -1116,13 +1201,14 @@ function boot() {
             flashRelic('masochist');
         }
     };
+    const weaponBuff=()=>(player.scopeT>0?player.scopeMult:1)*(player.plantT>0&&player.still?player.plantMult:1)*(player.fullInkT>0?player.fullInkMult:1);
     const cutter=e=>{
         const C=TUNING.relics.boxCutter;
         if (!hasRelic('boxCutter')||Math.hypot(e.pos.x-player.pos.x,e.pos.z-player.pos.z)-e.def.radius>C.range) {
-            return 1;
+            return weaponBuff();
         }
         flashRelic('boxCutter',0.35);
-        return C.mult;
+        return C.mult*weaponBuff();
     };
     const reward=new RewardView();
     reward.onArm=()=>audio.play('ui',0.8);
@@ -1432,6 +1518,8 @@ function boot() {
             particles.burst(e.pos.x,0.4,e.pos.z,e.def.boss?30:PT.spawnPuff,{color:'midGray',speed:[1,4],up:[1,4],size:[0.1,0.2],life:[0.3,0.6]});
         },
         pageStart:plan=>{
+            redrawState.left=TUNING.redraw.perPage;
+            player.pageHits=0;
             const R=TUNING.relics;
             rearmGuard();
             if (hasRelic('inkVial')&&ink.value<R.inkVial.min&&!plan.rush) {
@@ -3177,6 +3265,7 @@ function boot() {
         }
     };
     input.onInteract=()=>tryInteract();
+    input.onRedraw=()=>doRedraw(false);
     input.onPauseKey=()=>{
         if (pauseMenu.open) {
             closePause();
@@ -3256,7 +3345,9 @@ function boot() {
     const gameUi={confirmPop,achView,chestView,buyPrompt,revivePopup,achToast,effects,clones,dmgNums,project:projectFn,ink,hand,art,deckView,deck,run,enemies,reward,upgradeView,summary,transition,dt:0,mode:'menu',mainMenu,modeSelect,deckDraft,pause:pauseMenu,settingsMenu,codex,levelView,trainingPicker,skinEditor,trainingMenu,trainStats,ultCutin,coach,langPick,relicView,popup,guide,choice,deckPick,doors,npcs,marks,levelUp,minis,player};
     let aimTarget=null;
     function applyAimAssist() {
-        const A=TUNING.aimAssist;
+        const A0=TUNING.aimAssist;
+        const sm=player.scopeT>0?player.scopeAssist:1;
+        const A=sm===1?A0:{...A0,acquire:A0.acquire*sm,release:A0.release*sm,stickCone:A0.stickCone*sm,stickRange:A0.stickRange*sm};
         if (!settings.aimAssist||game.mode!=='play'||hand.targetView||hand.press) {
             aimTarget=null;
             gameUi.aimTarget=null;

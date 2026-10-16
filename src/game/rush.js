@@ -1,5 +1,5 @@
 import {ACTS,LAYOUTS,BOSS_POOL,INFIRMARY,PEACE_LAYOUTS} from '../data/levels.js';
-import {CARDS,unlockedCards} from '../data/cards.js';
+import {CARDS,unlockedCards,cardUnlocked} from '../data/cards.js';
 import {TUNING} from '../data/tuning.js';
 import {NOTEBOOK} from '../data/notebook.js';
 import {MINIGAMES} from '../data/minigames.js';
@@ -392,7 +392,7 @@ export const RushMixin={
             return;
         }
         if (kind==='bench') {
-            const opts=[{id:'upgrade',disabled:this.upgradable().length===0},{id:'copy',disabled:this.deckList.every(c=>this.capped(c.id))},{id:'remove',disabled:this.deckList.length<=NOTEBOOK.minDeck}];
+            const opts=[{id:'upgrade',disabled:this.upgradable().length===0},{id:'copy',disabled:this.deckList.every(c=>this.capped(c.id)||!cardUnlocked(c.id,effectiveLevel()))},{id:'remove',disabled:this.deckList.length<=NOTEBOOK.minDeck}];
             this.hooks.openChoice({kind:'bench',options:opts},k=>{
                 if (k===0) {
                     this.pickUpgrade(fin);
@@ -403,7 +403,7 @@ export const RushMixin={
                         const c=this.deckList[j];
                         this.note('rush.copied',{},c.id);
                         this.hooks.cardFx('gain',c.id,()=>this.takeCards([createCard(c.id,c.upgraded)],fin));
-                    },null,c=>!this.capped(c.id));
+                    },null,c=>!this.capped(c.id)&&cardUnlocked(c.id,effectiveLevel()));
                     return;
                 }
                 this.hooks.openDeckPick('remove',this.deckList,j=>{

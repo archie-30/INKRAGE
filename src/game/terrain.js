@@ -918,6 +918,21 @@ function buildInteractive(type,x,z,group) {
         group.add(g);
         return {object:g,cols:[makeCircle(x,z,0.5)],radius:0.6,hp:1};
     }
+    if (type==='paperBox') {
+        const g=new THREE.Group();
+        const rot=hash1(Math.round(x*17+z*11))*1.5;
+        const b1=new THREE.Mesh(box(0.95,0.85,0.95),mat('light'));
+        b1.position.y=0.425;
+        const lid=new THREE.Mesh(box(1.0,0.08,1.0),mat('cover'));
+        lid.position.y=0.88;
+        const tape=new THREE.Mesh(box(0.2,0.9,0.99),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+        tape.position.y=0.45;
+        g.add(b1,lid,tape);
+        g.position.set(x,0,z);
+        g.rotation.y=rot;
+        group.add(g);
+        return {object:g,cols:[makeBox(x,z,0.48,0.48,rot)],radius:0.7,hp:3};
+    }
     if (type==='barrel') {
         const g=new THREE.Group();
         const body=new THREE.Mesh(cachedGeo('barrel',()=>new THREE.CylinderGeometry(0.55,0.6,1.3,10)),mat('dark'));
@@ -1046,6 +1061,13 @@ export class Room {
         }
     }
 
+    addPaperBox(x,z,hits) {
+        const res=buildInteractive('paperBox',x,z,this.group);
+        const piece=this.addPiece('paperBox',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:hits,passPlayer:true});
+        piece.flash=0;
+        return piece;
+    }
+
     addTarget(x,z) {
         const res=buildInteractive('target',x,z,this.group);
         const piece=this.addPiece('target',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:res.hp});
@@ -1055,7 +1077,7 @@ export class Room {
 
     damageProps(x,z,r,dmg) {
         for (const p of this.pieces.slice()) {
-            if ((p.kind==='barrel'||p.kind==='crate'||p.kind==='target')&&p.state==='alive'&&Math.hypot(p.x-x,p.z-z)<r+p.radius) {
+            if ((p.kind==='barrel'||p.kind==='crate'||p.kind==='target'||p.kind==='paperBox')&&p.state==='alive'&&Math.hypot(p.x-x,p.z-z)<r+p.radius) {
                 this.damagePiece(p,dmg);
             }
         }
@@ -1215,14 +1237,14 @@ export class Room {
     }
 
     damagePiece(piece,dmg) {
-        if ((piece.kind==='barrel'||piece.kind==='crate'||piece.kind==='target')&&piece.state==='alive') {
-            piece.hp-=dmg;
+        if ((piece.kind==='barrel'||piece.kind==='crate'||piece.kind==='target'||piece.kind==='paperBox')&&piece.state==='alive') {
+            piece.hp-=piece.kind==='paperBox'?1:dmg;
             piece.object.scale.set(1.12,0.9,1.12);
             piece.flash=0.12;
             if (piece.hp<=0) {
                 piece.state='broken';
                 if (this.shards) {
-                    this.shards.burst(piece.x,0.7,piece.z,piece.kind==='crate'?6:4,0,0,0.9);
+                    this.shards.burst(piece.x,0.7,piece.z,piece.kind==='crate'||piece.kind==='paperBox'?6:4,0,0,0.9);
                 }
                 if (this.onPropBreak) {
                     this.onPropBreak(piece);

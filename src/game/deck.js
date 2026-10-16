@@ -14,6 +14,7 @@ export class Deck {
         this.locked=false;
         this.reshuffleT=0;
         this.provider=null;
+        this.blocked=null;
         this.events={onDraw:null,onBurn:null,onReshuffleStart:null,onReshuffleEnd:null};
     }
 
@@ -36,8 +37,29 @@ export class Deck {
         return a;
     }
 
+    usable(c) {
+        return !this.blocked||!this.blocked(c);
+    }
+
     start() {
         const D=TUNING.deck;
+        const tops=[];
+        for (let i=this.drawPile.length-1;i>=0&&tops.length<D.handSize;i--) {
+            if (!isUlt(this.drawPile[i].id)&&this.usable(this.drawPile[i])) {
+                tops.push(i);
+            }
+        }
+        for (const i of tops) {
+            if (this.drawPile[i].id!=='reserve') {
+                continue;
+            }
+            const j=this.drawPile.findIndex((c,k)=>!tops.includes(k)&&c.id!=='reserve');
+            if (j>=0) {
+                const tmp=this.drawPile[i];
+                this.drawPile[i]=this.drawPile[j];
+                this.drawPile[j]=tmp;
+            }
+        }
         for (let i=0;i<D.handSize;i++) {
             this.requestDraw(0.3+i*D.startStagger);
         }
@@ -58,7 +80,7 @@ export class Deck {
     }
 
     hasNormalLeft() {
-        return this.drawPile.some(c=>!isUlt(c.id))||this.discardPile.some(c=>!isUlt(c.id));
+        return this.drawPile.some(c=>!isUlt(c.id)&&this.usable(c))||this.discardPile.some(c=>!isUlt(c.id)&&this.usable(c));
     }
 
     requestDraw(delay) {
@@ -95,6 +117,30 @@ export class Deck {
         return this.remove(card);
     }
 
+    drawUlt(skip) {
+        if (this.ultCard()) {
+            return false;
+        }
+        const pick=pile=>{
+            for (let i=pile.length-1;i>=0;i--) {
+                const c=pile[i];
+                if (c!==skip&&isUlt(c.id)&&this.usable(c)) {
+                    return pile.splice(i,1)[0];
+                }
+            }
+            return null;
+        };
+        const card=pick(this.drawPile)||pick(this.discardPile);
+        if (!card) {
+            return false;
+        }
+        this.hand.push(card);
+        if (this.events.onDraw) {
+            this.events.onDraw(card);
+        }
+        return true;
+    }
+
     startReshuffle() {
         this.locked=true;
         this.reshuffleT=TUNING.deck.reshuffleTime;
@@ -113,6 +159,13 @@ export class Deck {
 
     drawOne() {
         const card=this.drawPile.pop();
+        if (!this.usable(card)) {
+            this.discardPile.push(card);
+            if (this.events.onBurn) {
+                this.events.onBurn(card,this.blocked(card));
+            }
+            return false;
+        }
         if (isUlt(card.id)) {
             if (!this.ultCard()) {
                 this.hand.push(card);
