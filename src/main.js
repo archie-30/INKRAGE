@@ -1339,7 +1339,7 @@ function boot() {
                 overlay.hud.banner(t('run.ambush'),t('run.ambushSub'),1.8);
             }
             else if (kind==='boss') {
-                overlay.hud.banner(t('run.bossTitle',{name:t('enemy.'+p.bossType)}),p.rush?t('rush.bossSub',{n:p.index+1,total:rn.rush.order.length}):p.endless?t('run.endlessBossSub',endlessAP(p.index)):t('run.bossSub',{act:p.act+1}),2.6);
+                overlay.hud.banner(t('run.bossTitle',{name:t('enemy.'+p.bossType)}),p.rush?t(p.ramp>1?'rush.bossSubHard':'rush.bossSub',{n:p.index+1,total:rn.rush.order.length,s:(p.ramp||1).toFixed(2)}):p.endless?t('run.endlessBossSub',endlessAP(p.index)):t('run.bossSub',{act:p.act+1}),2.6);
             }
             else {
                 const title=p.overtime?t('run.overtimeTitle',{page:p.otPage+1}):p.endless?t('run.endlessTitle',endlessAP(p.index)):t('run.roomTitle',{act:p.act+1,page:p.index+1});

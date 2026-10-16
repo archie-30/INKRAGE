@@ -328,6 +328,7 @@ export const TUNING={
         ultOffer:3,
         stations:['bed','bench','swap','ults','retest','challenge'],
         games:['range','trace','push','pour','tiles','rain','maze','rhythm','cups','bells'],
+        ramp:{hpPer:0.135,hpMax:1.8,tiers:[0,0,1,1,2,2,2],parScale:1},
         par:{inkBottle:70,scissors:70,book:75,exam:75,bookFinal:85,alarm:80,calculator:85},
         score:{time:2500,fast:0.7,slow:2,dodge:250,dodgeMax:2000,card:1500,weak:1500,hurt:2500,hurtPer:500,boss:10000},
         grades:[['S++',0.92],['S+',0.85],['S',0.77],['A',0.65],['B',0.5],['C',0.35],['D',0]],
