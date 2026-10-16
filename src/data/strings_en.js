@@ -1759,7 +1759,7 @@ export const STRINGS_EN={
     'reward.skipSure':'Sure? Skip',
     'course.dodge.name':'Discipline Hour',
     'course.dodge.intro':'The teacher is throwing chalk. Time your dash!',
-    'course.dodge.fx.1':'Every {every}s the teacher throws a stick of chalk at you from nearby (a red circle marks where it comes from)',
+    'course.dodge.fx.1':'Every {every}s the teacher throws a stick of chalk at you from nearby (its flight path is drawn first)',
     'course.dodge.fx.2':'Dash cooldown −{dash}%',
     'course.dodge.ch.1':'Dash through bullets {goal} times',
     'course.music.name':'Music Class',

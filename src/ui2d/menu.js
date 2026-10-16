@@ -4273,9 +4273,17 @@ export class SkinEditor extends Panel {
         const h=this.height;
         const pw=h<760?Math.min(560,w*0.56):Math.min(430,Math.max(300,w*0.4));
         this.P={x:16,y:12,w:pw,h:h-24};
-        const bw=(pw-36-20)/3;
         const by=this.P.y+this.P.h-(h<600?50:62);
         const bh=h<600?40:46;
+        if (this.weaponOnly) {
+            const bw=(pw-36-10)/2;
+            this.randomBtn=null;
+            this.resetBtn={x:this.P.x+18,y:by,w:bw,h:bh};
+            this.backBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
+            this.buttons=[this.resetBtn,this.backBtn];
+            return;
+        }
+        const bw=(pw-36-20)/3;
         this.randomBtn={x:this.P.x+18,y:by,w:bw,h:bh};
         this.resetBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
         this.backBtn={x:this.P.x+38+bw*2,y:by,w:bw,h:bh};
@@ -4339,7 +4347,7 @@ export class SkinEditor extends Panel {
             this.actions.select();
             return true;
         }
-        if (inRect(this.randomBtn,x,y)) {
+        if (this.randomBtn&&inRect(this.randomBtn,x,y)) {
             this.outfitSel=-1;
             this.randomize();
             this.actions.dice();
@@ -4470,6 +4478,7 @@ export class SkinEditor extends Panel {
     openTab(weapon) {
         this.weaponOnly=weapon;
         this.tab=weapon?'weapon':'colors';
+        this.layout();
         this.tabK=0;
         this.show();
     }
@@ -5051,7 +5060,7 @@ export class SkinEditor extends Panel {
     drawRandom(ctx,v,small) {
         const b=this.randomBtn;
         const ap=(this.t-0.05)/0.3;
-        if (ap<=0) {
+        if (!b||ap<=0) {
             return;
         }
         const hv=this.hoverIdx===2;
