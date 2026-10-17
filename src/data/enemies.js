@@ -485,7 +485,7 @@ export const ENEMIES={
     bookFinal:{
         ink:5,
         nameKey:'enemy.bookFinal',
-        hp:1400,
+        hp:1300,
         radius:1.3,
         scale:1.0,
         height:3.9,

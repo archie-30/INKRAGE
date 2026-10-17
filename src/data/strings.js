@@ -313,6 +313,8 @@ export const STRINGS={
     'news.level.sub':'最高 {lv} 級，解鎖更多卡牌',
     'news.ok':'確認',
     'news.wait':'確認（{n}）',
+    'atk.call':'召喚小怪',
+    'atk.call.desc':'不定時召喚一波小怪。召喚算一次出招：只在沒出招時召喚，召喚後同樣要等出招冷卻；場上小怪太多時不會召喚。',
     'boot.failed':'載入失敗，請稍後重新整理頁面',
     'menu.subtitle':'狂墨 · 手繪射擊 × 牌組構築',
     'menu.start':'筆記本模式',

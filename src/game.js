@@ -1320,6 +1320,9 @@ function boot() {
             c.stop();
         }
         effects.clear();
+        rings.clear();
+        dangerRings.clear();
+        floorMarks.update(null,0,1,time.real);
         preview.hide();
         renderer.post.invertHold.value=0;
     }
@@ -1948,6 +1951,7 @@ function boot() {
         coach.reset();
         overlay.hud.openRelicInfo('');
         clearWorld();
+        player.clearBuffs();
         player.setArmed(true,true);
         doors.clear();
         npcs.clear();
