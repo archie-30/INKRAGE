@@ -3226,6 +3226,38 @@ export const ENEMY_ATTACKS={
     ]
 };
 
+function bossCall(id) {
+    return {
+        key:'call',
+        nameKey:'atk.call',
+        descKey:'atk.call.desc',
+        dmg:{kind:'none',n:0},
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const cx=12.5;
+            const raise=seg(k,0.08,0.2)*(1-seg(k,0.5,0.6));
+            S.enemy(id,cx,PY-raise*0.4,{size:2.6});
+            S.ring(cx,PY,1.6+raise*0.6,PALETTE.red,0.08,raise);
+            const minions=[['doodle',-0.9],['bird',0],['sprayer',0.9]];
+            for (const [mid,a] of minions) {
+                const an=Math.PI+a;
+                const f=seg(k,0.22,0.42);
+                if (f>0) {
+                    const x=cx+Math.cos(an)*3.4-seg(k,0.5,1)*2.2;
+                    const y=PY+Math.sin(an)*3.4;
+                    S.ring(x,y,0.3+(1-f),PALETTE.midGray,0.06,1-f);
+                    S.enemy(mid,x,y,{alpha:f});
+                }
+            }
+        }
+    };
+}
+
+for (const id of ['inkBottle','scissors','book','exam','bookFinal','alarm','calculator']) {
+    ENEMY_ATTACKS[id].push(bossCall(id));
+}
+
 export const TUTOR_ANIMS={
     move:{
         period:4.2,

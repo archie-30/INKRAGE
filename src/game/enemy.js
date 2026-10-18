@@ -453,14 +453,15 @@ export class Enemy {
             return;
         }
         this.minionT-=dt;
-        if (this.minionT>0) {
+        if (this.minionT>0||this.state!=='move'||this.tele) {
             return;
         }
         const k=Math.max(0,Math.min(this.tier,B.summonEvery.length)-1);
         this.minionT=(this.tier>=B.lateTier?B.lateSummon:B.summonEvery[k])*(this.def.summonMult||1);
-        if (ctx.enemyMgr.list.length>=(this.summonCap||B.summonCap)) {
+        if (ctx.enemyMgr.list.length>=(this.summonCap||B.summonCap)||!this.canSummon()) {
             return;
         }
+        this.patternT=Math.max(this.patternT||0,B.summonCd);
         const list=B.minions[k].map(type=>{
             const a=rng.range(0,Math.PI*2);
             return [type,this.pos.x+Math.cos(a)*3.5,this.pos.z+Math.sin(a)*3.5];
@@ -469,6 +470,7 @@ export class Enemy {
             ctx.particles.burst(e.pos.x,0.4,e.pos.z,8,{color:'midGray',speed:[1,4],up:[1,4]});
             this.sqv+=0.7;
         }
+        ctx.particles.burst(this.pos.x,1.6,this.pos.z,12,{color:'red',speed:[2,5],up:[2,5],size:[0.08,0.14]});
     }
 
     minionsAlive() {

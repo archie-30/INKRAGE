@@ -311,6 +311,8 @@ export const STRINGS_EN={
     'news.level.sub':'Up to level {lv}, with more cards to unlock',
     'news.ok':'OK',
     'news.wait':'OK ({n})',
+    'atk.call':'Summon minions',
+    'atk.call.desc':'Calls in a wave of minions now and then. It counts as a move: only between attacks, followed by the usual attack cooldown. No summons while too many minions are out.',
     'boot.failed':'Loading failed. Please refresh the page in a moment.',
     'menu.subtitle':'Ink Rage · hand-drawn shooter × deckbuilder',
     'menu.start':'Notebook Mode',

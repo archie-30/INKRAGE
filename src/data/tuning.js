@@ -696,7 +696,7 @@ export const TUNING={
     },
     bossTempo:1.15,
     enemyPace:{scale:[0.85,1.2],width:0.12,firstSpread:1.4},
-    bossScale:{tempo:0.12,tempoTierMax:4,lateTier:3,lateWeak:1.5,hpMax:2.6,lateSummon:13,summonFirst:9,summonEvery:[16,11,8],summonCap:6,waveCap:2,minions:[['doodle'],['doodle','bird'],['doodle','sprayer','bird']]},
+    bossScale:{tempo:0.12,tempoTierMax:4,lateTier:3,lateWeak:1.5,hpMax:2.6,lateSummon:13,summonFirst:9,summonEvery:[16,11,8],summonCd:1.8,summonCap:6,waveCap:2,minions:[['doodle'],['doodle','bird'],['doodle','sprayer','bird']]},
     brushSwing:{start:0.4,band:0.35,bulletPad:0.3,propPad:0.3,compassClear:0.75},
     bossIntro:{delay:0.9},
     achFx:{dodgeChain:{window:7}},

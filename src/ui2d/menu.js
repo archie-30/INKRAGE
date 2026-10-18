@@ -2181,7 +2181,7 @@ export class Codex extends Panel {
         for (let i=0;i<atks.length;i++) {
             const a=atks[i];
             ctx.font='13px '+FONT;
-            const ls=wrapText(ctx,t('atk.'+id+'.'+a.key+'.desc'),rw-stw-14);
+            const ls=wrapText(ctx,t(a.descKey||('atk.'+id+'.'+a.key+'.desc')),rw-stw-14);
             const ih=Math.max(sth,48+ls.length*17)+C.gap;
             if (ay-this.dScroll<RV.y+RV.h&&ay+ih-this.dScroll>RV.y) {
                 drawStage(ctx,rx,ay,stw,sth,a,this.animT+i*0.37,v);
@@ -2190,7 +2190,7 @@ export class Codex extends Panel {
                 ctx.textBaseline='top';
                 ctx.fillStyle=PALETTE.ink;
                 ctx.font='bold 15px '+FONT;
-                ctx.fillText(t('atk.'+id+'.'+a.key),ax,ay+2,rw-stw-14);
+                ctx.fillText(t(a.nameKey||('atk.'+id+'.'+a.key)),ax,ay+2,rw-stw-14);
                 ctx.fillStyle=a.dmg.kind==='none'||a.dmg.kind==='slow'?PALETTE.midGray:PALETTE.red;
                 ctx.font='bold 12px '+FONT;
                 ctx.fillText(t('codex.dmg.'+a.dmg.kind,{n:a.dmg.n}),ax,ay+24);
@@ -2327,13 +2327,13 @@ export class Codex extends Panel {
                 ctx.textBaseline='top';
                 ctx.fillStyle=PALETTE.ink;
                 ctx.font='bold 17px '+FONT;
-                ctx.fillText(t('atk.'+id+'.'+a.key),ax,cy+2);
+                ctx.fillText(t(a.nameKey||('atk.'+id+'.'+a.key)),ax,cy+2);
                 ctx.fillStyle=a.dmg.kind==='none'||a.dmg.kind==='slow'?PALETTE.midGray:PALETTE.red;
                 ctx.font='bold 13px '+FONT;
                 ctx.fillText(t('codex.dmg.'+a.dmg.kind,{n:a.dmg.n}),ax,cy+26);
                 ctx.fillStyle=PALETTE.nearGray;
                 ctx.font='13px '+FONT;
-                const ls=wrapText(ctx,t('atk.'+id+'.'+a.key+'.desc'),aw);
+                const ls=wrapText(ctx,t(a.descKey||('atk.'+id+'.'+a.key+'.desc')),aw);
                 for (let k=0;k<ls.length&&k<6;k++) {
                     ctx.fillText(ls[k],ax,cy+48+k*18);
                 }

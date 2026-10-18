@@ -760,6 +760,27 @@ export class Player {
         this.kick=1;
     }
 
+    clearBuffs() {
+        for (const k of ['dualT','rapidT','hasteT','reflectT','plantT','fullInkT','umbrellaT','spongeT','planeT','fortT','safeT','slingSnapT','chargeT','chargeFrac','cdT','burstLeft','beamT','reloadT','invuln','morphSpin']) {
+            this[k]=0;
+        }
+        this.hasteMult=1;
+        this.charging=false;
+        this.slingFull=false;
+        this.spongeArmed=false;
+        if (this.gunL) {
+            this.dropDual(true);
+        }
+        this.moveFrame.scale.setScalar(TUNING.player.visualScale);
+        this.moveFrame.visible=true;
+        this.setShield(0);
+        this.setFort(0);
+        this.ammo=this.W.magazine;
+        if (this.slingRig) {
+            this.setSlingPull(0);
+        }
+    }
+
     resetPose() {
         this.speedFrac=0;
         this.moving=false;
