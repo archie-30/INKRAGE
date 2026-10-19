@@ -804,7 +804,7 @@ export const TUNING={
         ui:{barW:300,barWSmall:200,barY:48,shift:14,iconR:15,iconGap:12}
     },
     spin:{still:0.3,pause:2,back:0.8,moveMin:1},
-    armsUi:{tile:104,tileS:76,tileMin:56,tileMinS:44,iconDiv:100,detailDiv:44,selTime:0.3,stampTime:0.45,sparks:14,boxFollow:14,rise:8,randStep:0.45,randDiv:100},
+    armsUi:{row:68,rowS:46,rowIcon:110,selTime:0.3,stampTime:0.45,sparks:14,boxFollow:14,rise:8,randStep:0.45,randDiv:100},
     gachaUi:{dim:0.95,intro:0.5,clicks:[0.6,0.95,1.3,1.65],clickTime:0.22,drop:2.0,bounces:[2.27,2.55,2.68],fly:2.75,flyEnd:3.3,cy:0.42,boxFollow:14,balls:15,shake:1.5,bounce:3.2,wobbleEvery:1.6,charge:0.85,cracks:[0,0.28,0.56],flash:0.4,closeAfter:0.9,sparks:56,confetti:60},
     relics:{
         price:15,
