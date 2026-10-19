@@ -423,6 +423,82 @@ export class WeaponView extends Panel {
         drawShape(ctx,sketchRect(x,y,Math.round(w),Math.round(h),{width:1.8,seed:2101}),PALETTE.ink,v);
     }
 
+    statValue(id,k) {
+        const W=WEAPONS[id];
+        const r1=n=>String(Math.round(n*10)/10);
+        if (k==='dmg') {
+            if (W.charge) {
+                return W.charge.tap+'～'+W.charge.dmg[1];
+            }
+            if (W.bands) {
+                return Math.min(...W.bands)+'～'+Math.max(...W.bands);
+            }
+            if (W.colors) {
+                const d=W.colors.map(c=>c.damage);
+                return Math.min(...d)+'～'+Math.max(...d);
+            }
+            return W.burst>1?W.damage+'×'+W.burst:String(W.damage);
+        }
+        if (k==='rate') {
+            if (W.charge) {
+                return t('arms.val.charge',{n:r1(W.charge.full)});
+            }
+            if (W.cooldown) {
+                return t('arms.val.cool',{n:r1(W.cooldown)});
+            }
+            return t('arms.val.rate',{n:r1((W.burst||1)/W.fireInterval)});
+        }
+        if (k==='range') {
+            return t('arms.val.range',{n:r1((W.beam?W.beam.range:W.bulletSpeed*W.bulletLife)/TUNING.grid.size)});
+        }
+        return W.charge?t('arms.val.none'):t('arms.val.mag',{n:W.magazine});
+    }
+
+    descFont(small) {
+        return (small?13:17)+'px '+FONT;
+    }
+
+    statsBox(small,w) {
+        const cols=small?2:1;
+        const rh=small?22:30;
+        return {cols,rh,w:small?w:w*0.44,h:Math.ceil(STATS.length/cols)*rh};
+    }
+
+    drawStats(ctx,id,x,y,w,small,sk,ok) {
+        const W=WEAPONS[id];
+        const B=this.statsBox(small,w);
+        const cw=B.w/B.cols;
+        const lw=small?34:46;
+        const vw=small?66:84;
+        const bw=Math.min(cw-lw-vw-(small?10:8),small?120:170);
+        const gap=small?2:3;
+        const bh=small?8:11;
+        const rw=(bw-gap*4)/5;
+        STATS.forEach((k,i)=>{
+            const cx=x+(i%B.cols)*cw;
+            const cy=y+Math.floor(i/B.cols)*B.rh+B.rh/2;
+            ctx.textBaseline='middle';
+            ctx.textAlign='left';
+            ctx.fillStyle=PALETTE.ink;
+            fitText(ctx,t('arms.stat.'+k),cx,cy+1,lw-4,small?12:14,'bold ');
+            const n=W.stats[k];
+            for (let q=0;q<5;q++) {
+                const rx=cx+lw+q*(rw+gap);
+                const fill=Math.max(0,Math.min(1,sk*6-q-i*0.4));
+                ctx.fillStyle=rgba('farGray',0.8);
+                ctx.fillRect(rx,cy-bh/2,rw,bh);
+                if (q<n&&fill>0) {
+                    ctx.fillStyle=ok?(n>=4?PALETTE.red:PALETTE.ink):PALETTE.midGray;
+                    ctx.fillRect(rx,cy-bh/2,rw*fill,bh);
+                }
+            }
+            ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
+            ctx.textAlign='left';
+            fitText(ctx,this.statValue(id,k),cx+lw+bw+(small?8:10),cy+1,vw-6,small?11:13,'bold ');
+        });
+        return B;
+    }
+
     drawPreview(ctx,v,small) {
         const R=this.R;
         const id=this.sel;
@@ -430,10 +506,19 @@ export class WeaponView extends Panel {
         const sk=EASE.easeOutCubic(Math.min(1,this.selT*1.4));
         const gap=small?8:14;
         const bh=this.mainBtn.h;
-        ctx.font=(small?12:15)+'px '+FONT;
-        const need=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),R.w).length*(small?16:22);
-        const below=(small?19:26)+(small?6:10)+(id===RANDOM_WEAPON.id?0:(small?17:26))+need+gap*2+bh;
-        const sh=Math.max(R.h*0.4,Math.min(R.w*9/16,R.h*0.66,R.h-below));
+        const rnd=id===RANDOM_WEAPON.id;
+        const B=this.statsBox(small,R.w);
+        const side=!small&&!rnd;
+        const dx=side?B.w+(small?12:24):0;
+        const dw=R.w-dx;
+        const lh=small?18:24;
+        ctx.font=this.descFont(small);
+        const desc=t('weapon.'+id+'.desc',weaponParams(id));
+        const nl=wrapText(ctx,desc,dw).length;
+        const ns=small?19:26;
+        const head=ns+(small?6:10);
+        const body=side?Math.max(B.h,nl*lh):(rnd?0:B.h+(small?8:12))+nl*lh;
+        const sh=Math.max(R.h*0.36,Math.min(R.w*9/16,R.h*0.62,R.h-head-body-gap*2-bh));
         const sw=sh*16/9;
         const sx=R.x+(R.w-sw)/2;
         ctx.save();
@@ -461,52 +546,37 @@ export class WeaponView extends Panel {
         ctx.textAlign='left';
         ctx.textBaseline='top';
         ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
-        const ns=small?19:26;
         fitText(ctx,t('weapon.'+id+'.name'),x,y,w*0.55,ns,'bold ');
         const nw=Math.min(w*0.55,ctx.measureText(t('weapon.'+id+'.name')).width);
         ctx.fillStyle=PALETTE.red;
         fitText(ctx,t('weapon.'+id+'.short'),x+nw+(small?10:14),y+ns*0.3,w-nw-(small?10:14),small?12:14,'bold ');
-        y+=ns+(small?6:10);
-        if (id!==RANDOM_WEAPON.id) {
-            const W=WEAPONS[id];
-            const cw=w/STATS.length;
-            const pr=small?3.6:5;
-            const step=pr*2.7;
-            STATS.forEach((k,i)=>{
-                const cx=x+i*cw;
-                ctx.fillStyle=PALETTE.nearGray;
-                ctx.textBaseline='middle';
-                ctx.font='bold '+(small?11:13)+'px '+FONT;
-                const lw=ctx.measureText(t('arms.stat.'+k)).width;
-                ctx.fillText(t('arms.stat.'+k),cx,y+pr+1);
-                const px0=cx+lw+(small?5:8);
-                for (let q=0;q<5;q++) {
-                    const on=q<W.stats[k]&&sk*6-q-i*0.4>0;
-                    ctx.beginPath();
-                    ctx.arc(px0+q*step+pr,y+pr+1,pr,0,Math.PI*2);
-                    ctx.fillStyle=on?(ok?(W.stats[k]>=4?PALETTE.red:PALETTE.ink):PALETTE.midGray):rgba('farGray',0.8);
-                    ctx.fill();
-                }
-            });
-            y+=pr*2+(small?10:16);
+        y+=head;
+        drawShape(ctx,sketchLine(x,y-(small?3:5),x+w,y-(small?3:5),{width:1,seed:5300}),rgba('midGray',0.5),v);
+        let ty=y+(small?2:4);
+        if (!rnd) {
+            this.drawStats(ctx,id,x,y,w,small,sk,ok);
+            if (side) {
+                drawShape(ctx,sketchLine(x+B.w+12,y+2,x+B.w+12,Math.min(this.mainBtn.y-gap,y+Math.max(B.h,nl*lh)),{width:1,seed:5301}),rgba('midGray',0.5),v);
+            }
+            else {
+                ty=y+B.h+(small?6:10);
+            }
         }
-        drawShape(ctx,sketchLine(x,y-(small?4:7),x+w,y-(small?4:7),{width:1,seed:5300}),rgba('midGray',0.5),v);
-        ctx.font=(small?12:15)+'px '+FONT;
+        ctx.font=this.descFont(small);
         ctx.fillStyle=PALETTE.nearGray;
+        ctx.textAlign='left';
         ctx.textBaseline='top';
-        const lh=small?16:22;
-        const lines=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w);
-        const room=this.mainBtn.y-gap-y;
-        const mx=Math.max(1,Math.floor(room/lh));
-        const big=lines.length>mx&&!small;
-        if (big) {
-            ctx.font='13px '+FONT;
+        const room=this.mainBtn.y-gap-ty;
+        let lines=wrapText(ctx,desc,dw);
+        let lh2=lh;
+        if (lines.length*lh>room) {
+            ctx.font=(small?12:15)+'px '+FONT;
+            lines=wrapText(ctx,desc,dw);
+            lh2=small?16:21;
         }
-        const lines2=big?wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w):lines;
-        const lh2=big?18:lh;
-        lines2.slice(0,Math.max(1,Math.floor(room/lh2))).forEach((ln,q)=>ctx.fillText(ln,x,y+q*lh2));
+        lines.slice(0,Math.max(1,Math.floor(room/lh2))).forEach((ln,q)=>ctx.fillText(ln,x+dx,ty+q*lh2));
         ctx.restore();
-        if (bh&&!ok&&id!==RANDOM_WEAPON.id) {
+        if (!ok&&!rnd) {
             ctx.fillStyle=PALETTE.nearGray;
             ctx.textAlign='right';
             ctx.textBaseline='middle';
