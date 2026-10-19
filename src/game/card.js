@@ -212,6 +212,26 @@ export class CardEffects {
     }
 
     activeLive(id) {
+        const g=this.g;
+        const p=g.player;
+        if (id==='paperShield'||id==='miniShield') {
+            return p.shield>0;
+        }
+        if (id==='inkBarrier') {
+            return p.fortT>0;
+        }
+        if (id==='clone') {
+            return (g.clones||[]).some(c=>c.active);
+        }
+        if (id==='puppet') {
+            return !!g.puppet&&g.puppet.active;
+        }
+        if (id==='pencilWall') {
+            return !!g.room&&g.room.pieces.some(q=>q.kind==='pencilWall'&&q.state!=='erasing');
+        }
+        if (id==='mark') {
+            return !!this.markTarget&&this.markTarget.alive&&this.markTarget.vulnT>0;
+        }
         if (id==='reserve') {
             return this.reserveArm>0;
         }
@@ -325,7 +345,7 @@ export class CardEffects {
         freeCards.left=Math.max(0,freeCards.left-dt);
         for (let i=this.timers.length-1;i>=0;i--) {
             this.timers[i].left-=dt;
-            if (this.timers[i].left<=0) {
+            if (this.timers[i].left<=0||this.activeLive(this.timers[i].id)===false) {
                 this.timers.splice(i,1);
             }
         }
@@ -1064,6 +1084,7 @@ export class CardEffects {
         }
         e.vulnT=duration;
         e.vulnMult=mult;
+        this.markTarget=e;
         g.rings.spawn(e.pos.x,e.pos.z,e.def.radius+0.8,'ink',0.3);
         g.particles.burst(e.pos.x,e.def.height,e.pos.z,8,{speed:[1,3],up:[2,4]});
     }
