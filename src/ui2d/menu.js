@@ -1005,6 +1005,42 @@ export class SettingsMenu extends Panel {
         this.drag=null;
     }
 
+    drawWeaponStage(ctx,a,v,small) {
+        const U=TUNING.weaponUi.stage;
+        const P=this.P;
+        ctx.save();
+        ctx.globalAlpha=a;
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(0,0,this.width,this.height);
+        ctx.restore();
+        const x0=P.x+P.w+U.gap;
+        const aw=this.width-x0-U.gap;
+        const R={x:x0-18,w:aw+36};
+        const info=this.weaponInfo(ctx,R,small);
+        const ah=P.h-info.h-U.gap;
+        const sw=Math.min(aw,ah*U.aspect);
+        const sh=Math.min(ah,sw/U.aspect);
+        const sx=x0+(aw-sw)/2;
+        const sy=P.y+(ah-sh)/2;
+        const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));
+        ctx.save();
+        ctx.translate((1-a)*(aw+40),(1-sk)*U.rise);
+        ctx.globalAlpha=0.4+0.6*sk;
+        const anim=WEAPON_ANIMS[info.id];
+        if (anim) {
+            drawStage(ctx,sx,sy,sw,sh,anim,time.real,v);
+        }
+        else {
+            ctx.fillStyle=PALETTE.paper;
+            ctx.fillRect(sx,sy,sw,sh);
+            drawShape(ctx,sketchRect(sx,sy,sw,sh,{width:1.8,seed:2101}),PALETTE.ink,v);
+            drawWeaponIcon(ctx,info.id,sx+sw/2,sy+sh/2,Math.min(sw,sh)/U.iconDiv,v,false);
+        }
+        const R2={x:sx-18,w:sw+36};
+        this.drawWeaponInfo(ctx,R2,sy+sh+U.gap,v,small,this.weaponInfo(ctx,R2,small));
+        ctx.restore();
+    }
+
     draw(ctx) {
         if (!this.shown()) {
             return;
@@ -4390,7 +4426,7 @@ export class SkinEditor extends Panel {
                 return true;
             }
         }
-        if (x>this.P.x+this.P.w) {
+        if (x>this.P.x+this.P.w&&!this.weaponOnly) {
             this.drag={x0:x,y0:this.dragYaw};
             return true;
         }
@@ -4917,7 +4953,7 @@ export class SkinEditor extends Panel {
         const id=this.wSel||settings.weapon||'pen';
         const w=P.w-36;
         ctx.font=(small?12:13)+'px '+FONT;
-        const lines=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w-20).slice(0,small?3:5);
+        const lines=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w-20).slice(0,this.weaponOnly?12:(small?3:5));
         return {id,lines,lh:small?16:18,h:(small?24:28)+lines.length*(small?16:18)+12};
     }
 
@@ -4939,6 +4975,42 @@ export class SkinEditor extends Panel {
         info.lines.forEach((ln,i)=>ctx.fillText(ln,x+10,y+(small?26:30)+i*info.lh));
     }
 
+    drawWeaponStage(ctx,a,v,small) {
+        const U=TUNING.weaponUi.stage;
+        const P=this.P;
+        ctx.save();
+        ctx.globalAlpha=a;
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(0,0,this.width,this.height);
+        ctx.restore();
+        const x0=P.x+P.w+U.gap;
+        const aw=this.width-x0-U.gap;
+        const R={x:x0-18,w:aw+36};
+        const info=this.weaponInfo(ctx,R,small);
+        const ah=P.h-info.h-U.gap;
+        const sw=Math.min(aw,ah*U.aspect);
+        const sh=Math.min(ah,sw/U.aspect);
+        const sx=x0+(aw-sw)/2;
+        const sy=P.y+(ah-sh)/2;
+        const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));
+        ctx.save();
+        ctx.translate((1-a)*(aw+40),(1-sk)*U.rise);
+        ctx.globalAlpha=0.4+0.6*sk;
+        const anim=WEAPON_ANIMS[info.id];
+        if (anim) {
+            drawStage(ctx,sx,sy,sw,sh,anim,time.real,v);
+        }
+        else {
+            ctx.fillStyle=PALETTE.paper;
+            ctx.fillRect(sx,sy,sw,sh);
+            drawShape(ctx,sketchRect(sx,sy,sw,sh,{width:1.8,seed:2101}),PALETTE.ink,v);
+            drawWeaponIcon(ctx,info.id,sx+sw/2,sy+sh/2,Math.min(sw,sh)/U.iconDiv,v,false);
+        }
+        const R2={x:sx-18,w:sw+36};
+        this.drawWeaponInfo(ctx,R2,sy+sh+U.gap,v,small,this.weaponInfo(ctx,R2,small));
+        ctx.restore();
+    }
+
     draw(ctx) {
         if (!this.shown()) {
             return;
@@ -4950,6 +5022,9 @@ export class SkinEditor extends Panel {
         const a=EASE.easeOutCubic(Math.min(1,this.t/0.35));
         const small=h<760;
         const cur=this.skin();
+        if (this.weaponOnly) {
+            this.drawWeaponStage(ctx,a,v,small);
+        }
         ctx.save();
         ctx.translate(-(1-a)*(P.w+40),0);
         ctx.fillStyle=rgba('paper',0.94);
@@ -4970,7 +5045,7 @@ export class SkinEditor extends Panel {
         }
         this.hits=[];
         let y=this.drawTabs(ctx,P.x+14,P.y+(this.weaponOnly?(small?40:54):(small?52:72)),P.w-28,v,small);
-        const winfo=this.tab==='weapon'?this.weaponInfo(ctx,P,small):null;
+        const winfo=this.tab==='weapon'&&!this.weaponOnly?this.weaponInfo(ctx,P,small):null;
         this.V={x:P.x,y:y-2,w:P.w,h:this.resetBtn.y-8-(y-2)-(winfo?winfo.h+8:0)};
         const V=this.V;
         ctx.save();
@@ -5057,7 +5132,7 @@ export class SkinEditor extends Panel {
         ctx.globalAlpha=1;
         ctx.restore();
         ctx.save();
-        ctx.globalAlpha=a*(this.drag?0.4:0.85);
+        ctx.globalAlpha=this.weaponOnly?0:a*(this.drag?0.4:0.85);
         ctx.fillStyle=PALETTE.nearGray;
         ctx.font='14px '+FONT;
         ctx.textAlign='center';

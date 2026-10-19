@@ -2,7 +2,7 @@ import*as THREE from 'three';
 import {PALETTE} from '../data/palette.js';
 import {TUNING} from '../data/tuning.js';
 import {device} from '../core/settings.js';
-import {TOON_VERT,TOON_FRAG,HULL_VERT,HULL_FRAG,UNLIT_VERT,UNLIT_FRAG,SHADOW_VERT,SHADOW_FRAG} from './shaders/toon.js';
+import {TOON_VERT,TOON_FRAG,HULL_VERT,HULL_FRAG,UNLIT_VERT,UNLIT_FRAG,GLOW_FRAG,SHADOW_VERT,SHADOW_FRAG} from './shaders/toon.js';
 import {PARTICLE_VERT,PARTICLE_FRAG,TRAIL_VERT,TRAIL_FRAG,FLASH_VERT,FLASH_FRAG,LINE_VERT,LINE_FRAG,DECAL_VERT,DECAL_FRAG,STAMP_FRAG,ICON_VERT,ICON_FRAG,DASH_FRAG,RING_FRAG,TRAP_FRAG,INK_FRAG,BRUSH_FRAG,BEAM_FRAG,COUNT_FRAG,FADE_FRAG,PORTAL_VERT,PORTAL_FRAG} from './shaders/fx.js';
 
 const colorCache={};
@@ -206,6 +206,20 @@ export function unlitMaterial(opts={}) {
     if (!opts.unique) {
         cache.set(key,mat);
     }
+    return mat;
+}
+
+export function glowMaterial(color) {
+    const u={uBoilSeed:shared.uBoilSeed,uJitter:{value:0},uColor:{value:pal(color).clone()},uOpacity:{value:1}};
+    const mat=new THREE.ShaderMaterial({
+        vertexShader:UNLIT_VERT,
+        fragmentShader:GLOW_FRAG,
+        uniforms:u,
+        transparent:true,
+        depthWrite:false,
+        side:THREE.DoubleSide
+    });
+    Object.defineProperty(mat,'opacity',{get:()=>u.uOpacity.value,set:v=>{u.uOpacity.value=v;},configurable:true});
     return mat;
 }
 
