@@ -47,7 +47,7 @@ export const WEAPONS={
         swing:true,
         kick:1.6,
         flashMul:1.2,
-        stats:{dmg:5,rate:1,range:2,mag:1}
+        stats:{dmg:4.5,rate:1,range:2,mag:1}
     },
     stapler:{
         unlock:7,

@@ -472,36 +472,38 @@ export class WeaponView extends Panel {
     drawStats(ctx,id,x,y,w,h,small) {
         const rnd=id===RANDOM_WEAPON.id;
         const n=STATS.length;
-        const bh=small?8:11;
-        const ls=small?12:14;
-        const vs=small?11:14;
-        const block=h/n;
-        const lw=small?34:44;
-        const gap=small?2:3;
-        const bw=Math.min(w-lw,small?110:170);
-        const rw=(bw-gap*4)/5;
-        STATS.forEach((k,i)=>{
-            const by=y+i*block+(small?2:4);
-            const cy=by+ls/2;
-            ctx.textAlign='left';
+        const ts=small?12:15;
+        const bh=small?10:14;
+        const inner=small?4:6;
+        const gap=small?3:4;
+        const blockH=ts+inner+bh;
+        const space=Math.min(small?12:22,(h-blockH*n)/(n-1));
+        const total=blockH*n+space*(n-1);
+        const rw=(w-gap*4)/5;
+        let by=y+Math.max(0,(h-total)/2);
+        STATS.forEach(k=>{
+            const ty=by+ts/2;
             ctx.textBaseline='middle';
+            ctx.textAlign='left';
             ctx.fillStyle=PALETTE.ink;
-            fitText(ctx,t('arms.stat.'+k),x,cy+1,lw-4,ls,'bold ');
+            fitText(ctx,t('arms.stat.'+k),x,ty+1,w*0.45,ts,'bold ');
+            ctx.textAlign='right';
+            ctx.fillStyle=PALETTE.nearGray;
+            fitText(ctx,rnd?'—':this.statValue(id,k),x+w,ty+1,w*0.55,ts-1,'bold ');
             const val=this.bars[k]||0;
             const hot=!rnd&&WEAPONS[id].stats[k]>=4;
+            const yy=by+ts+inner;
             for (let q=0;q<5;q++) {
-                const rx=x+lw+q*(rw+gap);
+                const rx=x+q*(rw+gap);
                 ctx.fillStyle=rgba('farGray',0.8);
-                ctx.fillRect(rx,cy-bh/2,rw,bh);
+                ctx.fillRect(rx,yy,rw,bh);
                 const f=Math.max(0,Math.min(1,val-q));
                 if (f>0) {
                     ctx.fillStyle=hot?PALETTE.red:PALETTE.ink;
-                    ctx.fillRect(rx,cy-bh/2,rw*f,bh);
+                    ctx.fillRect(rx,yy,rw*f,bh);
                 }
             }
-            ctx.fillStyle=PALETTE.nearGray;
-            ctx.textBaseline='top';
-            fitText(ctx,rnd?'—':this.statValue(id,k),x+lw,cy+bh/2+(small?3:5),w-lw,vs,'bold ');
+            by+=blockH+space;
         });
     }
 
