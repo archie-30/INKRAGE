@@ -617,7 +617,6 @@ export const TUNING={
         camLook:1.3,
         camSpin:0.1
     },
-    news:{id:'v0.12',hold:3,delay:0.8,bossBig:150,bossSmall:210,tileAt:0.25,tileGap:0.15,tileTime:0.45,cards:['umbrella','planeDash','mirror'],normals:14,ults:6,levelFrom:15,levelTo:20},
     levelUp:{stampAt:0.15,stampTime:0.45,stampFrom:2.6,levelAt:0.6,cardsAt:1.1,cardGap:0.28,cardTime:0.55,drops:22,titleY:0.2,cardsY:0.58,weaponY:0.86},
     levelView:{
         focusPad:12,
