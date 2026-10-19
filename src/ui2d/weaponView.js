@@ -464,20 +464,20 @@ export class WeaponView extends Panel {
     stageBox(small) {
         const R=this.R;
         const ns=small?19:26;
-        const top=R.y+ns+(small?8:12);
-        const sw=Math.min(R.w*(small?0.6:0.64),(R.h-ns)*(small?0.62:0.6)*16/9);
-        return {x:R.x,y:top,w:sw,h:sw*9/16,ns};
+        const sw=Math.min(R.w*(small?0.6:0.64),R.h*(small?0.66:0.62)*16/9);
+        return {x:R.x,y:R.y,w:sw,h:sw*9/16,ns};
     }
 
     drawStats(ctx,id,x,y,w,h,small) {
         const rnd=id===RANDOM_WEAPON.id;
         const n=STATS.length;
-        const ts=small?12:15;
-        const bh=small?10:14;
-        const inner=small?4:6;
+        const k=Math.max(0.6,Math.min(1,h/(((small?26:35)+(small?4:6))*n)));
+        const ts=Math.round((small?12:15)*Math.max(0.8,k));
+        const bh=Math.max(5,(small?10:14)*k);
+        const inner=(small?4:6)*k;
         const gap=small?3:4;
         const blockH=ts+inner+bh;
-        const space=Math.min(small?12:22,(h-blockH*n)/(n-1));
+        const space=Math.max(2,Math.min(small?12:22,(h-blockH*n)/(n-1)));
         const total=blockH*n+space*(n-1);
         const rw=(w-gap*4)/5;
         let by=y+Math.max(0,(h-total)/2);
@@ -515,13 +515,6 @@ export class WeaponView extends Panel {
         const bh=this.mainBtn.h;
         const S=this.stageBox(small);
         const ns=S.ns;
-        ctx.textAlign='left';
-        ctx.textBaseline='top';
-        ctx.fillStyle=PALETTE.ink;
-        fitText(ctx,t('weapon.'+id+'.name'),R.x,R.y,R.w*0.5,ns,'bold ');
-        const nw=Math.min(R.w*0.5,ctx.measureText(t('weapon.'+id+'.name')).width);
-        ctx.fillStyle=PALETTE.red;
-        fitText(ctx,t('weapon.'+id+'.short'),R.x+nw+(small?10:14),R.y+ns*0.3,R.w-nw-(small?10:14),small?12:14,'bold ');
         const anim=WEAPON_ANIMS[id];
         if (anim) {
             drawStage(ctx,S.x,S.y,S.w,S.h,anim,time.real,v);
@@ -530,7 +523,19 @@ export class WeaponView extends Panel {
             this.drawRandomStage(ctx,S.x,S.y,S.w,S.h,v);
         }
         const sx=S.x+S.w+(small?12:20);
-        this.drawStats(ctx,id,sx,S.y,R.x+R.w-sx,S.h,small);
+        const cw=R.x+R.w-sx;
+        ctx.textAlign='left';
+        ctx.textBaseline='top';
+        ctx.fillStyle=PALETTE.ink;
+        fitText(ctx,t('weapon.'+id+'.name'),sx,S.y,cw,ns,'bold ');
+        ctx.font='bold '+(small?12:14)+'px '+FONT;
+        ctx.fillStyle=PALETTE.red;
+        const sl=wrapText(ctx,t('weapon.'+id+'.short'),cw).slice(0,2);
+        const slh=small?15:19;
+        sl.forEach((ln,q)=>ctx.fillText(ln,sx,S.y+ns+(small?4:6)+q*slh));
+        const hy=S.y+ns+(small?4:6)+sl.length*slh+(small?5:8);
+        drawShape(ctx,sketchLine(sx,hy,sx+cw,hy,{width:1,seed:5302}),rgba('midGray',0.5),v);
+        this.drawStats(ctx,id,sx,hy+(small?4:8),cw,S.y+S.h-hy-(small?4:8),small);
         let ty=S.y+S.h+gap;
         drawShape(ctx,sketchLine(R.x,ty-gap/2,R.x+R.w,ty-gap/2,{width:1,seed:5300}),rgba('midGray',0.5),v);
         const desc=t('weapon.'+id+'.desc',weaponParams(id));
