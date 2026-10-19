@@ -36,7 +36,7 @@ export class WeaponView extends Panel {
         this.selT=1;
         this.hx=-1;
         this.hy=-1;
-        this.tiles=[];
+        this.rows=[];
         this.sparks=[];
         this.pulse={};
         this.msg=null;
@@ -55,7 +55,7 @@ export class WeaponView extends Panel {
         this.scroll=0;
         this.scrollTo=0;
         this.press=null;
-        this.boxX=undefined;
+        this.boxY=undefined;
         this.jump=true;
     }
 
@@ -71,19 +71,21 @@ export class WeaponView extends Panel {
         const w=this.width;
         const h=this.height;
         const small=h<600;
-        const pw=Math.min(1060,w-20);
-        const ph=Math.min(h-16,small?h-16:660);
+        const pw=Math.min(1100,w-20);
+        const ph=Math.min(h-16,small?h-16:680);
         this.P={x:w/2-pw/2,y:h/2-ph/2,w:pw,h:ph};
         const P=this.P;
-        const bh=small?40:48;
-        const by=P.y+ph-(small?48:64);
+        const pad=small?14:22;
         const hh=small?42:62;
-        const rw=Math.min(P.w*0.36,small?260:340);
-        const rx=P.x+P.w-20-rw;
-        this.backBtn={x:P.x+20,y:by,w:small?120:150,h:bh};
-        this.mainBtn={x:rx,y:by,w:rw,h:bh};
-        this.R={x:rx,y:P.y+hh,w:rw,h:by-(small?8:12)-(P.y+hh)};
-        this.G={x:P.x+20,y:P.y+hh,w:rx-(small?16:28)-(P.x+20),h:by-(small?10:14)-(P.y+hh)};
+        const bh=small?40:48;
+        const lw=Math.max(small?190:240,Math.min(small?240:330,P.w*0.32));
+        const by=P.y+P.h-pad-bh;
+        this.backBtn={x:P.x+pad,y:by,w:lw,h:bh};
+        this.V={x:P.x+pad,y:P.y+hh,w:lw,h:by-(small?8:12)-(P.y+hh)};
+        const rx=this.V.x+lw+(small?16:28);
+        this.R={x:rx,y:P.y+hh,w:P.x+P.w-pad-rx,h:P.y+P.h-pad-(P.y+hh)};
+        const mw=Math.min(this.R.w*0.42,small?220:280);
+        this.mainBtn={x:this.R.x+this.R.w-mw,y:by,w:mw,h:bh};
         this.buttons=[this.backBtn,this.mainBtn];
     }
 
@@ -104,6 +106,7 @@ export class WeaponView extends Panel {
         this.sel=id;
         this.selT=0;
         this.boxPop=1;
+        this.reveal();
         this.pulse[id]=1;
         this.actions.select();
     }
@@ -131,11 +134,11 @@ export class WeaponView extends Panel {
     celebrate(id) {
         this.pulse[id]=1;
         this.stampT=0;
-        const q=this.tiles.find(r=>r.id===id);
+        const q=this.rows.find(r=>r.id===id);
         const b=this.mainBtn;
         const pts=[[b.x+b.w/2,b.y+b.h/2]];
         if (q) {
-            pts.push([q.x,q.y]);
+            pts.push([q.x+q.h*0.6,q.y+q.h/2]);
         }
         const cols=[PALETTE.red,PALETTE.ink,PALETTE.gold,PALETTE.paper];
         for (const [x,y] of pts) {
@@ -150,6 +153,7 @@ export class WeaponView extends Panel {
     bought(id) {
         this.walletK=1;
         this.sel=id;
+        this.reveal();
         this.celebrate(id);
     }
 
@@ -166,8 +170,7 @@ export class WeaponView extends Panel {
             this.act();
             return true;
         }
-        const L=this.gridLayout(this.height<600);
-        if (inRect(L.V,x,y)) {
+        if (inRect(this.V,x,y)) {
             this.press={x0:x,y0:y,s0:this.scrollTo||0,moved:false};
         }
         return true;
@@ -194,8 +197,8 @@ export class WeaponView extends Panel {
         if (!p||p.moved) {
             return;
         }
-        for (const q of this.tiles) {
-            if (Math.abs(p.x0-q.x)<=q.s/2+6&&p.y0>=q.y-q.s/2-6&&p.y0<=q.y+q.s/2+q.lab) {
+        for (const q of this.rows) {
+            if (inRect(q,p.x0,p.y0)) {
                 this.choose(q.id);
                 return;
             }
@@ -237,211 +240,153 @@ export class WeaponView extends Panel {
         }
     }
 
-    descLines(ctx,w,small) {
-        ctx.font=(small?12:15)+'px '+FONT;
-        return wrapText(ctx,t('weapon.'+this.sel+'.desc',weaponParams(this.sel)),w);
+    reveal() {
+        const rh=this.rowH();
+        const y=LIST.indexOf(this.sel)*rh;
+        const V=this.V||{h:0};
+        if (y<(this.scrollTo||0)) {
+            this.scrollTo=y;
+        }
+        else if (y+rh+8>(this.scrollTo||0)+V.h) {
+            this.scrollTo=y+rh+8-V.h;
+        }
+        this.clampScroll();
     }
 
-    gridLayout(small,ctx) {
-        if (!ctx) {
-            return this.L||this.gridLayout(small,document.createElement('canvas').getContext('2d'));
-        }
-        const Gr=this.G;
-        const ir=small?20:28;
-        const tw=Gr.w-ir*2-38;
-        const lh=small?15:20;
-        const head=small?32:40;
-        const lines=this.descLines(ctx,tw,small);
-        const lab=small?16:20;
-        const gapY=small?10:16;
-        const gapX=small?14:24;
-        const pad=small?14:22;
-        const minGrid=(small?U().tileMinS:U().tileMin)+lab+gapY+pad;
-        const dh=Math.max(small?72:110,Math.min(Gr.h-minGrid-(small?8:12),head+lines.length*lh+(small?8:14)));
-        const V={x:Gr.x,y:Gr.y,w:Gr.w,h:Gr.h-dh-(small?8:12)};
-        const fitCols=s=>Math.max(3,Math.floor((V.w-24+gapX)/(s+gapX)));
-        let ts=small?U().tileMinS:U().tileMin;
-        for (let s=small?U().tileS:U().tile;s>=ts;s-=2) {
-            if (Math.ceil(LIST.length/fitCols(s))*(s+lab+gapY)+pad<=V.h) {
-                ts=s;
-                break;
-            }
-        }
-        const rows=Math.ceil(LIST.length/fitCols(ts));
-        const cols=Math.ceil(LIST.length/rows);
-        const rowW=cols*ts+(cols-1)*gapX;
-        const content=rows*(ts+lab+gapY)+pad;
-        const y0=V.y+(small?10:16)+Math.max(0,(V.h-content)/2);
-        this.L={V,dh,ts,gapX,gapY,lab,cols,lines,lh,head,ir,tw,x0:V.x+(V.w-12-rowW)/2,y0,content};
-        return this.L;
+    rowH() {
+        return this.height<600?U().rowS:U().row;
     }
 
     clampScroll() {
-        const L=this.gridLayout(this.height<600);
-        const max=Math.max(0,L.content-L.V.h);
+        const max=Math.max(0,LIST.length*this.rowH()+8-this.V.h);
         this.scrollTo=Math.max(0,Math.min(max,this.scrollTo||0));
         return max;
     }
 
-    drawTile(ctx,id,x,y,ts,v,small,i) {
-        const ok=this.unlocked(id);
-        const eq=this.equipped()===id;
-        const sel=id===this.sel;
-        const hv=Math.abs(this.hx-x)<ts/2&&Math.abs(this.hy-y)<ts/2;
-        const pu=this.pulse[id]||0;
-        ctx.save();
-        ctx.translate(x,y);
-        const sc=1+(hv?0.05:0)+Math.sin(pu*Math.PI)*0.14;
-        ctx.scale(sc,sc);
-        ctx.rotate(Math.sin(pu*Math.PI*3)*0.04);
-        ctx.fillStyle=eq?rgba('red',0.08):(ok?PALETTE.paper:rgba('farGray',0.5));
-        ctx.fillRect(-ts/2,-ts/2,ts,ts);
-        drawShape(ctx,sketchRect(-ts/2,-ts/2,ts,ts,{width:eq?2.6:1.5,seed:5100+i}),eq?PALETTE.red:(ok?PALETTE.ink:PALETTE.midGray),v);
-        const bob=sel&&ok?Math.sin(time.real*3+i)*2:0;
-        drawWeaponIcon(ctx,id,0,bob-(ok?0:ts*0.06),ts/U().iconDiv,v,!ok);
-        if (!ok) {
-            drawLock(ctx,ts/2-10,-ts/2+11,0.8,PALETTE.nearGray);
-            ctx.fillStyle=PALETTE.red;
-            ctx.textAlign='center';
-            ctx.textBaseline='bottom';
-            fitText(ctx,id===RANDOM_WEAPON.id?t('arms.need',{n:RANDOM_WEAPON.min}):t('arms.lv',{n:WEAPONS[id].unlock}),0,ts/2-3,ts-8,small?9:11,'bold ');
-        }
-        if (eq) {
-            const k=EASE.easeOutBack(Math.min(1,this.stampT));
-            ctx.save();
-            ctx.translate(ts/2-4,-ts/2+2);
-            ctx.rotate(0.14);
-            ctx.scale(k*(1+(1-Math.min(1,this.stampT*2))*0.6),k*(1+(1-Math.min(1,this.stampT*2))*0.6));
-            ctx.font='bold '+(small?9:11)+'px '+FONT;
-            const sw=ctx.measureText(t('weapon.equipped')).width+10;
-            ctx.fillStyle=PALETTE.red;
-            ctx.fillRect(-sw+6,-8,sw,small?14:17);
-            ctx.fillStyle=PALETTE.paper;
-            ctx.textAlign='center';
-            ctx.textBaseline='middle';
-            ctx.fillText(t('weapon.equipped'),-sw/2+6,small?-1:0.5);
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-
-    drawGrid(ctx,v,small) {
-        const L=this.gridLayout(small,ctx);
-        const V=L.V;
+    drawList(ctx,v,small) {
+        const V=this.V;
+        const rh=this.rowH();
         const max=this.clampScroll();
-        const ts=L.ts;
-        const si=Math.max(0,LIST.indexOf(this.sel));
-        const sx=L.x0+(si%L.cols)*(ts+L.gapX)+ts/2;
-        const sy=L.y0+Math.floor(si/L.cols)*(ts+L.lab+L.gapY)+ts/2;
         if (this.jump) {
             this.jump=false;
-            this.scrollTo=sy+L.lab/2-V.y-V.h/2;
+            this.scrollTo=LIST.indexOf(this.sel)*rh+rh/2-V.h/2;
             this.clampScroll();
             this.scroll=this.scrollTo;
         }
         ctx.save();
         ctx.beginPath();
-        ctx.rect(V.x,V.y,V.w,V.h);
+        ctx.rect(V.x-6,V.y,V.w+12,V.h);
         ctx.clip();
-        this.tiles=[];
+        this.rows=[];
         const now=time.real;
         const dt=Math.min(0.1,Math.max(0,now-(this.boxAt??now)));
         this.boxAt=now;
-        if (this.boxX===undefined||this.t<0.05) {
-            this.boxX=sx;
+        const sy=LIST.indexOf(this.sel)*rh;
+        if (this.boxY===undefined||this.t<0.05) {
             this.boxY=sy;
         }
-        const kk=1-Math.exp(-dt*U().boxFollow);
-        this.boxX+=(sx-this.boxX)*kk;
-        this.boxY+=(sy-this.boxY)*kk;
+        this.boxY+=(sy-this.boxY)*(1-Math.exp(-dt*U().boxFollow));
         this.boxPop=Math.max(0,(this.boxPop||0)-dt*3);
-        const ap=EASE.easeOutBack(Math.max(0,Math.min(1,(this.t-0.1)/0.3)));
-        if (ap>0) {
-            const pop=1+Math.sin(Math.min(1,this.boxPop)*Math.PI)*0.1;
-            const bw=(ts+L.gapX-6)*pop;
-            const bh=(ts+L.lab+(small?10:14))*pop;
-            const cy=this.boxY-(this.scroll||0)+L.lab/2;
-            ctx.save();
-            ctx.globalAlpha*=Math.min(1,ap);
-            roundRect(ctx,this.boxX-bw/2,cy-bh/2,bw,bh,small?8:10);
-            ctx.fillStyle=rgba('red',0.06+this.boxPop*0.08);
-            ctx.fill();
-            ctx.strokeStyle=PALETTE.red;
-            ctx.lineWidth=2.2;
-            ctx.setLineDash([6,4]);
-            ctx.lineDashOffset=-now*16;
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.lineDashOffset=0;
-            ctx.restore();
-        }
+        const by=V.y+4+this.boxY-(this.scroll||0);
+        const pop=Math.sin(Math.min(1,this.boxPop)*Math.PI)*3;
+        roundRect(ctx,V.x-pop,by+2-pop,V.w-10+pop*2,rh-4+pop*2,small?8:10);
+        ctx.fillStyle=rgba('red',0.08);
+        ctx.fill();
+        ctx.strokeStyle=PALETTE.red;
+        ctx.lineWidth=2.2;
+        ctx.setLineDash([6,4]);
+        ctx.lineDashOffset=-now*16;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset=0;
         LIST.forEach((id,i)=>{
-            const c=i%L.cols;
-            const r=Math.floor(i/L.cols);
-            const x=L.x0+c*(ts+L.gapX)+ts/2;
-            const y=L.y0+r*(ts+L.lab+L.gapY)+ts/2-(this.scroll||0);
-            if (y+ts/2+L.lab<V.y||y-ts/2>V.y+V.h) {
+            const y=V.y+4+i*rh-(this.scroll||0);
+            if (y+rh<V.y||y>V.y+V.h) {
                 return;
             }
-            const k=EASE.easeOutBack(Math.max(0,Math.min(1,(this.t-0.1-i*0.03)/0.3)));
-            if (k<=0) {
-                return;
-            }
-            ctx.save();
-            ctx.globalAlpha*=Math.min(1,k);
-            ctx.translate(0,(1-k)*12);
-            this.drawTile(ctx,id,x,y,ts,v,small,i);
-            ctx.restore();
+            const k=EASE.easeOutCubic(Math.max(0,Math.min(1,(this.t-0.08-i*0.035)/0.3)));
             const ok=this.unlocked(id);
+            const eq=this.equipped()===id;
             const sel=id===this.sel;
+            const r={x:V.x,y,w:V.w-10,h:rh,id};
+            const hv=inRect(r,this.hx,this.hy)&&!sel;
+            const pu=this.pulse[id]||0;
+            ctx.save();
+            ctx.globalAlpha*=k;
+            ctx.translate(-(1-k)*24,0);
+            if (hv) {
+                ctx.fillStyle=rgba('farGray',0.45);
+                ctx.fillRect(r.x+2,y+3,r.w-4,rh-6);
+            }
+            if (i>0) {
+                drawShape(ctx,sketchLine(V.x+10,y,V.x+V.w-20,y,{width:1,seed:5200+i}),rgba('midGray',0.45),v);
+            }
+            const ix=V.x+rh*0.55;
+            const iy=y+rh/2;
+            ctx.save();
+            ctx.translate(ix,iy);
+            const sc=1+Math.sin(pu*Math.PI)*0.25+(sel?0.08:0);
+            ctx.scale(sc,sc);
+            ctx.rotate(sel?Math.sin(now*3)*0.08:0);
+            drawWeaponIcon(ctx,id,0,0,rh/U().rowIcon,v,!ok);
+            ctx.restore();
+            const tx=V.x+rh*1.15;
+            const right=V.x+V.w-18;
+            const tagW=eq||!ok?(small?44:58):0;
+            ctx.textAlign='left';
+            ctx.textBaseline='middle';
             ctx.fillStyle=ok?(sel?PALETTE.red:PALETTE.ink):PALETTE.midGray;
-            ctx.textAlign='center';
-            ctx.textBaseline='top';
-            fitText(ctx,t('weapon.'+id+'.name'),x,y+ts/2+(small?4:6),ts+L.gapX-4,small?11:13,sel?'bold ':'');
-            this.tiles.push({id,x,y,s:ts,lab:L.lab});
+            fitText(ctx,t('weapon.'+id+'.name'),tx,iy-(small?0:9),right-tx-tagW,small?15:18,'bold ');
+            if (!small) {
+                ctx.fillStyle=ok?PALETTE.nearGray:PALETTE.midGray;
+                fitText(ctx,t('weapon.'+id+'.short'),tx,iy+12,right-tx-tagW,12,'');
+            }
+            if (eq) {
+                const sk=EASE.easeOutBack(Math.min(1,this.stampT));
+                ctx.save();
+                ctx.translate(right-tagW/2,iy);
+                ctx.rotate(-0.08);
+                ctx.scale(sk,sk);
+                ctx.fillStyle=PALETTE.red;
+                ctx.fillRect(-tagW/2,-(small?9:11),tagW,small?18:22);
+                ctx.fillStyle=PALETTE.paper;
+                ctx.textAlign='center';
+                fitText(ctx,t('weapon.equipped'),0,1,tagW-6,small?10:12,'bold ');
+                ctx.restore();
+            }
+            else if (!ok) {
+                drawLock(ctx,right-tagW+8,iy,0.7,PALETTE.midGray);
+                ctx.fillStyle=PALETTE.red;
+                ctx.textAlign='right';
+                fitText(ctx,id===RANDOM_WEAPON.id?t('arms.need',{n:RANDOM_WEAPON.min}):t('arms.lv',{n:WEAPONS[id].unlock}),right,iy+1,tagW-18,small?10:12,'bold ');
+            }
+            ctx.restore();
+            this.rows.push(r);
         });
         ctx.restore();
         if (max>0) {
-            const th=Math.max(26,V.h*V.h/L.content);
+            const fade=16;
+            if ((this.scroll||0)<max-2) {
+                const g=ctx.createLinearGradient(0,V.y+V.h-fade,0,V.y+V.h);
+                g.addColorStop(0,rgba('paper',0));
+                g.addColorStop(1,rgba('paper',1));
+                ctx.fillStyle=g;
+                ctx.fillRect(V.x-6,V.y+V.h-fade,V.w-4,fade);
+            }
+            if ((this.scroll||0)>2) {
+                const g=ctx.createLinearGradient(0,V.y,0,V.y+fade);
+                g.addColorStop(0,rgba('paper',1));
+                g.addColorStop(1,rgba('paper',0));
+                ctx.fillStyle=g;
+                ctx.fillRect(V.x-6,V.y,V.w-4,fade);
+            }
+            const th=Math.max(26,V.h*V.h/(LIST.length*rh+8));
             const ty=V.y+(V.h-th)*((this.scroll||0)/max);
-            ctx.fillStyle=rgba('farGray',0.6);
-            ctx.fillRect(V.x+V.w-6,V.y,4,V.h);
-            ctx.fillStyle=PALETTE.ink;
-            ctx.fillRect(V.x+V.w-7,ty,6,th);
+            ctx.fillStyle=rgba('farGray',0.5);
+            ctx.fillRect(V.x+V.w-4,V.y,2,V.h);
+            ctx.fillStyle=rgba('ink',0.55);
+            ctx.fillRect(V.x+V.w-5,ty,4,th);
         }
-        this.drawDetail(ctx,v,small,L);
-    }
-
-    drawDetail(ctx,v,small,L) {
-        const V=L.V;
-        const gx=V.x;
-        const gw=V.w;
-        const dh=L.dh;
-        const dy=V.y+V.h+(small?8:12);
-        const id=this.sel;
-        const ok=this.unlocked(id);
-        const sk=EASE.easeOutCubic(Math.min(1,this.selT*1.5));
-        ctx.fillStyle=rgba('paper',0.96);
-        ctx.fillRect(gx,dy,gw,dh);
-        drawShape(ctx,sketchRect(gx,dy,gw,dh,{width:1.6,seed:5140}),PALETTE.ink,v);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(gx,dy,gw,dh);
-        ctx.clip();
-        ctx.globalAlpha*=0.3+0.7*sk;
-        ctx.translate((1-sk)*10,0);
-        const ir=L.ir;
-        drawWeaponIcon(ctx,id,gx+12+ir,dy+(small?18:24)+ir*0.6,ir/U().detailDiv,v,!ok);
-        const tx=gx+26+ir*2;
-        ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
-        ctx.textAlign='left';
-        ctx.textBaseline='top';
-        fitText(ctx,t('weapon.'+id+'.name')+t('ui.sep')+t('weapon.'+id+'.short'),tx,dy+(small?8:10),gx+gw-tx-12,small?15:20,'bold ');
-        ctx.font=(small?12:15)+'px '+FONT;
-        ctx.fillStyle=PALETTE.nearGray;
-        const mx=Math.max(1,Math.floor((dh-L.head)/L.lh));
-        L.lines.slice(0,mx).forEach((ln,q)=>ctx.fillText(ln,tx,dy+L.head+q*L.lh));
-        ctx.restore();
     }
 
     drawRandomStage(ctx,x,y,w,h,v) {
@@ -478,64 +423,95 @@ export class WeaponView extends Panel {
         drawShape(ctx,sketchRect(x,y,Math.round(w),Math.round(h),{width:1.8,seed:2101}),PALETTE.ink,v);
     }
 
-    drawRight(ctx,v,small) {
+    drawPreview(ctx,v,small) {
         const R=this.R;
         const id=this.sel;
         const ok=this.unlocked(id);
-        const sk=EASE.easeOutCubic(Math.min(1,this.selT*1.5));
-        const rows=id===RANDOM_WEAPON.id?0:STATS.length;
-        const rh=small?16:24;
-        const statH=rows?rows*rh+(small?10:18):0;
-        const sh=Math.min(R.w*9/16,R.h-statH-(small?8:12));
+        const sk=EASE.easeOutCubic(Math.min(1,this.selT*1.4));
+        const gap=small?8:14;
+        const bh=this.mainBtn.h;
+        ctx.font=(small?12:15)+'px '+FONT;
+        const need=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),R.w).length*(small?16:22);
+        const below=(small?19:26)+(small?6:10)+(id===RANDOM_WEAPON.id?0:(small?17:26))+need+gap*2+bh;
+        const sh=Math.max(R.h*0.4,Math.min(R.w*9/16,R.h*0.66,R.h-below));
         const sw=sh*16/9;
         const sx=R.x+(R.w-sw)/2;
-        const top=R.y+Math.max(0,(R.h-sh-statH-(small?8:12))/2*(small?1:0));
         ctx.save();
-        ctx.globalAlpha*=0.4+0.6*sk;
+        ctx.globalAlpha*=0.35+0.65*sk;
         ctx.translate(0,(1-sk)*U().rise);
         const anim=WEAPON_ANIMS[id];
         if (anim) {
-            drawStage(ctx,sx,top,sw,sh,anim,time.real,v);
+            drawStage(ctx,sx,R.y,sw,sh,anim,time.real,v);
         }
         else {
-            this.drawRandomStage(ctx,sx,top,sw,sh,v);
+            this.drawRandomStage(ctx,sx,R.y,sw,sh,v);
         }
         if (!ok) {
-            ctx.fillStyle=rgba('paper',0.55);
-            ctx.fillRect(sx+2,top+2,sw-4,sh-4);
-            drawLock(ctx,sx+sw/2,top+sh/2,small?1.6:2.2,PALETTE.nearGray);
+            ctx.fillStyle=rgba('paper',0.6);
+            ctx.fillRect(sx+2,R.y+2,sw-4,sh-4);
+            drawLock(ctx,sx+sw/2,R.y+sh/2,small?1.8:2.6,PALETTE.nearGray);
         }
         ctx.restore();
-        if (!rows) {
-            return;
-        }
-        const W=WEAPONS[id];
-        const by=top+sh+(small?8:12);
-        const bx=R.x;
-        const bw=R.w;
-        ctx.fillStyle=rgba('paper',0.96);
-        ctx.fillRect(bx,by,bw,statH);
-        drawShape(ctx,sketchRect(bx,by,bw,statH,{width:1.6,seed:5160}),PALETTE.ink,v);
-        const lw=small?44:62;
-        const pip=Math.min(small?26:40,(bw-lw-24-4*6)/5);
-        STATS.forEach((k,i)=>{
-            const yy=by+(small?5:9)+i*rh+rh/2;
-            ctx.fillStyle=PALETTE.ink;
-            ctx.textAlign='left';
-            ctx.textBaseline='middle';
-            fitText(ctx,t('arms.stat.'+k),bx+12,yy,lw-6,small?11:14,'bold ');
-            const n=W.stats[k];
-            for (let q=0;q<5;q++) {
-                const px=bx+12+lw+q*(pip+6);
-                const fill=Math.max(0,Math.min(1,sk*5.5-q-i*0.3));
-                ctx.fillStyle=rgba('farGray',0.7);
-                ctx.fillRect(px,yy-(small?4:6),pip,small?8:12);
-                if (q<n&&fill>0) {
-                    ctx.fillStyle=ok?(n>=4?PALETTE.red:PALETTE.ink):PALETTE.midGray;
-                    ctx.fillRect(px,yy-(small?4:6),pip*fill,small?8:12);
+        let y=R.y+sh+gap;
+        const x=R.x;
+        const w=R.w;
+        ctx.save();
+        ctx.globalAlpha*=0.3+0.7*sk;
+        ctx.translate((1-sk)*12,0);
+        ctx.textAlign='left';
+        ctx.textBaseline='top';
+        ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
+        const ns=small?19:26;
+        fitText(ctx,t('weapon.'+id+'.name'),x,y,w*0.55,ns,'bold ');
+        const nw=Math.min(w*0.55,ctx.measureText(t('weapon.'+id+'.name')).width);
+        ctx.fillStyle=PALETTE.red;
+        fitText(ctx,t('weapon.'+id+'.short'),x+nw+(small?10:14),y+ns*0.3,w-nw-(small?10:14),small?12:14,'bold ');
+        y+=ns+(small?6:10);
+        if (id!==RANDOM_WEAPON.id) {
+            const W=WEAPONS[id];
+            const cw=w/STATS.length;
+            const pr=small?3.6:5;
+            const step=pr*2.7;
+            STATS.forEach((k,i)=>{
+                const cx=x+i*cw;
+                ctx.fillStyle=PALETTE.nearGray;
+                ctx.textBaseline='middle';
+                ctx.font='bold '+(small?11:13)+'px '+FONT;
+                const lw=ctx.measureText(t('arms.stat.'+k)).width;
+                ctx.fillText(t('arms.stat.'+k),cx,y+pr+1);
+                const px0=cx+lw+(small?5:8);
+                for (let q=0;q<5;q++) {
+                    const on=q<W.stats[k]&&sk*6-q-i*0.4>0;
+                    ctx.beginPath();
+                    ctx.arc(px0+q*step+pr,y+pr+1,pr,0,Math.PI*2);
+                    ctx.fillStyle=on?(ok?(W.stats[k]>=4?PALETTE.red:PALETTE.ink):PALETTE.midGray):rgba('farGray',0.8);
+                    ctx.fill();
                 }
-            }
-        });
+            });
+            y+=pr*2+(small?10:16);
+        }
+        drawShape(ctx,sketchLine(x,y-(small?4:7),x+w,y-(small?4:7),{width:1,seed:5300}),rgba('midGray',0.5),v);
+        ctx.font=(small?12:15)+'px '+FONT;
+        ctx.fillStyle=PALETTE.nearGray;
+        ctx.textBaseline='top';
+        const lh=small?16:22;
+        const lines=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w);
+        const room=this.mainBtn.y-gap-y;
+        const mx=Math.max(1,Math.floor(room/lh));
+        const big=lines.length>mx&&!small;
+        if (big) {
+            ctx.font='13px '+FONT;
+        }
+        const lines2=big?wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w):lines;
+        const lh2=big?18:lh;
+        lines2.slice(0,Math.max(1,Math.floor(room/lh2))).forEach((ln,q)=>ctx.fillText(ln,x,y+q*lh2));
+        ctx.restore();
+        if (bh&&!ok&&id!==RANDOM_WEAPON.id) {
+            ctx.fillStyle=PALETTE.nearGray;
+            ctx.textAlign='right';
+            ctx.textBaseline='middle';
+            fitText(ctx,t('codex.locked',{level:WEAPONS[id].unlock}),this.mainBtn.x-12,this.mainBtn.y+bh/2,this.mainBtn.x-R.x-12,small?12:14,'bold ');
+        }
     }
 
     mainLabel() {
@@ -582,8 +558,8 @@ export class WeaponView extends Panel {
         fitText(ctx,t('arms.count',{n:own,m:WEAPON_ORDER.length}),P.x+32+ttw,ty+1,small?140:200,small?12:15,'bold ');
         drawWallet(ctx,P.x+P.w-18,ty-(small?13:15),v,'right',small?12:14,this.walletK);
         drawShape(ctx,sketchLine(P.x+16,ty+(small?16:24),P.x+P.w-16,ty+(small?16:24),{width:1.2,seed:5105}),rgba('midGray',0.7),v);
-        this.drawGrid(ctx,v,small);
-        this.drawRight(ctx,v,small);
+        this.drawList(ctx,v,small);
+        this.drawPreview(ctx,v,small);
         drawButton(ctx,this.backBtn,t('menu.back'),v,(this.t-0.1)/0.3,this.hoverIdx===0,small?16:18);
         const id=this.sel;
         const done=this.unlocked(id)&&this.equipped()===id;
