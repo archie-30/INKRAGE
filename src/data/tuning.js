@@ -516,21 +516,6 @@ export const TUNING={
         fogAlpha:0.9,
         fogPuffs:28
     },
-    weaponUi:{stagger:0.06,itemTime:0.5,rise:14,infoDelay:0.3,selTime:0.3,
-        stage:{gap:16,aspect:16/9,rise:8,iconDiv:110},
-        rowH:84,
-        rowHSmall:64,
-        listGap:10,
-        dragSlop:8,
-        row:44,
-        rowS:34,
-        bar:9,
-        barS:7,
-        randH:54,
-        randHSmall:38,
-        randStep:0.45,
-        equip:{time:0.9,jolt:0.25,joltScale:0.08,shake:0.05,spinTime:0.6,spins:1,lift:0.18,grow:0.35,drops:12,dropTime:0.45,stampDelay:0.35,stampTime:0.3,stampFrom:2.6}
-    },
     trainUi:{
         rowH:48,
         bossGap:0.1,
@@ -603,7 +588,7 @@ export const TUNING={
         modal:{w:940,h:500,small:600,illus:0.5,illusSmall:0.44,btnW:200,btnWSmall:180,btnH:50,btnHSmall:50},
         confetti:{count:46,speed:[60,140],size:[4,9],spin:6}
     },
-    menu:{
+    menu:{armsIcon:0.026,figure:{height:2.3,width:0.62},
         footW:{big:170,small:136},
         btn:{gap:17,gapSmall:10,primaryH:1.3,slide:60,pulse:2.4,shine:0.45,textGap:14,arrowW:26,primarySize:26},
         randomCycle:1.2,
@@ -819,6 +804,7 @@ export const TUNING={
         ui:{barW:300,barWSmall:200,barY:48,shift:14,iconR:15,iconGap:12}
     },
     spin:{still:0.3,pause:2,back:0.8,moveMin:1},
+    armsUi:{tile:104,tileS:76,tileMin:56,tileMinS:44,iconDiv:100,detailDiv:44,selTime:0.3,stampTime:0.45,sparks:14,boxFollow:14,rise:8,randStep:0.45,randDiv:100},
     gachaUi:{dim:0.95,intro:0.5,clicks:[0.6,0.95,1.3,1.65],clickTime:0.22,drop:2.0,bounces:[2.27,2.55,2.68],fly:2.75,flyEnd:3.3,cy:0.42,boxFollow:14,balls:15,shake:1.5,bounce:3.2,wobbleEvery:1.6,charge:0.85,cracks:[0,0.28,0.56],flash:0.4,closeAfter:0.9,sparks:56,confetti:60},
     relics:{
         price:15,

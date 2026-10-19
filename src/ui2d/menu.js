@@ -190,6 +190,14 @@ export class MainMenu extends Panel {
     hover(x,y) {
         super.hover(x,y);
         this.levelHover=!!this.levelRect&&inRect(this.levelRect,x,y);
+        if (this.hoverIdx<0&&this.figureHit(x,y)) {
+            this.hoverIdx=this.buttons.indexOf(this.skinBtn);
+        }
+    }
+
+    figureHit(x,y) {
+        const F=this.figure;
+        return !!F&&this.t>0.5&&inRect(F,x,y)&&!inRect(this.bar,x,y);
     }
 
     down(x,y) {
@@ -208,6 +216,9 @@ export class MainMenu extends Panel {
         const i=this.hitButton(x,y);
         if (i>=0) {
             this.actions[MENU_ACTS.concat(MENU_EXTRA)[i]]();
+        }
+        else if (this.figureHit(x,y)) {
+            this.actions.skin();
         }
         return true;
     }
@@ -1003,42 +1014,6 @@ export class SettingsMenu extends Panel {
 
     up() {
         this.drag=null;
-    }
-
-    drawWeaponStage(ctx,a,v,small) {
-        const U=TUNING.weaponUi.stage;
-        const P=this.P;
-        ctx.save();
-        ctx.globalAlpha=a;
-        ctx.fillStyle=PALETTE.paper;
-        ctx.fillRect(0,0,this.width,this.height);
-        ctx.restore();
-        const x0=P.x+P.w+U.gap;
-        const aw=this.width-x0-U.gap;
-        const R={x:x0-18,w:aw+36};
-        const info=this.weaponInfo(ctx,R,small);
-        const ah=P.h-info.h-U.gap;
-        const sw=Math.min(aw,ah*U.aspect);
-        const sh=Math.min(ah,sw/U.aspect);
-        const sx=x0+(aw-sw)/2;
-        const sy=P.y+(ah-sh)/2;
-        const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));
-        ctx.save();
-        ctx.translate((1-a)*(aw+40),(1-sk)*U.rise);
-        ctx.globalAlpha=0.4+0.6*sk;
-        const anim=WEAPON_ANIMS[info.id];
-        if (anim) {
-            drawStage(ctx,sx,sy,sw,sh,anim,time.real,v);
-        }
-        else {
-            ctx.fillStyle=PALETTE.paper;
-            ctx.fillRect(sx,sy,sw,sh);
-            drawShape(ctx,sketchRect(sx,sy,sw,sh,{width:1.8,seed:2101}),PALETTE.ink,v);
-            drawWeaponIcon(ctx,info.id,sx+sw/2,sy+sh/2,Math.min(sw,sh)/U.iconDiv,v,false);
-        }
-        const R2={x:sx-18,w:sw+36};
-        this.drawWeaponInfo(ctx,R2,sy+sh+U.gap,v,small,this.weaponInfo(ctx,R2,small));
-        ctx.restore();
     }
 
     draw(ctx) {
@@ -4170,7 +4145,6 @@ function drawTone(ctx,x,y,r,tones,sel,v,seed,locked=false) {
 }
 
 const SKIN_TABS=['colors','acc'];
-const ARMS_TABS=['weapon'];
 
 export class SkinEditor extends Panel {
     constructor(actions) {
@@ -4216,10 +4190,6 @@ export class SkinEditor extends Panel {
         this.msg=null;
         this.outfitSel=-1;
         this.dice=0;
-        this.wSel=settings.weapon||'pen';
-        this.wSelT=1;
-        this.jumpEq=true;
-        this.eqTop=undefined;
     }
 
     clampScroll() {
@@ -4254,7 +4224,6 @@ export class SkinEditor extends Panel {
         const ti=this.tabList().indexOf(this.tab);
         this.tabK+=(ti-this.tabK)*Math.min(1,dt*U.follow);
         this.tabT=Math.min(1,this.tabT+dt/0.35);
-        this.wSelT=Math.min(1,(this.wSelT??1)+dt/TUNING.weaponUi.selTime);
         this.walletK=Math.max(0,this.walletK-dt*2);
         this.dice=Math.max(0,(this.dice||0)-dt*1.6);
         this.splitT=(this.splitT||0)+dt/0.28;
@@ -4330,14 +4299,6 @@ export class SkinEditor extends Panel {
         this.P={x:16,y:12,w:pw,h:h-24};
         const by=this.P.y+this.P.h-(h<600?50:62);
         const bh=h<600?40:46;
-        if (this.weaponOnly) {
-            const bw=(pw-36-10)/2;
-            this.randomBtn=null;
-            this.backBtn={x:this.P.x+18,y:by,w:bw,h:bh};
-            this.resetBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
-            this.buttons=[this.resetBtn,this.backBtn];
-            return;
-        }
         const bw=(pw-36-20)/3;
         this.backBtn={x:this.P.x+18,y:by,w:bw,h:bh};
         this.randomBtn={x:this.P.x+28+bw,y:by,w:bw,h:bh};
@@ -4386,18 +4347,6 @@ export class SkinEditor extends Panel {
         if (inRect(this.resetBtn,x,y)) {
             this.pulse.reset=1;
             this.outfitSel=-1;
-            if (this.tab==='weapon') {
-                const id=this.wSel||'pen';
-                if ((settings.weapon||'pen')!==id) {
-                    this.actions.equipWeapon(id);
-                    const b=this.resetBtn;
-                    this.burst(b.x+b.w/2,b.y+b.h/2,[PALETTE.red,PALETTE.ink],16);
-                }
-                else {
-                    this.actions.select();
-                }
-                return true;
-            }
             this.set({...DEFAULT_SKIN,...ACC_DEFAULT},true);
             this.actions.select();
             return true;
@@ -4409,24 +4358,20 @@ export class SkinEditor extends Panel {
             return true;
         }
         const tabs=this.tabList();
-        for (let i=0;i<tabs.length&&!this.weaponOnly;i++) {
+        for (let i=0;i<tabs.length;i++) {
             const r=this.tabRects&&this.tabRects[i];
             if (r&&inRect(r,x,y)) {
                 if (this.tab!==tabs[i]) {
                     this.tab=tabs[i];
                     this.tabT=0;
-                    this.wSel=settings.weapon||'pen';
-                    this.wSelT=1;
                     this.scroll=0;
                     this.scrollTo=0;
-                    this.jumpEq=true;
-                    this.eqTop=undefined;
                     this.actions.select();
                 }
                 return true;
             }
         }
-        if (x>this.P.x+this.P.w&&!this.weaponOnly) {
+        if (x>this.P.x+this.P.w) {
             this.drag={x0:x,y0:this.dragYaw};
             return true;
         }
@@ -4449,23 +4394,6 @@ export class SkinEditor extends Panel {
             const cur=this.skin();
             const split=this.outfitSel;
             this.outfitSel=-1;
-            if (q.weapon) {
-                if (q.ok) {
-                    if (this.wSel!==q.weapon) {
-                        this.wSel=q.weapon;
-                        this.wSelT=0;
-                    }
-                    this.actions.select();
-                }
-                else if (q.rnd) {
-                    this.say('weapon.random.locked',{n:RANDOM_WEAPON.min});
-                    this.actions.locked();
-                }
-                else {
-                    this.actions.buyWeapon(q.weapon);
-                }
-                return;
-            }
             if (q.preset) {
                 if (!presetOwned(q.preset)) {
                     this.actions.bundle(q.preset);
@@ -4529,12 +4457,11 @@ export class SkinEditor extends Panel {
     }
 
     tabList() {
-        return this.weaponOnly?ARMS_TABS:SKIN_TABS;
+        return SKIN_TABS;
     }
 
-    openTab(weapon) {
-        this.weaponOnly=weapon;
-        this.tab=weapon?'weapon':'colors';
+    openTab() {
+        this.tab='colors';
         this.layout();
         this.tabK=0;
         this.show();
@@ -4543,11 +4470,6 @@ export class SkinEditor extends Panel {
     drawTabs(ctx,x,y,w,v,small) {
         const U=TUNING.metaUi.tab;
         const th=small?U.hSmall:U.h;
-        if (this.weaponOnly) {
-            this.tabRects=[];
-            drawShape(ctx,sketchLine(x,y+4,x+w,y+4,{width:1.2,seed:1560}),rgba('midGray',0.7),v);
-            return y+12;
-        }
         const tabs=this.tabList();
         const tw=w/tabs.length;
         this.tabRects=[];
@@ -4858,159 +4780,6 @@ export class SkinEditor extends Panel {
         return y;
     }
 
-    drawWeapons(ctx,P,y,v,small) {
-        const U=TUNING.weaponUi;
-        const lv=effectiveLevel();
-        const ch=small?U.rowHSmall:U.rowH;
-        const x=P.x+18;
-        const w=P.w-36;
-        const list=[RANDOM_WEAPON.id,...WEAPON_ORDER];
-        const top=y;
-        for (let i=0;i<list.length;i++) {
-            const id=list[i];
-            const rnd=id===RANDOM_WEAPON.id;
-            const unlocked=weaponUnlocked(id,lv);
-            const eq=(settings.weapon||'pen')===id;
-            const seld=this.wSel===id;
-            if (eq) {
-                this.eqTop=y-top;
-                this.eqH=ch;
-            }
-            const r={x,y,w,h:ch};
-            const hv=inRect(r,this.hx,this.hy);
-            const pu=this.pulse['w'+id]||0;
-            const ap=EASE.easeOutCubic(Math.max(0,Math.min(1,(this.tabT-i*U.stagger)/U.itemTime)));
-            ctx.save();
-            ctx.globalAlpha*=ap;
-            ctx.translate(x+w/2,y+ch/2+(1-ap)*U.rise);
-            const sc=1+(hv?0.02:0)+Math.sin(pu*Math.PI)*0.06;
-            ctx.scale(sc,sc);
-            ctx.rotate(Math.sin(pu*Math.PI*3)*0.02);
-            ctx.translate(-w/2,-ch/2);
-            ctx.fillStyle=eq?rgba('red',0.08):(hv?rgba('farGray',0.6):rgba('paper',0.92));
-            ctx.fillRect(0,0,w,ch);
-            drawShape(ctx,sketchRect(0,0,w,ch,{width:eq?2.6:1.4,seed:1700+i}),eq?PALETTE.red:(unlocked?PALETTE.ink:PALETTE.midGray),v);
-            if (seld) {
-                const sk=EASE.easeOutBack(Math.min(1,this.wSelT));
-                const pad=4+(1-sk)*8;
-                ctx.save();
-                ctx.globalAlpha*=Math.min(1,this.wSelT*3);
-                ctx.setLineDash([6,4]);
-                ctx.lineDashOffset=-time.real*16;
-                ctx.strokeStyle=PALETTE.red;
-                ctx.lineWidth=2.2;
-                const bx=-pad;
-                const by=-pad;
-                const bw=w+pad*2;
-                const bh=ch+pad*2;
-                ctx.beginPath();
-                ctx.moveTo(bx+8,by);
-                ctx.arcTo(bx+bw,by,bx+bw,by+bh,8);
-                ctx.arcTo(bx+bw,by+bh,bx,by+bh,8);
-                ctx.arcTo(bx,by+bh,bx,by,8);
-                ctx.arcTo(bx,by,bx+bw,by,8);
-                ctx.stroke();
-                ctx.restore();
-            }
-            const bob=eq?Math.sin(time.real*3)*2:0;
-            drawWeaponIcon(ctx,id,ch*0.55,ch*0.5+bob,ch/100,v,!unlocked);
-            const tw=w-ch*1.15-(eq?70:12);
-            ctx.textAlign='left';
-            ctx.textBaseline='middle';
-            ctx.fillStyle=unlocked?PALETTE.ink:PALETTE.midGray;
-            fitText(ctx,t('weapon.'+id+'.name'),ch*1.1,ch*0.33,tw,small?16:19,'bold ');
-            let sub=t('weapon.'+id+'.short');
-            let red=false;
-            if (!unlocked) {
-                red=true;
-                sub=rnd?t('weapon.random.locked',{n:RANDOM_WEAPON.min}):t('codex.locked',{level:WEAPONS[id].unlock})+t('ui.sep')+t('weapon.early',{n:TUNING.meta.price.weapon});
-            }
-            ctx.fillStyle=red?PALETTE.red:PALETTE.nearGray;
-            fitText(ctx,sub,ch*1.1,ch*0.7,tw,small?12:14,'');
-            if (eq) {
-                ctx.save();
-                ctx.translate(w-10,10);
-                ctx.rotate(0.12);
-                ctx.fillStyle=PALETTE.red;
-                ctx.fillRect(-58,-2,62,20);
-                ctx.fillStyle=PALETTE.paper;
-                ctx.font='bold 12px '+FONT;
-                ctx.textAlign='center';
-                ctx.fillText(t('weapon.equipped'),-27,8);
-                ctx.restore();
-            }
-            else if (!unlocked&&!rnd) {
-                drawLock(ctx,w-18,ch/2,0.6,PALETTE.midGray);
-            }
-            ctx.restore();
-            this.hits.push({x,y,w,h:ch,weapon:id,key:'w'+id,ok:unlocked,rnd});
-            y+=ch+U.listGap;
-        }
-        return y+4;
-    }
-
-    weaponInfo(ctx,P,small) {
-        const id=this.wSel||settings.weapon||'pen';
-        const w=P.w-36;
-        ctx.font=(small?12:13)+'px '+FONT;
-        const lines=wrapText(ctx,t('weapon.'+id+'.desc',weaponParams(id)),w-20).slice(0,this.weaponOnly?12:(small?3:5));
-        return {id,lines,lh:small?16:18,h:(small?24:28)+lines.length*(small?16:18)+12};
-    }
-
-    drawWeaponInfo(ctx,P,y,v,small,info) {
-        const x=P.x+18;
-        const w=P.w-36;
-        ctx.fillStyle=rgba('paper',0.97);
-        ctx.fillRect(x,y,w,info.h);
-        drawShape(ctx,sketchRect(x,y,w,info.h,{width:1.6,seed:1760}),PALETTE.ink,v);
-        drawWeaponIcon(ctx,info.id,x+22,y+(small?14:16),small?0.22:0.26,v,false);
-        ctx.fillStyle=PALETTE.ink;
-        ctx.textAlign='left';
-        ctx.textBaseline='middle';
-        const eqd=(settings.weapon||'pen')===info.id;
-        fitText(ctx,t('weapon.'+info.id+'.name')+(eqd?t('ui.sep')+t('weapon.equipped'):''),x+44,y+(small?14:16),w-54,small?14:16,'bold ');
-        ctx.font=(small?12:13)+'px '+FONT;
-        ctx.fillStyle=PALETTE.nearGray;
-        ctx.textBaseline='top';
-        info.lines.forEach((ln,i)=>ctx.fillText(ln,x+10,y+(small?26:30)+i*info.lh));
-    }
-
-    drawWeaponStage(ctx,a,v,small) {
-        const U=TUNING.weaponUi.stage;
-        const P=this.P;
-        ctx.save();
-        ctx.globalAlpha=a;
-        ctx.fillStyle=PALETTE.paper;
-        ctx.fillRect(0,0,this.width,this.height);
-        ctx.restore();
-        const x0=P.x+P.w+U.gap;
-        const aw=this.width-x0-U.gap;
-        const R={x:x0-18,w:aw+36};
-        const info=this.weaponInfo(ctx,R,small);
-        const ah=P.h-info.h-U.gap;
-        const sw=Math.min(aw,ah*U.aspect);
-        const sh=Math.min(ah,sw/U.aspect);
-        const sx=x0+(aw-sw)/2;
-        const sy=P.y+(ah-sh)/2;
-        const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));
-        ctx.save();
-        ctx.translate((1-a)*(aw+40),(1-sk)*U.rise);
-        ctx.globalAlpha=0.4+0.6*sk;
-        const anim=WEAPON_ANIMS[info.id];
-        if (anim) {
-            drawStage(ctx,sx,sy,sw,sh,anim,time.real,v);
-        }
-        else {
-            ctx.fillStyle=PALETTE.paper;
-            ctx.fillRect(sx,sy,sw,sh);
-            drawShape(ctx,sketchRect(sx,sy,sw,sh,{width:1.8,seed:2101}),PALETTE.ink,v);
-            drawWeaponIcon(ctx,info.id,sx+sw/2,sy+sh/2,Math.min(sw,sh)/U.iconDiv,v,false);
-        }
-        const R2={x:sx-18,w:sw+36};
-        this.drawWeaponInfo(ctx,R2,sy+sh+U.gap,v,small,this.weaponInfo(ctx,R2,small));
-        ctx.restore();
-    }
-
     draw(ctx) {
         if (!this.shown()) {
             return;
@@ -5022,9 +4791,6 @@ export class SkinEditor extends Panel {
         const a=EASE.easeOutCubic(Math.min(1,this.t/0.35));
         const small=h<760;
         const cur=this.skin();
-        if (this.weaponOnly) {
-            this.drawWeaponStage(ctx,a,v,small);
-        }
         ctx.save();
         ctx.translate(-(1-a)*(P.w+40),0);
         ctx.fillStyle=rgba('paper',0.94);
@@ -5034,19 +4800,16 @@ export class SkinEditor extends Panel {
         ctx.font='bold '+(small?20:26)+'px '+FONT;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        ctx.fillText(t(this.weaponOnly?'arms.title':'skin.title'),P.x+18,P.y+(small?10:16));
+        ctx.fillText(t('skin.title'),P.x+18,P.y+(small?10:16));
         drawWallet(ctx,P.x+P.w-14,P.y+(small?8:14),v,'right',small?13:15,this.walletK);
         ctx.font='12px '+FONT;
         ctx.fillStyle=PALETTE.nearGray;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        if (!this.weaponOnly) {
-            ctx.fillText(t('skin.hint'),P.x+18,P.y+(small?36:50));
-        }
+        ctx.fillText(t('skin.hint'),P.x+18,P.y+(small?36:50));
         this.hits=[];
-        let y=this.drawTabs(ctx,P.x+14,P.y+(this.weaponOnly?(small?40:54):(small?52:72)),P.w-28,v,small);
-        const winfo=this.tab==='weapon'&&!this.weaponOnly?this.weaponInfo(ctx,P,small):null;
-        this.V={x:P.x,y:y-2,w:P.w,h:this.resetBtn.y-8-(y-2)-(winfo?winfo.h+8:0)};
+        let y=this.drawTabs(ctx,P.x+14,P.y+(small?52:72),P.w-28,v,small);
+        this.V={x:P.x,y:y-2,w:P.w,h:this.resetBtn.y-8-(y-2)};
         const V=this.V;
         ctx.save();
         ctx.beginPath();
@@ -5055,32 +4818,14 @@ export class SkinEditor extends Panel {
         y+=4-this.scroll;
         const y0=y;
         const slide=(1-EASE.easeOutCubic(this.tabT))*TUNING.metaUi.tab.slide*(this.tab==='colors'?-1:1)*4;
-        if (this.tab!=='weapon') {
-            y=this.drawOutfits(ctx,P,y,v,small,cur);
-        }
+        y=this.drawOutfits(ctx,P,y,v,small,cur);
         ctx.save();
-        if (this.tab!=='weapon') {
-            ctx.translate(slide,0);
-            ctx.globalAlpha=Math.min(1,0.3+this.tabT);
-        }
-        y=this.tab==='weapon'?this.drawWeapons(ctx,P,y,v,small):(this.tab==='acc'?this.drawAccs(ctx,P,y,v,small,cur):this.drawColors(ctx,P,y,v,small,cur));
+        ctx.translate(slide,0);
+        ctx.globalAlpha=Math.min(1,0.3+this.tabT);
+        y=this.tab==='acc'?this.drawAccs(ctx,P,y,v,small,cur):this.drawColors(ctx,P,y,v,small,cur);
         ctx.restore();
         this.contentH=y-y0+6;
         ctx.restore();
-        if (this.jumpEq&&this.tab==='weapon'&&this.eqTop!==undefined) {
-            this.jumpEq=false;
-            this.scrollTo=this.eqTop-(V.h-this.eqH)/2;
-            this.clampScroll();
-            this.scroll=this.scrollTo;
-        }
-        if (winfo) {
-            const ik=EASE.easeOutCubic(Math.max(0,Math.min(1,(this.tabT-TUNING.weaponUi.infoDelay)/TUNING.weaponUi.itemTime)));
-            const sk=EASE.easeOutCubic(Math.min(1,this.wSelT*2));
-            ctx.save();
-            ctx.globalAlpha=ik*(0.4+0.6*sk);
-            this.drawWeaponInfo(ctx,P,V.y+V.h+6+(1-ik)*TUNING.weaponUi.rise+(1-sk)*6,v,small,winfo);
-            ctx.restore();
-        }
         const max=Math.max(0,this.contentH-V.h);
         if (max>0) {
             const th=Math.max(30,V.h*V.h/this.contentH);
@@ -5132,7 +4877,7 @@ export class SkinEditor extends Panel {
         ctx.globalAlpha=1;
         ctx.restore();
         ctx.save();
-        ctx.globalAlpha=this.weaponOnly?0:a*(this.drag?0.4:0.85);
+        ctx.globalAlpha=a*(this.drag?0.4:0.85);
         ctx.fillStyle=PALETTE.nearGray;
         ctx.font='14px '+FONT;
         ctx.textAlign='center';
@@ -5147,9 +4892,7 @@ export class SkinEditor extends Panel {
         ctx.translate(rb.x+rb.w/2,rb.y+rb.h/2);
         ctx.rotate(Math.sin(rp*Math.PI*3)*0.06);
         ctx.translate(-(rb.x+rb.w/2),-(rb.y+rb.h/2));
-        const wtab=this.tab==='weapon';
-        const weq=wtab&&(settings.weapon||'pen')===(this.wSel||'pen');
-        drawButton(ctx,this.resetBtn,t(wtab?(weq?'weapon.equipped':'weapon.equip'):'skin.reset'),v,(this.t-0.1)/0.3,this.hoverIdx===0&&!weq,16);
+        drawButton(ctx,this.resetBtn,t('skin.reset'),v,(this.t-0.1)/0.3,this.hoverIdx===0,16);
         ctx.restore();
         drawButton(ctx,this.backBtn,t('menu.back'),v,(this.t-0.15)/0.3,this.hoverIdx===1,18);
         this.drawRandom(ctx,v,small);

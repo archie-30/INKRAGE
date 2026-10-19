@@ -529,6 +529,76 @@ export class Player {
             put(q,cyl(0.09,0.09,0.04,8),m.gear,sx*0.25,1.04+sx*0.063,-0.33,0,0,Math.PI/2+0.25);
         }
         put(q,box(0.04,0.18,0.18),m.hat,0.0,1.04,-0.33,0,0,0.25);
+        q=grp('headwear','mortarboard',H);
+        put(q,cyl(0.25,0.27,0.12,12),m.hat,0,0.27,-0.02,-0.1,0,0,true);
+        put(q,box(0.6,0.035,0.6),m.hat,0,0.35,-0.03,-0.1,Math.PI/4,0,true);
+        put(q,ball(0.035,6,4),m.gear,0,0.38,-0.03);
+        const tA=new THREE.Vector3(0,0.38,-0.03);
+        const tB=new THREE.Vector3(0.3,0.2,0.02);
+        const tD=tB.clone().sub(tA);
+        const cord=put(q,cyl(0.008,0.008,tD.length(),4),m.gear,(tA.x+tB.x)/2,(tA.y+tB.y)/2,(tA.z+tB.z)/2);
+        cord.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tD.normalize());
+        put(q,cyl(0.02,0.035,0.1,6),m.gear,tB.x,tB.y-0.04,tB.z);
+        q=grp('eyewear','goggles',H);
+        put(q,ring(0.315,0.022,24),m.hat,0,0.04,0,Math.PI/2,0,0);
+        for (const sx of [-1,1]) {
+            put(q,cyl(0.085,0.085,0.06,12),m.gear,sx*0.11,0.04,0.29,Math.PI/2,0,0,true);
+            put(q,cyl(0.06,0.06,0.065,12),m.paper,sx*0.11,0.04,0.295,Math.PI/2,0,0);
+        }
+        put(q,box(0.06,0.025,0.03),m.gear,0,0.05,0.31);
+        const flat=shape=>new THREE.ExtrudeGeometry(shape,{depth:0.025,bevelEnabled:false});
+        const star=new THREE.Shape();
+        for (let i=0;i<10;i++) {
+            const a=Math.PI/2+i*Math.PI/5;
+            const r=i%2?0.045:0.1;
+            if (i===0) {
+                star.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+            }
+            else {
+                star.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+            }
+        }
+        const heart=new THREE.Shape();
+        heart.moveTo(0,-0.075);
+        heart.bezierCurveTo(-0.11,0,-0.08,0.085,0,0.04);
+        heart.bezierCurveTo(0.08,0.085,0.11,0,0,-0.075);
+        q=grp('eyewear','starGlasses',H);
+        const starGeo=flat(star);
+        for (const sx of [-1,1]) {
+            put(q,starGeo,m.gear,sx*0.11,0.04,0.29,0,0,0,true);
+            put(q,box(0.012,0.012,0.2),m.ink,sx*0.21,0.06,0.2,0,sx*0.25,0);
+        }
+        put(q,box(0.05,0.012,0.012),m.ink,0,0.05,0.315);
+        q=grp('eyewear','heartGlasses',H);
+        const heartGeo=flat(heart);
+        for (const sx of [-1,1]) {
+            put(q,heartGeo,m.hat,sx*0.11,0.04,0.29,0,0,0,true);
+            put(q,box(0.012,0.012,0.2),m.ink,sx*0.21,0.06,0.2,0,sx*0.25,0);
+        }
+        put(q,box(0.05,0.012,0.012),m.ink,0,0.06,0.315);
+        q=grp('neckwear','lanyard',B);
+        for (const sx of [-1,1]) {
+            put(q,box(0.035,0.3,0.012),m.hat,sx*0.09,1.08,0.25,-0.15,0,sx*0.32);
+        }
+        put(q,box(0.2,0.13,0.015),m.paper,0,0.92,0.285,-0.12,0,0,true);
+        put(q,box(0.12,0.02,0.005),m.ink,0,0.94,0.295,-0.12,0,0);
+        put(q,box(0.08,0.015,0.005),m.ink,0,0.905,0.298,-0.12,0,0);
+        q=grp('neckwear','whistle',B);
+        put(q,ring(0.2,0.012),m.hat,0,1.19,0,Math.PI/2,0,0);
+        put(q,box(0.012,0.14,0.012),m.hat,0,1.09,0.235,-0.15,0,0);
+        put(q,cyl(0.04,0.04,0.12,10),m.gear,0.02,1.0,0.27,0,0,Math.PI/2,true);
+        put(q,box(0.05,0.035,0.05),m.gear,-0.06,1.0,0.27);
+        q=grp('backwear','bookStack',B);
+        const bk=[[m.hat,0.36,0.08,0.82,0.05],[m.gear,0.32,0.07,0.9,-0.08],[m.paper,0.34,0.075,0.975,0.1]];
+        for (const [mat,w,h,y,r] of bk) {
+            put(q,box(w,h,0.22),mat,0,y,-0.36,0,r,0,true);
+        }
+        put(q,box(0.03,0.26,0.24),m.ink,0,0.9,-0.36);
+        q=grp('backwear','giantPencil',B);
+        put(q,cyl(0.06,0.06,0.72,6),m.gear,0,1.02,-0.32,0,0,-0.55,true);
+        put(q,cone(0.06,0.14,6),m.paper,-Math.sin(-0.55)*0.43,1.02+Math.cos(-0.55)*0.43,-0.32,0,0,-0.55);
+        put(q,cone(0.022,0.05,6),m.ink,-Math.sin(-0.55)*0.51,1.02+Math.cos(-0.55)*0.51,-0.32,0,0,-0.55);
+        put(q,cyl(0.062,0.062,0.08,6),m.hat,Math.sin(-0.55)*0.4,1.02-Math.cos(-0.55)*0.4,-0.32,0,0,-0.55);
         this.applyAcc(ACC_DEFAULT);
     }
 
