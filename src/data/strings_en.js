@@ -389,7 +389,7 @@ export const STRINGS_EN={
     'weapon.crayon.desc':'Every shot randomly fires one of three colors (rolled per shot): red {r}% · {rd} damage, blue {b}% · {bd} damage, green {g}% · {gd} damage.',
     'weapon.slingshot.name':'Rubber-band Slingshot',
     'weapon.slingshot.short':'Charge shot · pierces',
-    'weapon.slingshot.desc':'Hold fire to pull back the band and release to shoot: releasing before 0.6s cancels, full charge takes 1.6s; damage 15–60, starting at 15 at 0.6s and rising to 60 at a full 1.6s. The shot has a slightly wide hitbox and pierces every enemy (each one is hit once) and vanishes on walls. No magazine or reload; 0.2s after firing you can charge again. Move speed drops to 50% while charging.',
+    'weapon.slingshot.desc':'Hold fire to pull the band and release to shoot; shots pierce every enemy and stop at walls. A quick tap (under 0.6s) fires an 8-damage pellet, ready again after 0.3s; from 0.6s damage starts at 15 and reaches 60 at a full 1.6s. While held at full charge a pale gold shield blocks the next hit of any kind. No magazine or reload; move speed drops to 50% while charging.',
     'weapon.compass.name':'Compass',
     'weapon.compass.short':'Boomerang · cooldown',
     'weapon.compass.desc':'Throws a spinning compass that flies to its full range and returns to your hand at the same speed, piercing and damaging enemies both ways and knocking out bullets it touches. It passes through crates and ink barrels but bounces off walls. No ammo or reload — after each throw you wait for the cooldown bar (1.8s); if a throw hits nothing, the remaining cooldown is only cut to 70%. If it hits a wall on the way back, it returns to your hand right away.',

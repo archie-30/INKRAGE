@@ -95,7 +95,7 @@ export const TUNING={
         fovPunchDecay:9
     },
     player:{
-        sling:{tipX:0.12,tipZ:0.17,restZ:0.15,pull:0.42,shake:0.03,snapTime:0.16,overshoot:0.35},
+        sling:{guardInvuln:0.3,auraR:0.95,auraH:1.7,auraAlpha:0.22,auraPulse:6,tipX:0.12,tipZ:0.17,restZ:0.15,pull:0.42,shake:0.03,snapTime:0.16,overshoot:0.35},
         weaponHull:false,
         weaponSoft:0.85,
         arm:{drawTime:0.45,stowTime:0.3,ready:0.7,spin:3.2,lift:0.5,back:0.4,raise:0.9},
@@ -517,6 +517,7 @@ export const TUNING={
         fogPuffs:28
     },
     weaponUi:{stagger:0.06,itemTime:0.5,rise:14,infoDelay:0.3,selTime:0.3,
+        stage:{gap:16,aspect:16/9,rise:8,iconDiv:110},
         rowH:84,
         rowHSmall:64,
         listGap:10,

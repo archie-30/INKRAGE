@@ -3474,27 +3474,44 @@ export const WEAPON_ANIMS={
         }
     },
     slingshot:{
-        period:3,
+        period:4.5,
         draw(S,k) {
-            const rel=0.5;
-            const ch=seg(k,0.12,0.45);
-            const pull=k<rel?ch:0;
+            const tap=seg(k,0.04,0.2);
+            const c0=0.24;
+            const full=0.48;
+            const rel=0.74;
+            const ch=seg(k,c0,full);
+            const pull=k>=c0&&k<rel?ch:0;
+            const hit=0.62;
             S.rect(PX-0.8,PY+1.1,1.6,0.25,PALETTE.farGray,1);
             S.rect(PX-0.8,PY+1.1,1.6*pull,0.25,pull>=1?PALETTE.red:PALETTE.ink,1);
-            S.player(PX-pull*0.3,PY,0,{kick:seg(k,rel,rel+0.03)*(1-seg(k,rel+0.03,rel+0.12))});
-            if (pull>=1) {
-                S.ring(PX,PY,0.9,PALETTE.red,0.08,0.5+0.5*Math.sin(k*80));
+            if (k>=full&&k<hit) {
+                S.circle(PX,PY,1,PALETTE.gold,0.22+0.1*Math.sin(k*90));
+                S.ring(PX,PY,1,PALETTE.gold,0.1,0.8);
             }
-            const f=seg(k,rel,rel+0.3);
+            if (k>=hit) {
+                S.burst(PX,PY,1.3,seg(k,hit,hit+0.1),PALETTE.gold);
+            }
+            const kick=Math.max(seg(k,0.04,0.06)*(1-seg(k,0.06,0.1))*0.4,seg(k,rel,rel+0.03)*(1-seg(k,rel+0.03,rel+0.12)));
+            S.player(PX-pull*0.3,PY,0,{kick});
+            if (tap>0&&tap<1) {
+                S.circle(lerp(PX+0.9,15,tap),PY,0.16,PALETTE.ink,1);
+            }
+            S.num('8',7.5,PY-0.6,seg(k,0.08,0.24),PALETTE.ink);
+            const eb=seg(k,0.5,hit);
+            if (eb>0&&eb<1) {
+                S.bullet(lerp(PX+3,PX+0.7,eb),lerp(PY-3,PY-0.7,eb));
+            }
+            const f=seg(k,rel,rel+0.22);
             if (f>0&&f<1) {
                 const x=lerp(PX+0.9,15,f);
                 S.line(x-1.2,PY,x,PY,PALETTE.midGray,0.16,0.6);
                 S.circle(x,PY,0.28,PALETTE.ink,1);
             }
             for (const [id,x] of [['doodle',7.5],['blob',10],['eraserMonster',12.6]]) {
-                S.target(id,x,PY,k,rel+0.3*(x-PX-0.9)/(15-PX-0.9));
+                S.target(id,x,PY,k,rel+0.22*(x-PX-0.9)/(15-PX-0.9));
             }
-            S.num('60',10,PY-0.6,seg(k,rel+0.12,rel+0.4),PALETTE.red);
+            S.num('60',10,PY-0.6,seg(k,rel+0.09,rel+0.25),PALETTE.red);
         }
     },
     crayon:{

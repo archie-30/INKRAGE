@@ -215,6 +215,23 @@ export const SOUNDS={
             {kind:'noise',dur:0.07,gain:0.3,filter:{type:'bandpass',f0:1800,f1:900,q:1.4}}
         ]
     },
+    guardUp:{
+        gap:0.1,
+        gain:0.3,
+        layers:[
+            {kind:'tone',wave:'sine',f0:880,f1:1320,dur:0.18,gain:0.16},
+            {kind:'tone',wave:'triangle',f0:1760,dur:0.12,gain:0.05,delay:0.05}
+        ]
+    },
+    guardBreak:{
+        gap:0.1,
+        gain:0.45,
+        layers:[
+            {kind:'noise',dur:0.14,gain:0.4,filter:{type:'highpass',f0:3200}},
+            {kind:'tone',wave:'triangle',f0:1600,f1:500,dur:0.16,gain:0.18},
+            {kind:'tone',wave:'sine',f0:2400,f1:1200,dur:0.1,gain:0.08,delay:0.03}
+        ]
+    },
     wCompass:{
         gap:0.2,
         gain:0.5,

@@ -1,6 +1,6 @@
 import*as THREE from 'three';
 import {TUNING} from '../data/tuning.js';
-import {toonMaterial,unlitMaterial,registerShadow,hullMaterial,pal} from '../render/materials.js';
+import {toonMaterial,unlitMaterial,glowMaterial,registerShadow,hullMaterial,pal} from '../render/materials.js';
 import {resolveCircle,clampToBounds} from '../core/collision.js';
 import {time} from '../core/loop.js';
 import {EASE} from '../core/easing.js';
@@ -622,6 +622,17 @@ export class Player {
             this.panels.push(holder);
         }
         this.root.add(this.shieldGroup);
+        const S=TUNING.player.sling;
+        const aura=new THREE.Group();
+        const shell=new THREE.Mesh(new THREE.CylinderGeometry(S.auraR,S.auraR*1.1,S.auraH,20,1,true),glowMaterial('gold'));
+        shell.position.y=S.auraH/2;
+        const base=new THREE.Mesh(new THREE.RingGeometry(S.auraR*0.9,S.auraR*1.15,28),glowMaterial('gold'));
+        base.rotation.x=-Math.PI/2;
+        base.position.y=0.05;
+        aura.add(shell,base);
+        aura.visible=false;
+        this.root.add(aura);
+        this.slingAura={group:aura,shell,base};
     }
 
     buildFort() {
@@ -767,6 +778,8 @@ export class Player {
         this.hasteMult=1;
         this.charging=false;
         this.slingFull=false;
+        this.slingGuard=false;
+        this.guardSpent=false;
         this.spongeArmed=false;
         if (this.gunL) {
             this.dropDual(true);
@@ -879,6 +892,16 @@ export class Player {
             return false;
         }
         if (this.isInvulnerable()||this.hp<=0) {
+            return false;
+        }
+        if (this.slingGuard&&this.charging) {
+            this.slingGuard=false;
+            this.guardSpent=true;
+            this.invuln=TUNING.player.sling.guardInvuln;
+            this.sqv+=1.5;
+            if (this.events.onSlingGuard) {
+                this.events.onSlingGuard(this,dx,dz);
+            }
             return false;
         }
         if (this.spongeT>0) {
@@ -1030,6 +1053,8 @@ export class Player {
             this.charging=false;
             this.chargeT=0;
             this.chargeFrac=0;
+            this.slingGuard=false;
+            this.guardSpent=false;
             return;
         }
         if (hold) {
@@ -1037,8 +1062,13 @@ export class Player {
             this.chargeT=Math.min(full,(this.chargeT||0)+dt);
             this.chargeFrac=this.chargeT/full;
             this.charging=true;
-            if (!was&&this.chargeT>=full&&this.events.onChargeFull) {
-                this.events.onChargeFull(this);
+            if (!was&&this.chargeT>=full) {
+                if (!this.guardSpent&&!this.ghost) {
+                    this.slingGuard=true;
+                }
+                if (this.events.onChargeFull) {
+                    this.events.onChargeFull(this);
+                }
             }
             return;
         }
@@ -1049,10 +1079,14 @@ export class Player {
         this.charging=false;
         this.chargeT=0;
         this.chargeFrac=0;
+        this.slingGuard=false;
+        this.guardSpent=false;
         if (t<C.min&&!this.slingFull) {
-            if (this.events.onChargeCancel) {
-                this.events.onChargeCancel(this);
-            }
+            this.shotDmg=C.tap;
+            this.fire(ctx,aim);
+            this.shotDmg=null;
+            this.cdT=C.tapCool;
+            this.slingSnapT=TUNING.player.sling.snapTime;
             return;
         }
         const lo=Math.min(C.min,full*0.9);
@@ -1539,6 +1573,19 @@ export class Player {
     syncSling() {
         const dt=Math.min(0.1,Math.max(0,time.real-(this.slingClock??time.real)));
         this.slingClock=time.real;
+        if (this.slingAura) {
+            const A=this.slingAura;
+            const on=!!this.slingGuard&&this.charging;
+            A.group.visible=on;
+            if (on) {
+                const S=TUNING.player.sling;
+                const pu=0.5+0.5*Math.sin(time.real*S.auraPulse);
+                A.shell.material.opacity=S.auraAlpha*(0.7+0.5*pu);
+                A.base.material.opacity=S.auraAlpha*2.4*(0.7+0.5*pu);
+                A.group.scale.set(1+pu*0.05,1,1+pu*0.05);
+                A.group.rotation.y=time.real*0.8;
+            }
+        }
         if (!this.slingRig||this.weaponId!=='slingshot') {
             return;
         }

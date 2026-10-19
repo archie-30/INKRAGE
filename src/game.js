@@ -1008,6 +1008,18 @@ function boot() {
     player.events.onChargeFull=p=>{
         audio.play('ui',1.6);
         particles.burst(p.pos.x,1.4,p.pos.z,8,{color:'red',speed:[1,3],up:[1,3],size:[0.05,0.1]});
+        if (p.slingGuard) {
+            audio.play('guardUp');
+            particles.burst(p.pos.x,1.0,p.pos.z,10,{color:'gold',speed:[1,3],up:[1,4],size:[0.05,0.1]});
+        }
+    };
+    player.events.onSlingGuard=(p,dx,dz)=>{
+        audio.play('guardBreak');
+        fx.hitStop(60,true);
+        fx.cameraShake(0.25);
+        rings.spawn(p.pos.x,p.pos.z,1.8,'gold',0.35);
+        particles.burst(p.pos.x,1.1,p.pos.z,22,{color:'gold',speed:[3,7],up:[2,6],size:[0.06,0.14]});
+        particles.burst(p.pos.x-dx*0.6,1.1,p.pos.z-dz*0.6,8,{color:'paper',dirX:-dx,dirZ:-dz,cone:1,speed:[2,6],up:[2,4],size:[0.05,0.1]});
     };
     player.events.onLand=p=>{
         audio.play('dash',0.7);

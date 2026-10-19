@@ -136,7 +136,7 @@ export const WEAPONS={
         bulletLife:1.1,
         spread:0,
         pellets:1,
-        charge:{min:0.6,full:1.6,dmg:[15,60],cool:0.2,slow:0.5},
+        charge:{min:0.6,full:1.6,dmg:[15,60],cool:0.2,slow:0.5,tap:8,tapCool:0.3},
         kick:1.4,
         flashMul:1.3,
         stats:{dmg:5,rate:1,range:4,mag:1}
