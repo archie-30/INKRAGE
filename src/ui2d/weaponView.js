@@ -33,7 +33,6 @@ export class WeaponView extends Panel {
         this.actions=actions;
         this.outFrom=0.35;
         this.sel='pen';
-        this.selT=1;
         this.hx=-1;
         this.hy=-1;
         this.rows=[];
@@ -47,7 +46,6 @@ export class WeaponView extends Panel {
     show() {
         super.show();
         this.sel=settings.weapon||'pen';
-        this.selT=1;
         this.sparks=[];
         this.pulse={};
         this.msg=null;
@@ -104,7 +102,6 @@ export class WeaponView extends Panel {
             return;
         }
         this.sel=id;
-        this.selT=0;
         this.boxPop=1;
         this.reveal();
         this.pulse[id]=1;
@@ -215,7 +212,13 @@ export class WeaponView extends Panel {
 
     update(dt) {
         super.update(dt);
-        this.selT=Math.min(1,this.selT+dt/U().selTime);
+        const W=WEAPONS[this.sel];
+        this.bars=this.bars||{};
+        for (const k of STATS) {
+            const want=W?W.stats[k]:0;
+            const cur=this.bars[k]??0;
+            this.bars[k]=cur+(want-cur)*(1-Math.exp(-dt*U().barFollow));
+        }
         this.stampT=Math.min(1,this.stampT+dt/U().stampTime);
         this.walletK=Math.max(0,this.walletK-dt*2);
         this.scroll=(this.scroll||0)+((this.scrollTo||0)-(this.scroll||0))*Math.min(1,dt*14);
@@ -458,125 +461,91 @@ export class WeaponView extends Panel {
         return (small?13:17)+'px '+FONT;
     }
 
-    statsBox(small,w) {
-        const cols=small?2:1;
-        const rh=small?22:30;
-        return {cols,rh,w:small?w:w*0.44,h:Math.ceil(STATS.length/cols)*rh};
+    stageBox(small) {
+        const R=this.R;
+        const ns=small?19:26;
+        const top=R.y+ns+(small?8:12);
+        const sw=Math.min(R.w*(small?0.6:0.64),(R.h-ns)*(small?0.62:0.6)*16/9);
+        return {x:R.x,y:top,w:sw,h:sw*9/16,ns};
     }
 
-    drawStats(ctx,id,x,y,w,small,sk,ok) {
-        const W=WEAPONS[id];
-        const B=this.statsBox(small,w);
-        const cw=B.w/B.cols;
-        const lw=small?34:46;
-        const vw=small?66:84;
-        const bw=Math.min(cw-lw-vw-(small?10:8),small?120:170);
-        const gap=small?2:3;
+    drawStats(ctx,id,x,y,w,h,small) {
+        const rnd=id===RANDOM_WEAPON.id;
+        const n=STATS.length;
         const bh=small?8:11;
+        const ls=small?12:14;
+        const vs=small?11:14;
+        const block=h/n;
+        const lw=small?34:44;
+        const gap=small?2:3;
+        const bw=Math.min(w-lw,small?110:170);
         const rw=(bw-gap*4)/5;
         STATS.forEach((k,i)=>{
-            const cx=x+(i%B.cols)*cw;
-            const cy=y+Math.floor(i/B.cols)*B.rh+B.rh/2;
-            ctx.textBaseline='middle';
+            const by=y+i*block+(small?2:4);
+            const cy=by+ls/2;
             ctx.textAlign='left';
+            ctx.textBaseline='middle';
             ctx.fillStyle=PALETTE.ink;
-            fitText(ctx,t('arms.stat.'+k),cx,cy+1,lw-4,small?12:14,'bold ');
-            const n=W.stats[k];
+            fitText(ctx,t('arms.stat.'+k),x,cy+1,lw-4,ls,'bold ');
+            const val=this.bars[k]||0;
+            const hot=!rnd&&WEAPONS[id].stats[k]>=4;
             for (let q=0;q<5;q++) {
-                const rx=cx+lw+q*(rw+gap);
-                const fill=Math.max(0,Math.min(1,sk*6-q-i*0.4));
+                const rx=x+lw+q*(rw+gap);
                 ctx.fillStyle=rgba('farGray',0.8);
                 ctx.fillRect(rx,cy-bh/2,rw,bh);
-                if (q<n&&fill>0) {
-                    ctx.fillStyle=ok?(n>=4?PALETTE.red:PALETTE.ink):PALETTE.midGray;
-                    ctx.fillRect(rx,cy-bh/2,rw*fill,bh);
+                const f=Math.max(0,Math.min(1,val-q));
+                if (f>0) {
+                    ctx.fillStyle=hot?PALETTE.red:PALETTE.ink;
+                    ctx.fillRect(rx,cy-bh/2,rw*f,bh);
                 }
             }
-            ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
-            ctx.textAlign='left';
-            fitText(ctx,this.statValue(id,k),cx+lw+bw+(small?8:10),cy+1,vw-6,small?11:13,'bold ');
+            ctx.fillStyle=PALETTE.nearGray;
+            ctx.textBaseline='top';
+            fitText(ctx,rnd?'—':this.statValue(id,k),x+lw,cy+bh/2+(small?3:5),w-lw,vs,'bold ');
         });
-        return B;
     }
 
     drawPreview(ctx,v,small) {
         const R=this.R;
         const id=this.sel;
         const ok=this.unlocked(id);
-        const sk=EASE.easeOutCubic(Math.min(1,this.selT*1.4));
         const gap=small?8:14;
         const bh=this.mainBtn.h;
-        const rnd=id===RANDOM_WEAPON.id;
-        const B=this.statsBox(small,R.w);
-        const side=!small&&!rnd;
-        const dx=side?B.w+(small?12:24):0;
-        const dw=R.w-dx;
-        const lh=small?18:24;
-        ctx.font=this.descFont(small);
-        const desc=t('weapon.'+id+'.desc',weaponParams(id));
-        const nl=wrapText(ctx,desc,dw).length;
-        const ns=small?19:26;
-        const head=ns+(small?6:10);
-        const body=side?Math.max(B.h,nl*lh):(rnd?0:B.h+(small?8:12))+nl*lh;
-        const sh=Math.max(R.h*0.36,Math.min(R.w*9/16,R.h*0.62,R.h-head-body-gap*2-bh));
-        const sw=sh*16/9;
-        const sx=R.x+(R.w-sw)/2;
-        ctx.save();
-        ctx.globalAlpha*=0.35+0.65*sk;
-        ctx.translate(0,(1-sk)*U().rise);
-        const anim=WEAPON_ANIMS[id];
-        if (anim) {
-            drawStage(ctx,sx,R.y,sw,sh,anim,time.real,v);
-        }
-        else {
-            this.drawRandomStage(ctx,sx,R.y,sw,sh,v);
-        }
-        if (!ok) {
-            ctx.fillStyle=rgba('paper',0.6);
-            ctx.fillRect(sx+2,R.y+2,sw-4,sh-4);
-            drawLock(ctx,sx+sw/2,R.y+sh/2,small?1.8:2.6,PALETTE.nearGray);
-        }
-        ctx.restore();
-        let y=R.y+sh+gap;
-        const x=R.x;
-        const w=R.w;
-        ctx.save();
-        ctx.globalAlpha*=0.3+0.7*sk;
-        ctx.translate((1-sk)*12,0);
+        const S=this.stageBox(small);
+        const ns=S.ns;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        ctx.fillStyle=ok?PALETTE.ink:PALETTE.nearGray;
-        fitText(ctx,t('weapon.'+id+'.name'),x,y,w*0.55,ns,'bold ');
-        const nw=Math.min(w*0.55,ctx.measureText(t('weapon.'+id+'.name')).width);
+        ctx.fillStyle=PALETTE.ink;
+        fitText(ctx,t('weapon.'+id+'.name'),R.x,R.y,R.w*0.5,ns,'bold ');
+        const nw=Math.min(R.w*0.5,ctx.measureText(t('weapon.'+id+'.name')).width);
         ctx.fillStyle=PALETTE.red;
-        fitText(ctx,t('weapon.'+id+'.short'),x+nw+(small?10:14),y+ns*0.3,w-nw-(small?10:14),small?12:14,'bold ');
-        y+=head;
-        drawShape(ctx,sketchLine(x,y-(small?3:5),x+w,y-(small?3:5),{width:1,seed:5300}),rgba('midGray',0.5),v);
-        let ty=y+(small?2:4);
-        if (!rnd) {
-            this.drawStats(ctx,id,x,y,w,small,sk,ok);
-            if (side) {
-                drawShape(ctx,sketchLine(x+B.w+12,y+2,x+B.w+12,Math.min(this.mainBtn.y-gap,y+Math.max(B.h,nl*lh)),{width:1,seed:5301}),rgba('midGray',0.5),v);
-            }
-            else {
-                ty=y+B.h+(small?6:10);
-            }
+        fitText(ctx,t('weapon.'+id+'.short'),R.x+nw+(small?10:14),R.y+ns*0.3,R.w-nw-(small?10:14),small?12:14,'bold ');
+        const anim=WEAPON_ANIMS[id];
+        if (anim) {
+            drawStage(ctx,S.x,S.y,S.w,S.h,anim,time.real,v);
         }
+        else {
+            this.drawRandomStage(ctx,S.x,S.y,S.w,S.h,v);
+        }
+        const sx=S.x+S.w+(small?12:20);
+        this.drawStats(ctx,id,sx,S.y,R.x+R.w-sx,S.h,small);
+        let ty=S.y+S.h+gap;
+        drawShape(ctx,sketchLine(R.x,ty-gap/2,R.x+R.w,ty-gap/2,{width:1,seed:5300}),rgba('midGray',0.5),v);
+        const desc=t('weapon.'+id+'.desc',weaponParams(id));
+        const room=this.mainBtn.y-gap-ty;
         ctx.font=this.descFont(small);
         ctx.fillStyle=PALETTE.nearGray;
         ctx.textAlign='left';
         ctx.textBaseline='top';
-        const room=this.mainBtn.y-gap-ty;
-        let lines=wrapText(ctx,desc,dw);
-        let lh2=lh;
+        let lines=wrapText(ctx,desc,R.w);
+        let lh=small?18:24;
         if (lines.length*lh>room) {
-            ctx.font=(small?12:15)+'px '+FONT;
-            lines=wrapText(ctx,desc,dw);
-            lh2=small?16:21;
+            ctx.font=(small?11:15)+'px '+FONT;
+            lines=wrapText(ctx,desc,R.w);
+            lh=small?14:21;
         }
-        lines.slice(0,Math.max(1,Math.floor(room/lh2))).forEach((ln,q)=>ctx.fillText(ln,x+dx,ty+q*lh2));
-        ctx.restore();
-        if (!ok&&!rnd) {
+        lines.slice(0,Math.max(1,Math.floor(room/lh))).forEach((ln,q)=>ctx.fillText(ln,R.x,ty+q*lh));
+        if (!ok&&id!==RANDOM_WEAPON.id) {
             ctx.fillStyle=PALETTE.nearGray;
             ctx.textAlign='right';
             ctx.textBaseline='middle';
