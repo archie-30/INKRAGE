@@ -237,6 +237,21 @@ const ACC_DRAW={
             ctx.moveTo(0,-43);
             ctx.lineTo(0,-31);
             ctx.stroke();
+        },
+        mortarboard(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            box(ctx,-8,-32,16,5,h[1]);
+            poly(ctx,[[-15,-35],[0,-40],[15,-35],[0,-30]],h[1]);
+            ctx.strokeStyle=g[1];
+            ctx.lineWidth=1.2;
+            ctx.beginPath();
+            ctx.moveTo(0,-35);
+            ctx.lineTo(11,-33);
+            ctx.lineTo(11,-25);
+            ctx.stroke();
+            box(ctx,9.6,-26,2.8,4,g[1],null);
+            oval(ctx,0,-35,1.4,1,0,g[2],null);
         }
     },
     eyewear:{
@@ -310,6 +325,45 @@ const ACC_DRAW={
                 box(ctx,-4,-1.3,8,2.6,PALETTE.paper,PALETTE.ink,0.7);
                 ctx.restore();
             }
+        },
+        goggles(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            box(ctx,-11,-21,22,2.4,h[1],null);
+            for (const sx of [-1,1]) {
+                oval(ctx,sx*4.2,-19.5,4.4,4.4,0,g[1],PALETTE.ink,1);
+                oval(ctx,sx*4.2,-19.5,2.8,2.8,0,PALETTE.paper,null);
+                oval(ctx,sx*4.2-1,-20.5,0.9,0.9,0,PALETTE.ink,null);
+            }
+        },
+        starGlasses(ctx,s) {
+            const g=tones(s,'gear');
+            for (const sx of [-1,1]) {
+                const pts=[];
+                for (let i=0;i<10;i++) {
+                    const a=-Math.PI/2+i*Math.PI/5;
+                    const r=i%2?2.4:5;
+                    pts.push([sx*4.2+Math.cos(a)*r,-19.5+Math.sin(a)*r]);
+                }
+                poly(ctx,pts,g[1],PALETTE.ink,0.9);
+            }
+            box(ctx,-10.5,-20.5,21,0.9,PALETTE.ink,null);
+        },
+        heartGlasses(ctx,s) {
+            const h=tones(s,'hat');
+            for (const sx of [-1,1]) {
+                const x=sx*4.2;
+                ctx.beginPath();
+                ctx.moveTo(x,-15.5);
+                ctx.bezierCurveTo(x-6,-19,x-4.5,-24,x,-21.2);
+                ctx.bezierCurveTo(x+4.5,-24,x+6,-19,x,-15.5);
+                ctx.fillStyle=h[1];
+                ctx.fill();
+                ctx.strokeStyle=PALETTE.ink;
+                ctx.lineWidth=0.9;
+                ctx.stroke();
+            }
+            box(ctx,-10.5,-20.5,21,0.9,PALETTE.ink,null);
         }
     },
     neckwear:{
@@ -359,6 +413,31 @@ const ACC_DRAW={
             for (let i=0;i<6;i++) {
                 oval(ctx,-10+i*4,-9,3.4,2.4,0,PALETTE.paper,PALETTE.ink,0.7);
             }
+        },
+        lanyard(ctx,s) {
+            const h=tones(s,'hat');
+            ctx.strokeStyle=h[1];
+            ctx.lineWidth=2;
+            ctx.beginPath();
+            ctx.moveTo(-6,-10);
+            ctx.lineTo(0,-1);
+            ctx.lineTo(6,-10);
+            ctx.stroke();
+            box(ctx,-4.5,-1,9,7,PALETTE.paper,PALETTE.ink,0.8);
+            box(ctx,-3,1,6,1,PALETTE.ink,null);
+            box(ctx,-3,3,4,0.8,PALETTE.ink,null);
+        },
+        whistle(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            ctx.strokeStyle=h[1];
+            ctx.lineWidth=1;
+            ctx.beginPath();
+            ctx.moveTo(-8,-10);
+            ctx.quadraticCurveTo(0,-2,8,-10);
+            ctx.stroke();
+            box(ctx,-1,-4,7,3.4,g[1],PALETTE.ink,0.7);
+            oval(ctx,-1.5,-2.3,2.4,2.4,0,g[1],PALETTE.ink,0.7);
         }
     },
     backwear:{
@@ -423,6 +502,22 @@ const ACC_DRAW={
             box(ctx,-18,-2.5,36,5,PALETTE.paper,PALETTE.ink,0.8);
             box(ctx,-20,-3.2,2.5,6.4,g[1],PALETTE.ink,0.6);
             box(ctx,17.5,-3.2,2.5,6.4,g[1],PALETTE.ink,0.6);
+            ctx.restore();
+        },
+        bookStack(ctx,s) {
+            const g=tones(s,'gear');
+            const h=tones(s,'hat');
+            box(ctx,11,-2,6,4,h[1],PALETTE.ink,0.6);
+            box(ctx,11.5,2,5,4,g[1],PALETTE.ink,0.6);
+            box(ctx,11,6,6,4,PALETTE.paper,PALETTE.ink,0.6);
+        },
+        giantPencil(ctx,s) {
+            const g=tones(s,'gear');
+            ctx.save();
+            ctx.translate(0,-4);
+            ctx.rotate(0.55);
+            box(ctx,-2.6,-18,5.2,34,g[1],PALETTE.ink,0.8);
+            poly(ctx,[[-2.6,-18],[2.6,-18],[0,-25]],PALETTE.paper,PALETTE.ink,0.7);
             ctx.restore();
         }
     }
@@ -499,6 +594,25 @@ const BACK_ICON={
         box(ctx,-17,-5,3,10,g[1]);
         box(ctx,14,-5,3,10,g[1]);
         box(ctx,-2,-4.5,4,9,h[1],null);
+        ctx.restore();
+    },
+    bookStack(ctx,s) {
+        const g=tones(s,'gear');
+        const h=tones(s,'hat');
+        box(ctx,-12,4,24,7,h[1]);
+        box(ctx,-10,-3,21,7,g[1]);
+        box(ctx,-11,-10,22,7,PALETTE.paper);
+        box(ctx,-1,-12,2,24,PALETTE.ink,null);
+    },
+    giantPencil(ctx,s) {
+        const g=tones(s,'gear');
+        const h=tones(s,'hat');
+        ctx.save();
+        ctx.rotate(0.6);
+        box(ctx,-4,-10,8,24,g[1]);
+        box(ctx,-4,14,8,4,h[1]);
+        poly(ctx,[[-4,-10],[4,-10],[0,-19]],PALETTE.paper);
+        poly(ctx,[[-1.4,-16],[1.4,-16],[0,-19]],PALETTE.ink,null);
         ctx.restore();
     }
 };

@@ -1,8 +1,8 @@
 export const ACC_SLOTS=[
-    {key:'headwear',label:'acc.slot.headwear',items:['none','drop','beret','crown','propeller','headphones','catEars','paperBoat','topHat','cap']},
-    {key:'eyewear',label:'acc.slot.eyewear',items:['none','glasses','monocle','eyepatch','mustache','bandage','shades','mask']},
-    {key:'neckwear',label:'acc.slot.neckwear',items:['none','scarf','bowtie','tie','bell','beads','ruff','medal','bandana']},
-    {key:'backwear',label:'acc.slot.backwear',items:['none','pouch','cape','wings','backpack','quiver','scroll','balloon','yardstick']}
+    {key:'headwear',label:'acc.slot.headwear',items:['none','drop','beret','crown','propeller','headphones','catEars','paperBoat','topHat','cap','mortarboard']},
+    {key:'eyewear',label:'acc.slot.eyewear',items:['none','glasses','monocle','eyepatch','mustache','bandage','shades','mask','goggles','starGlasses','heartGlasses']},
+    {key:'neckwear',label:'acc.slot.neckwear',items:['none','scarf','bowtie','tie','bell','beads','ruff','medal','bandana','lanyard','whistle']},
+    {key:'backwear',label:'acc.slot.backwear',items:['none','pouch','cape','wings','backpack','quiver','scroll','balloon','yardstick','bookStack','giantPencil']}
 ];
 
 export const ACC_DEFAULT={headwear:'drop',eyewear:'none',neckwear:'scarf',backwear:'pouch'};
