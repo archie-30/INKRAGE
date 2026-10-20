@@ -1106,6 +1106,10 @@ function boot() {
     };
     player.events.onFire=(p,mx,mz)=>{
         const PW=p.W;
+        if (p.shotFull) {
+            const F=TUNING.player.sling.fullFx;
+            particles.burst(mx,H,mz,F.sparks,{color:'slingGlow',speed:F.speed,up:F.up,size:F.size,life:F.life});
+        }
         audio.play(PW.sound||'shoot',0.85+Math.random()*0.3);
         muzzle.show(mx,H,mz,PW.flashColor||'ink',W.flashScale*(PW.flashMul||1));
         fx.cameraShake(W.recoilTrauma*(PW.kick||1));
