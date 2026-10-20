@@ -849,6 +849,39 @@ function boot() {
     for (const s of [playerBullets,pierceBullets,homingBullets,...extraSys]) {
         s.onMove=rulerMove;
     }
+    const FF=TUNING.player.sling.fullFx;
+    const emberCols=['slingGlow','gold','slingGlow','paper'];
+    let emberAcc=0;
+    weaponSys.slingFull.onMove=(sys,i,ax,az,bx,bz)=>{
+        rulerMove(sys,i,ax,az,bx,bz);
+        const dx=bx-ax;
+        const dz=bz-az;
+        const len=Math.hypot(dx,dz);
+        if (len<=0) {
+            return;
+        }
+        emberAcc+=len;
+        const T=FF.trail;
+        while (emberAcc>=T.every) {
+            emberAcc-=T.every;
+            const f=1-emberAcc/len;
+            const x=ax+dx*Math.max(0,Math.min(1,f));
+            const z=az+dz*Math.max(0,Math.min(1,f));
+            const k=Math.floor(Math.random()*emberCols.length);
+            particles.burst(x+(Math.random()-0.5)*T.jitter,H+(Math.random()-0.5)*T.jitter,z+(Math.random()-0.5)*T.jitter,1,{color:emberCols[k],speed:T.speed,up:T.up,size:T.size,life:T.life,dirX:-dx,dirZ:-dz,cone:T.cone});
+        }
+        const G=FF.glow;
+        particles.burst(bx,H,bz,1,{color:'slingGlow',speed:[0,0.2],up:[0,0.2],size:G.size,life:G.life});
+    };
+    weaponSys.slingFull.onHit=(x,z,r,dmg,vx,vz,sys,i)=>{
+        const e=hitEnemies(x,z,r,dmg,vx,vz,sys,i);
+        if (e) {
+            const B=FF.hit;
+            particles.burst(x,H,z,B.count,{color:'slingGlow',speed:B.speed,up:B.up,size:B.size,life:B.life});
+            particles.burst(x,H,z,Math.round(B.count/2),{color:'gold',speed:B.speed,up:B.up,size:B.size,life:B.life,dirX:vx,dirZ:vz,cone:0.7});
+        }
+        return e;
+    };
     let bleed=0;
     let heart=0;
     playerBullets.onHit=hitEnemies;
