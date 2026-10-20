@@ -787,11 +787,12 @@ export const TUNING={
         revive:{min:1,max:10,invuln:2.5,once:true},
         chestEvery:5,
         chestItems:2,
-        accChance:0.35,
-        story:{rooms:5,boss:1,clear:true},
-        endless:[5,12,20],
+        accChance:0.25,
+        levelItemEvery:2,
+        story:{rooms:10,boss:2,clear:true},
+        endless:[8,16,24],
         customSlots:4,
-        dotChance:0.2,
+        dotChance:0.35,
         dotRange:[1,3]
     },
     courses:{

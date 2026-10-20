@@ -393,7 +393,7 @@ export const STRINGS_EN={
     'weapon.slingshot.desc':'Hold fire to pull the band and release to shoot; shots pierce every enemy and stop at walls. A quick tap (under 0.6s) fires an 8-damage pellet, ready again after 0.3s; from 0.6s damage starts at 15 and reaches 60 at a full 1.6s. While held at full charge a pale gold shield blocks the next hit of any kind. No magazine or reload; move speed drops to 50% while charging.',
     'weapon.compass.name':'Compass',
     'weapon.compass.short':'Boomerang · cooldown',
-    'weapon.compass.desc':'Throws a spinning compass that flies to its full range and returns to your hand at the same speed, piercing and damaging enemies both ways and knocking out bullets it touches. It passes through crates and ink barrels but bounces off walls. No ammo or reload — after each throw you wait for the cooldown bar (1.8s); if a throw hits nothing, the remaining cooldown is only cut to 70%. If it hits a wall on the way back, it returns to your hand right away.',
+    'weapon.compass.desc':'Throws a spinning compass that flies to its full range and returns to your hand at the same speed, piercing and damaging enemies both ways and knocking out bullets it touches. It passes through crates and ink barrels but bounces off walls. No ammo or reload — after each throw you wait for the cooldown bar (1.5s); if a throw hits nothing, the remaining cooldown is only cut to 70%. If it hits a wall on the way back, it returns to your hand right away.',
     'hud.cool':'Cooling',
     'tut.new':'NEW',
     'tut.title':'Tutorial',

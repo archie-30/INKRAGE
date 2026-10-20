@@ -43,7 +43,7 @@ import {RelicGacha} from './ui2d/gacha.js';
 import {WeaponView} from './ui2d/weaponView.js';
 import {RunSummary,MainMenu,PauseMenu,SettingsMenu,Codex,TrainingPicker,LevelView,SkinEditor,TrainingMenu,Coach,LangPicker,InfoPopup,ChoicePanel,DeckPicker,LevelUpView,drawWeaponIcon} from './ui2d/menu.js';
 import {weaponUnlocked,pickWeapon,unlockedWeapons,RANDOM_WEAPON,WEAPONS,WEAPON_ORDER} from './data/weapons.js';
-import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
+import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,levelItems,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
 import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
 import {GuidePopup,courseGuide,modeGuide,relicGuide,coinGuide} from './ui2d/guide.js';
@@ -1089,7 +1089,7 @@ function boot() {
     const dodgeTimes=[];
     let dodgeFxAt=-9;
     function dodgeInk() {
-        return run.mode==='bossrush'?TUNING.bossRush.dodgeInk:TUNING.dodgeFx.ink;
+        return run.mode==='bossrush'||enemies.list.some(e=>e.alive&&e.def.boss)?TUNING.bossRush.dodgeInk:TUNING.dodgeFx.ink;
     }
     function perfectDodge(p) {
         const D=TUNING.dodgeFx;
@@ -1903,8 +1903,8 @@ function boot() {
                 summary.progress={xp:Math.round(stats.xp),before:lvBefore,after:progress.level,unlocked:res.unlocked.map(id=>t(CARDS[id].nameKey)),xpFrom,xpTo:progress.xp/xpToNext(progress.level)};
             }
             flushMeta();
-            const levels=progress.level-lvBefore;
-            const items=rush?(!godMode()?grant(levels,levels,true).concat(grantCoins(RT.coins)):[]):(scoring&&!godMode()?grant(runChestCount(stats,run.mode)+levels,levels,true).concat(grantCoins(TUNING.meta.gradeCoins[gradeOf(stats.score,run.mode)]||0)):[]);
+            const lvItems=levelItems(lvBefore,progress.level);
+            const items=rush?(!godMode()?grant(lvItems).concat(grantCoins(RT.coins)):[]):(scoring&&!godMode()?grant(runChestCount(stats,run.mode)+lvItems).concat(grantCoins(TUNING.meta.gradeCoins[gradeOf(stats.score,run.mode)]||0)):[]);
             summary.show(victory,stats,quit,toMenu=>{
                 audio.play('ui');
                 player.hp=player.maxHp;

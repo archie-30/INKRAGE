@@ -91,7 +91,7 @@ export const WEAPONS={
         sys:'compass',
         sound:'wCompass',
         fireInterval:0.55,
-        cooldown:1.8,
+        cooldown:1.5,
         missCut:0.7,
         magazine:1,
         reloadTime:1.0,
