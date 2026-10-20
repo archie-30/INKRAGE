@@ -127,6 +127,7 @@ export const WEAPONS={
     slingshot:{
         unlock:18,
         sys:'sling',
+        fullSys:'slingFull',
         sound:'wSling',
         fireInterval:0.1,
         magazine:1,

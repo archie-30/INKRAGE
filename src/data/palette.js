@@ -10,7 +10,8 @@ export const PALETTE={
     gold:'#E8B931',
     goldDark:'#A87A12',
     crayonBlue:'#3B6FB6',
-    crayonGreen:'#3E9A57'
+    crayonGreen:'#3E9A57',
+    slingGlow:'#F2A866'
 };
 
 export const SKIN_TONES={

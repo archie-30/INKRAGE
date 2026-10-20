@@ -1128,6 +1128,8 @@ export class Player {
             return;
         }
         if (hold) {
+            this.chargeDirX=this.aimDirX;
+            this.chargeDirZ=this.aimDirZ;
             const was=this.chargeT>=full;
             this.chargeT=Math.min(full,(this.chargeT||0)+dt);
             this.chargeFrac=this.chargeT/full;
@@ -1146,6 +1148,10 @@ export class Player {
             return;
         }
         const t=this.chargeT;
+        const isFull=t>=full||!!this.slingFull;
+        if (this.chargeDirX!==undefined) {
+            this.faceDir(this.chargeDirX,this.chargeDirZ);
+        }
         this.charging=false;
         this.chargeT=0;
         this.chargeFrac=0;
@@ -1163,7 +1169,9 @@ export class Player {
         const f=this.slingFull?1:Math.max(0,Math.min(1,(t-lo)/(full-lo)));
         this.slingFull=false;
         this.shotDmg=Math.round(C.dmg[0]+(C.dmg[1]-C.dmg[0])*f);
+        this.shotFull=isFull;
         this.fire(ctx,aim);
+        this.shotFull=false;
         this.shotDmg=null;
         this.cdT=C.cool;
         this.slingSnapT=TUNING.player.sling.snapTime;
@@ -1246,7 +1254,7 @@ export class Player {
                     }
                 }
             }
-            const sys=ctx.weaponSys[pick?pick.sys:W.sys]||ctx.playerBullets;
+            const sys=ctx.weaponSys[pick?pick.sys:(this.shotFull&&W.fullSys?W.fullSys:W.sys)]||ctx.playerBullets;
             const dmg=pick?pick.damage:(this.shotDmg??W.damage);
             const n=W.pellets||1;
             for (let p=0;p<n;p++) {
@@ -1304,7 +1312,7 @@ export class Player {
             this.aimDirX=aim.dx;
             this.aimDirZ=aim.dz;
         }
-        else if (moveLen>0.1) {
+        else if (moveLen>0.1&&!this.charging) {
             this.aimDirX=_mv.x/moveLen;
             this.aimDirZ=_mv.z/moveLen;
         }
