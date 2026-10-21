@@ -279,6 +279,7 @@ export function buy(item) {
         if (!progress.weapons.includes(item.value)) {
             progress.weapons.push(item.value);
             EARLY_WEAPONS.push(item.value);
+            progress.newBuys=[...(progress.newBuys||[]),item.value];
         }
     }
     else {

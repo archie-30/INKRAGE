@@ -26,7 +26,7 @@ export const ACHIEVEMENTS=[
     {id:'ult25',stat:'ults',goals:[90,200,380],icon:'treasure'},
     {id:'firstRun',stat:'runs',goals:[1],icon:'flag'},
     {id:'pages30',stat:'pages',goals:[60,140,250],icon:'book'},
-    {id:'clear1',stat:'clears',goals:[1,3,7],icon:'flag'},
+    {id:'clear1',stat:'clears',goals:[1,5,10],icon:'flag'},
     {id:'endless10',stat:'endlessPage',goals:[12,25,40],icon:'next'},
     {id:'games10',stat:'games',goals:[18,40,70],icon:'challenge'},
     {id:'shop10',stat:'buys',goals:[20,50,90],icon:'shop'},

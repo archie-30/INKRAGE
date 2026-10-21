@@ -2168,7 +2168,8 @@ function boot() {
             return;
         }
         progress.slingComp=true;
-        if (!weaponUnlocked('slingshot',progress.level)) {
+        const early=progress.weapons.includes('slingshot')&&!(progress.newBuys||[]).includes('slingshot');
+        if (progress.level<WEAPONS.slingshot.unlock&&!early) {
             saveProgress();
             return;
         }
