@@ -1134,10 +1134,13 @@ export class Player {
             this.chargeT=Math.min(full,(this.chargeT||0)+dt);
             this.chargeFrac=this.chargeT/full;
             this.charging=true;
-            if (!was&&this.chargeT>=full) {
-                if (!this.guardSpent&&!this.ghost) {
-                    this.slingGuard=true;
+            if (!this.slingGuard&&!this.guardSpent&&!this.ghost&&this.chargeT>=full*TUNING.player.sling.guardAt) {
+                this.slingGuard=true;
+                if (this.events.onGuardUp) {
+                    this.events.onGuardUp(this);
                 }
+            }
+            if (!was&&this.chargeT>=full) {
                 if (this.events.onChargeFull) {
                     this.events.onChargeFull(this);
                 }

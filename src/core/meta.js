@@ -505,6 +505,16 @@ export function claimAchChest() {
     return grant(M.chestItems);
 }
 
+export function levelItems(from,to) {
+    let n=0;
+    for (let lv=from+1;lv<=to;lv++) {
+        if (lv%M.levelItemEvery===0) {
+            n++;
+        }
+    }
+    return n;
+}
+
 export function runChestCount(stats,mode) {
     let n=0;
     if (mode==='endless') {

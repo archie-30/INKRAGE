@@ -2538,6 +2538,32 @@ export class RunSummary {
         }
     }
 
+    drawClearSeal(ctx,x,y,sc,T,v) {
+        const U=TUNING.summaryUi;
+        if (T<=0) {
+            return;
+        }
+        const k=Math.min(1,T/U.clearTime);
+        const e=k<1?2.6-1.6*EASE.easeOutBack(k):1;
+        const r=U.clearR*sc;
+        ctx.save();
+        ctx.translate(x,y-r*0.35);
+        ctx.rotate(0.22-0.3*(1-k));
+        ctx.scale(e,e);
+        ctx.globalAlpha=Math.min(1,k*2);
+        ctx.fillStyle=rgba('paper',0.92);
+        ctx.beginPath();
+        ctx.arc(0,0,r,0,Math.PI*2);
+        ctx.fill();
+        drawShape(ctx,sketchCircle(0,0,r,{width:3.2*sc,seed:941}),PALETTE.red,v);
+        drawShape(ctx,sketchCircle(0,0,r*0.82,{width:1.4*sc,seed:942}),PALETTE.red,v);
+        ctx.fillStyle=PALETTE.red;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        fitText(ctx,t('summary.clear'),0,2,r*1.5,Math.round(r*0.62),'bold ');
+        ctx.restore();
+    }
+
     show(victory,stats,quit,onRestart) {
         this.open=true;
         this.closeK=0;
@@ -2938,6 +2964,9 @@ export class RunSummary {
             ctx.fillStyle=col;
             ctx.fillText(title,0,2);
             ctx.restore();
+            if (this.stats&&this.stats.cleared) {
+                this.drawClearSeal(ctx,w/2+(tw/2+26+U.clearR*0.75)*sc,ty,sc,T-U.stampTime-U.clearDelay,v);
+            }
             if (st>=1&&T<U.stampTime+0.25) {
                 const k=(T-U.stampTime)/0.25;
                 ctx.save();

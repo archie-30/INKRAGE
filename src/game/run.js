@@ -148,6 +148,13 @@ export class Run {
         return this.mode==='tutorial';
     }
 
+    depth() {
+        if (!this.notebook()||!this.stats) {
+            return 0;
+        }
+        return Math.min(1,this.stats.rooms/TUNING.depth.full);
+    }
+
     notebook() {
         return this.mode==='story';
     }
@@ -254,7 +261,9 @@ export class Run {
         else {
             plan=planRoom(this.act,this.index,this.rng,this.lastLayout,this.planOpts());
         }
+        plan.depth=this.depth();
         if (!plan.peace&&!plan.boss&&this.notebook()) {
+            plan.hpMult*=1+plan.depth*TUNING.depth.hp;
             if (this.node==='elite'||(this.node==='battle'&&this.eliteNext)) {
                 plan.mod='elite';
                 plan.elite=true;
@@ -264,7 +273,8 @@ export class Run {
             }
             if (this.node==='challenge') {
                 const C=NOTEBOOK.challenges;
-                plan.challenge=C[Math.floor(this.rng.next()*C.length)];
+                const ch=C[Math.floor(this.rng.next()*C.length)];
+                plan.challenge=ch.time?{...ch,time:Math.round(ch.time*(1-plan.depth*TUNING.depth.timed))}:ch;
                 plan.mod=null;
             }
         }

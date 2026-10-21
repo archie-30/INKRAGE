@@ -228,8 +228,9 @@ class Kit {
     }
 
     timer(s) {
-        this.limit=s;
-        this.left=s;
+        const k=1-(this.depth||0)*TUNING.depth.mgTime;
+        this.limit=s*k;
+        this.left=s*k;
     }
 
     burst(x,z,color='ink',n=12,y=0.6) {
@@ -2301,8 +2302,10 @@ export class MiniGames {
         this.running=false;
     }
 
-    setup(id,room,act,flip) {
+    setup(id,room,act,flip,depth=0) {
         this.g=new Kit(this,id,room,act,flip);
+        const T=this.g.P.time;
+        this.g.depth=Array.isArray(T)&&T[0]>T[T.length-1]?depth:0;
         this.running=false;
         GAMES[id].setup(this.g);
     }
