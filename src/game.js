@@ -44,7 +44,7 @@ import {WeaponView} from './ui2d/weaponView.js';
 import {RunSummary,MainMenu,PauseMenu,SettingsMenu,Codex,TrainingPicker,LevelView,SkinEditor,TrainingMenu,Coach,LangPicker,InfoPopup,ChoicePanel,DeckPicker,LevelUpView,drawWeaponIcon} from './ui2d/menu.js';
 import {weaponUnlocked,pickWeapon,unlockedWeapons,RANDOM_WEAPON,WEAPONS,WEAPON_ORDER} from './data/weapons.js';
 import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,levelItems,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
-import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
+import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult,pageStartRelic,redrawBonus,bigFoeMult,stepRelic,luckRelic} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
 import {GuidePopup,courseGuide,modeGuide,relicGuide,coinGuide} from './ui2d/guide.js';
 import {ModeSelect,MODE_LIST} from './ui2d/modeSelect.js';
@@ -994,7 +994,7 @@ function boot() {
             }
         }
     };
-    enemies.dmgHook=(e,dmg)=>e.tutor?0:(run.course&&run.state==='combat'?run.course.damage(e,dmg):dmg)*dmgMult();
+    enemies.dmgHook=(e,dmg)=>e.tutor?0:(run.course&&run.state==='combat'?run.course.damage(e,dmg):dmg)*dmgMult()*bigFoeMult(e);
     enemies.onKill=(e,dx,dz)=>{
         const x=e.pos.x;
         const z=e.pos.z;
@@ -1010,6 +1010,14 @@ function boot() {
         const bits=killRelic(e.type==='blobSmall');
         if (bits>0) {
             ink.add(bits);
+        }
+        if (player.hp>0&&player.hp<player.maxHp) {
+            const luck=luckRelic();
+            if (luck>0) {
+                player.hp=Math.min(player.maxHp,player.hp+luck);
+                particles.burst(player.pos.x,1.2,player.pos.z,10,{color:'crayonGreen',speed:[1,3],up:[2,4],size:[0.08,0.16]});
+                overlay.hud.toast(t('relic.lucky',{n:luck}));
+            }
         }
         if (run.mode==='training') {
             trainStats.kills++;
@@ -1631,10 +1639,11 @@ function boot() {
             particles.burst(e.pos.x,0.4,e.pos.z,e.def.boss?30:PT.spawnPuff,{color:'midGray',speed:[1,4],up:[1,4],size:[0.1,0.2],life:[0.3,0.6]});
         },
         pageStart:plan=>{
-            redrawState.left=TUNING.redraw.perPage;
+            redrawState.left=TUNING.redraw.perPage+redrawBonus();
             player.pageHits=0;
             const R=TUNING.relics;
             rearmGuard();
+            pageStartRelic();
             if (hasRelic('inkVial')&&ink.value<R.inkVial.min&&!plan.rush) {
                 ink.value=R.inkVial.min;
                 flashRelic('inkVial');
@@ -1643,12 +1652,25 @@ function boot() {
                 player.setShield(player.shield+R.amulet.shields);
                 flashRelic('amulet');
             }
+            if (hasRelic('clipboard')&&plan.boss) {
+                ink.value=ink.max;
+                player.setKeep(player.keepShield+R.clipboard.shields);
+                flashRelic('clipboard');
+            }
+            if (hasRelic('spareHand')&&!plan.peace) {
+                flashRelic('spareHand');
+            }
             if (plan.node==='shop') {
                 flashRelic('coupon',1.5);
             }
         },
         onCleared:plan=>{
             audio.play('clear');
+            const steps=stepRelic(player.pageHits);
+            if (steps>0) {
+                ink.add(steps);
+                overlay.hud.toast(t('relic.steps',{n:steps}));
+            }
             const patch=plan.ambush?0:pageRelic(plan.rush?TUNING.bossRush.bandageEvery:0);
             if (patch>0) {
                 player.hp=Math.min(player.maxHp,player.hp+patch);

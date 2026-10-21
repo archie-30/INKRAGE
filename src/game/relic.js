@@ -2,7 +2,7 @@ import {TUNING} from '../data/tuning.js';
 
 const R=TUNING.relics;
 
-export const relic={list:[],guard:0,kills:0,pages:0,cards:0,free:0,drip:0,phoenix:false,metro:0,glow:{},hold:{},gain:0};
+export const relic={list:[],guard:0,kills:0,pages:0,cards:0,free:0,drip:0,phoenix:false,metro:0,glow:{},hold:{},gain:0,sheet:false,luck:0};
 
 export function hasRelic(id) {
     return relic.list.includes(id);
@@ -27,6 +27,8 @@ export function startRelic(list) {
     relic.drip=0;
     relic.metro=0;
     relic.phoenix=false;
+    relic.sheet=false;
+    relic.luck=0;
     relic.glow={};
     relic.hold={};
     for (const id of relic.list) {
@@ -195,7 +197,16 @@ export function pageRelic(every=0) {
 }
 
 export function cardRelic(rare) {
-    if (!hasRelic('carbon')||rare) {
+    if (rare) {
+        return;
+    }
+    if (sheetFree()) {
+        relic.sheet=false;
+        holdRelic('cheatSheet',false);
+        flashRelic('cheatSheet');
+        return;
+    }
+    if (!hasRelic('carbon')) {
         return;
     }
     if (relic.free>0) {
@@ -214,6 +225,45 @@ export function cardRelic(rare) {
 
 export function carbonFree() {
     return hasRelic('carbon')&&relic.free>0;
+}
+
+export function sheetFree() {
+    return hasRelic('cheatSheet')&&relic.sheet;
+}
+
+export function relicFree() {
+    return carbonFree()||sheetFree();
+}
+
+export function pageStartRelic() {
+    relic.sheet=hasRelic('cheatSheet');
+    relic.luck=0;
+    holdRelic('cheatSheet',relic.sheet);
+}
+
+export function redrawBonus() {
+    return hasRelic('spareHand')?R.spareHand.redraw:0;
+}
+
+export function bigFoeMult(e) {
+    return hasRelic('redPen')&&(e.elite||e.def.boss)?R.redPen.mult:1;
+}
+
+export function stepRelic(hits) {
+    if (!hasRelic('pedometer')||hits>0) {
+        return 0;
+    }
+    flashRelic('pedometer');
+    return R.pedometer.ink;
+}
+
+export function luckRelic() {
+    if (!hasRelic('fourLeaf')||relic.luck>=R.fourLeaf.max||Math.random()>=R.fourLeaf.chance) {
+        return 0;
+    }
+    relic.luck++;
+    flashRelic('fourLeaf');
+    return R.fourLeaf.heal;
 }
 
 export function dripRelic(dt) {

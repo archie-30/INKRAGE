@@ -1,6 +1,6 @@
 import {TUNING} from './tuning.js';
 
-export const RELIC_ORDER=['refill','sharpener','inkVial','styptic','whiteout','bandage','sneakers','feather','eraserBits','boxCutter','glasses','coupon','metronome','redPact','carbon','phoenix','bigInk','inkDrip','amulet','lastStand','gambler','masochist'];
+export const RELIC_ORDER=['refill','sharpener','inkVial','styptic','whiteout','bandage','sneakers','feather','eraserBits','boxCutter','glasses','coupon','metronome','redPact','carbon','phoenix','bigInk','inkDrip','amulet','lastStand','gambler','masochist','spareHand','redPen','pedometer','fourLeaf','cheatSheet','clipboard'];
 
 export const RELIC_STARTERS=['refill','sharpener','inkVial','styptic'];
 
@@ -26,7 +26,13 @@ export const RELIC_TINT={
     amulet:'amber',
     lastStand:'plum',
     gambler:'moss',
-    masochist:'plum'
+    masochist:'plum',
+    spareHand:'teal',
+    redPen:'vermilion',
+    pedometer:'sky',
+    fourLeaf:'moss',
+    cheatSheet:'lemon',
+    clipboard:'kraft'
 };
 
 export function relicParams(id) {
@@ -53,7 +59,13 @@ export function relicParams(id) {
         amulet:()=>({n:R.amulet.shields}),
         lastStand:()=>({hp:R.lastStand.hp,pct:pct(R.lastStand.rate)}),
         gambler:()=>({m:R.gambler.mult}),
-        masochist:()=>({n:R.masochist.ink})
+        masochist:()=>({n:R.masochist.ink}),
+        spareHand:()=>({n:R.spareHand.redraw}),
+        redPen:()=>({pct:pct(R.redPen.mult)}),
+        pedometer:()=>({n:R.pedometer.ink}),
+        fourLeaf:()=>({pct:Math.round(R.fourLeaf.chance*100),n:R.fourLeaf.heal,max:R.fourLeaf.max}),
+        cheatSheet:()=>({}),
+        clipboard:()=>({n:R.clipboard.shields})
     };
     return P[id]?P[id]():{};
 }

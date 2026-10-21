@@ -837,7 +837,12 @@ export const TUNING={
         amulet:{shields:1},
         lastStand:{hp:3,rate:1.2,speed:1.2},
         gambler:{mult:2},
-        masochist:{ink:0.5}
+        masochist:{ink:0.5},
+        spareHand:{redraw:1},
+        redPen:{mult:1.1},
+        pedometer:{ink:4},
+        fourLeaf:{chance:0.04,heal:1,max:2},
+        clipboard:{shields:1}
     },
     metaUi:{
         chest:{shake:0.9,burst:0.35,itemGap:0.32,itemPop:0.45,float:6,rays:12},
