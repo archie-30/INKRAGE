@@ -2159,6 +2159,28 @@ function boot() {
         ]},{ok:t('resume.continue'),cancel:t('resume.settle'),esc:'ok',onOk:()=>resumeRun(s,false),onCancel:()=>resumeRun(s,true)});
         return true;
     }
+    function checkSlingComp() {
+        const C=TUNING.slingComp;
+        if (progress.slingComp||game.mode!=='menu'||!mainMenu.open||transition.active||langPick.open||time.real<TUNING.ui.loaderMin+TUNING.ui.loaderFade+C.delay) {
+            return;
+        }
+        if (popup.shown()||guide.shown()||confirmPop.shown()||chestView.shown()||levelUp.open||settingsMenu.open||codex.open||levelView.open||relicView.open||armsView.open||skinEditor.open||achView.open||buyPrompt.open||modeSelect.open) {
+            return;
+        }
+        progress.slingComp=true;
+        if (!weaponUnlocked('slingshot',progress.level)) {
+            saveProgress();
+            return;
+        }
+        grantCoins(C.coins);
+        audio.play('clear',1.2);
+        const blocks=[{kind:'text',text:t('slingComp.intro')},{kind:'head',text:t('weapon.slingshot.name')}];
+        for (const k of C.rows) {
+            blocks.push({kind:'change',label:t('slingComp.'+k),from:t('slingComp.'+k+'.from'),to:t('slingComp.'+k+'.to')});
+        }
+        blocks.push({kind:'text',text:t('slingComp.gift',{n:C.coins})});
+        guide.open2({title:t('slingComp.title'),icon:null,blocks},{ok:t('notice.ok'),lock:C.hold});
+    }
     function checkRushUnlock() {
         if (progress.rushSeen||game.mode!=='menu'||!(mainMenu.open||modeSelect.open)||transition.active||langPick.open||!settings.tutorialSeen) {
             return;
@@ -3946,6 +3968,7 @@ function boot() {
             achToast.push(achQueue.shift());
             audio.play('equip',1.2);
         }
+        checkSlingComp();
         checkRushUnlock();
         for (let i=laterQ.length-1;i>=0;i--) {
             laterQ[i].t-=dt;

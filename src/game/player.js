@@ -341,6 +341,10 @@ export class Player {
         const pouch=mk(new THREE.BoxGeometry(0.07,0.03,0.03),g?coat:unlitMaterial({color:'darkRed'}),0,0,0.17,0,false);
         const pellet=mk(new THREE.SphereGeometry(0.04,8,6),ink,0,0,0.17,0,false);
         sling.add(bandL,bandR,pouch,pellet);
+        bandL.userData.slingPart='bandL';
+        bandR.userData.slingPart='bandR';
+        pouch.userData.slingPart='pouch';
+        pellet.userData.slingPart='pellet';
         this.slingRig={bandL,bandR,pouch,pellet};
         this.setSlingPull(0);
         looks.slingshot=sling;
@@ -1539,6 +1543,13 @@ export class Player {
         }
         this.gunL=this.gun.clone();
         this.gunL.userData.at=time.real;
+        const rig={};
+        this.gunL.traverse(o=>{
+            if (o.userData.slingPart) {
+                rig[o.userData.slingPart]=o;
+            }
+        });
+        this.slingRigL=rig.pellet?rig:null;
         this.body.add(this.gunL);
     }
 
@@ -1550,6 +1561,7 @@ export class Player {
         if (now) {
             this.body.remove(g);
             this.gunL=null;
+            this.slingRigL=null;
             return;
         }
         if (g.userData.drop===undefined) {
@@ -1636,7 +1648,13 @@ export class Player {
     }
 
     setSlingPull(k) {
-        const S=this.slingRig;
+        this.pullRig(this.slingRig,k);
+        if (this.slingRigL) {
+            this.pullRig(this.slingRigL,k);
+        }
+    }
+
+    pullRig(S,k) {
         const C=TUNING.player.sling;
         const pz=C.restZ-C.pull*k;
         for (const [m,sx] of [[S.bandL,-1],[S.bandR,1]]) {
@@ -1676,6 +1694,9 @@ export class Player {
             const q=1-this.slingSnapT/C.snapTime;
             this.setSlingPull(-Math.sin(q*Math.PI)*C.overshoot*(1-q));
             this.slingRig.pellet.visible=false;
+            if (this.slingRigL) {
+                this.slingRigL.pellet.visible=false;
+            }
             return;
         }
         const k=this.slingFull?1:(this.chargeFrac||0);
