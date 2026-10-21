@@ -440,11 +440,13 @@ export class BulletSystem {
                 wall=null;
             }
             if (wall) {
-                if (this.onWall) {
-                    this.onWall(x-this.vx[i]*dt*0.5,z-this.vz[i]*dt*0.5,this.vx[i],this.vz[i],wall);
+                const keep=this.onWall?this.onWall(x-this.vx[i]*dt*0.5,z-this.vz[i]*dt*0.5,this.vx[i],this.vz[i],wall,this.dmg[i])||0:0;
+                if (keep<=0) {
+                    this.kill(i);
+                    continue;
                 }
-                this.kill(i);
-                continue;
+                this.dmg[i]=keep;
+                this.passCol[i]=wall;
             }
             if (this.onHit) {
                 const e=this.onHit(x,z,r,this.dmg[i],this.vx[i],this.vz[i],this,i);

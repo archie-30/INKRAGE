@@ -897,11 +897,23 @@ function boot() {
     playerBullets.onHit=hitEnemies;
     enemyBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
     chalkBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
-    const playerWall=(x,z,vx,vz,col)=>{
-        if (col&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='target'||col.piece.kind==='paperBox')) {
-            game.room.damagePiece(col.piece,W.damage);
+    const playerWall=(x,z,vx,vz,col,dmg=W.damage)=>{
+        const pc=col&&col.piece;
+        if (pc&&(pc.kind==='barrel'||pc.kind==='crate')) {
+            if (pc.state!=='alive') {
+                return dmg;
+            }
+            const hp=pc.hp;
+            game.room.damagePiece(pc,dmg);
+            if (dmg>=hp) {
+                return Math.max(0,dmg-TUNING.props.passLoss);
+            }
+        }
+        else if (pc&&(pc.kind==='target'||pc.kind==='paperBox')) {
+            game.room.damagePiece(pc,W.damage);
         }
         particles.burst(x,H,z,PT.wallPuff,{color:'nearGray',speed:[1,3.5],up:[1,3],size:[0.06,0.12],life:[0.2,0.4],dirX:-vx,dirZ:-vz,cone:1.3});
+        return 0;
     };
     playerBullets.onWall=playerWall;
     for (const s of extraSys) {
