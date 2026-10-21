@@ -214,6 +214,9 @@ export class GuidePopup extends Panel {
                 ctx.fillText(b.text,V.x+18,V.y+y-this.scroll);
                 y+=lh+4;
             }
+            else if (b.kind==='change') {
+                y+=this.drawChange(ctx,b,V.x,V.y+y-this.scroll,V.w,fs,lh);
+            }
             else if (b.kind==='bullet') {
                 ctx.font=fs+'px '+FONT;
                 const ls=wrapText(ctx,b.text,V.w-40);
@@ -239,6 +242,56 @@ export class GuidePopup extends Panel {
             }
         }
         this.contentH=y+6;
+    }
+
+    drawChange(ctx,b,x,y,w,fs,lh) {
+        const pad=10;
+        const iw=w-pad*2-8;
+        ctx.font='bold '+fs+'px '+FONT;
+        const lw=ctx.measureText(b.label).width;
+        ctx.font=fs+'px '+FONT;
+        const fw=ctx.measureText(b.from).width;
+        const arrow='  →  ';
+        const aw=ctx.measureText(arrow).width;
+        ctx.font='bold '+fs+'px '+FONT;
+        const tw=ctx.measureText(b.to).width;
+        const one=lw+16+fw+aw+tw<=iw;
+        let lines=[];
+        if (!one) {
+            lines=fw+aw+tw<=iw-14?[null]:wrapText(ctx,b.to,iw-14);
+        }
+        const rows=one?1:1+(lines[0]===null?1:1+lines.length);
+        const h=rows*lh+pad;
+        ctx.fillStyle=rgba('ink',0.05);
+        ctx.fillRect(x+4,y-pad/2+2,w-8,h-2);
+        let cx=x+pad+4;
+        let cy=y+2;
+        ctx.fillStyle=PALETTE.ink;
+        ctx.fillText(b.label,cx,cy);
+        if (one) {
+            cx+=lw+16;
+        }
+        else {
+            cx=x+pad+18;
+            cy+=lh;
+        }
+        ctx.font=fs+'px '+FONT;
+        ctx.fillStyle=PALETTE.nearGray;
+        ctx.fillText(b.from,cx,cy);
+        ctx.fillRect(cx,cy+fs*0.62,fw,1.6);
+        ctx.fillText(arrow,cx+fw,cy);
+        ctx.font='bold '+fs+'px '+FONT;
+        ctx.fillStyle=PALETTE.red;
+        if (one||lines[0]===null) {
+            ctx.fillText(b.to,cx+fw+aw,cy);
+        }
+        else {
+            for (const l of lines) {
+                cy+=lh;
+                ctx.fillText(l,cx,cy);
+            }
+        }
+        return h+4;
     }
 
     draw(ctx) {
