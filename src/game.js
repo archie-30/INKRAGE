@@ -2355,7 +2355,12 @@ function boot() {
             }
         }
         saveSettings();
-        applyQuality();
+        if (key==='quality') {
+            applyQuality();
+        }
+        else {
+            applyBoil();
+        }
         audio.applyVolumes();
         if (key==='fps') {
             time.fpsCap=settings.fpsCap;
@@ -2958,6 +2963,9 @@ function boot() {
         });
         renderer.applyQuality();
         overlay.refresh();
+        applyBoil();
+    }
+    function applyBoil() {
         renderer.post.setBoilScale(boilScale());
         setJitterScale(boilScale());
         time.freezeBoil=settings.reducedMotion||boilScale()<=0;
