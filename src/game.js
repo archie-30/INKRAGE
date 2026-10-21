@@ -873,8 +873,18 @@ function boot() {
         const G=FF.glow;
         particles.burst(bx,H,bz,1,{color:'slingGlow',speed:[0,0.2],up:[0,0.2],size:G.size,life:G.life});
     };
+    const slingDmg=(dmg,sys,i)=>dmg+sys.hitN[i]*(player.W.charge?player.W.charge.pierceBonus||0:0);
+    weaponSys.sling.onHit=(x,z,r,dmg,vx,vz,sys,i)=>hitEnemies(x,z,r,slingDmg(dmg,sys,i),vx,vz,sys,i);
+    weaponSys.slingFull.onPass=(x,z,vx,vz)=>{
+        const B=FF.hit;
+        particles.burst(x,H,z,B.count,{color:'slingGlow',speed:B.speed,up:B.up,size:B.size,life:B.life,dirX:vx,dirZ:vz,cone:1.2});
+        particles.burst(x,H,z,Math.round(B.count/2),{color:'nearGray',speed:B.speed,up:B.up,size:B.size,life:B.life,dirX:-vx,dirZ:-vz,cone:1.2});
+        audio.play('wSling',1.4);
+    };
     weaponSys.slingFull.onHit=(x,z,r,dmg,vx,vz,sys,i)=>{
-        const e=hitEnemies(x,z,r,dmg,vx,vz,sys,i);
+        numTint='slingNum';
+        const e=hitEnemies(x,z,r,slingDmg(dmg,sys,i),vx,vz,sys,i);
+        numTint=null;
         if (e) {
             const B=FF.hit;
             particles.burst(x,H,z,B.count,{color:'slingGlow',speed:B.speed,up:B.up,size:B.size,life:B.life});
@@ -906,6 +916,7 @@ function boot() {
         particles.burst(x,H,z,PT.wallPuff,{color:'darkRed',speed:[1,3],up:[1,3],size:[0.07,0.13],life:[0.2,0.4],dirX:-vx,dirZ:-vz,cone:1.3});
     };
     const dmgNums=new DamageNumbers();
+    let numTint=null;
     enemies.onDamage=(e,dmg,crit,src)=>{
         if (dmg<=0) {
             return;
@@ -913,7 +924,7 @@ function boot() {
         if (run.mode==='bossrush'&&run.state==='combat') {
             run.rushDamage(dmg,src,e.def.boss&&(crit||e.vulnT>0||e.damageMult(e.pos.x,e.pos.z)>1));
         }
-        dmgNums.spawn(e.pos.x,e.def.height*0.9,e.pos.z,dmg,crit,beamMerge?TUNING.beam.mergeTime:0);
+        dmgNums.spawn(e.pos.x,e.def.height*0.9,e.pos.z,dmg,crit,beamMerge?TUNING.beam.mergeTime:0,numTint);
         if (run.stats) {
             run.stats.dealt+=dmg;
         }
@@ -1042,10 +1053,10 @@ function boot() {
     player.events.onChargeFull=p=>{
         audio.play('ui',1.6);
         particles.burst(p.pos.x,1.4,p.pos.z,8,{color:'red',speed:[1,3],up:[1,3],size:[0.05,0.1]});
-        if (p.slingGuard) {
-            audio.play('guardUp');
-            particles.burst(p.pos.x,1.0,p.pos.z,10,{color:'gold',speed:[1,3],up:[1,4],size:[0.05,0.1]});
-        }
+    };
+    player.events.onGuardUp=p=>{
+        audio.play('guardUp');
+        particles.burst(p.pos.x,1.0,p.pos.z,10,{color:'gold',speed:[1,3],up:[1,4],size:[0.05,0.1]});
     };
     player.events.onSlingGuard=(p,dx,dz)=>{
         audio.play('guardBreak');
@@ -1392,7 +1403,7 @@ function boot() {
         doors.build(r,plan.exits||[]);
         npcs.build(r,plan.npcs||[]);
         if (plan.game) {
-            minis.setup(plan.game,r,plan.act,plan.gameFlip);
+            minis.setup(plan.game,r,plan.act,plan.gameFlip,plan.depth||0);
         }
         art.warm(deckList.map(c=>createCard(c.id,c.upgraded)));
         game.mod=plan.mod||null;

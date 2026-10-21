@@ -25,15 +25,16 @@ export class DamageNumbers {
         it.text=text;
         it.t=0;
         it.crit=false;
+        it.tint=null;
         it.ox=0;
         it.rot=0;
     }
 
-    spawn(x,y,z,value,crit,merge) {
+    spawn(x,y,z,value,crit,merge,tint=null) {
         const D=TUNING.damageNumbers;
         const mt=merge||D.mergeTime;
         for (const it of this.items) {
-            if (it.active&&!it.text&&it.age<mt&&Math.abs(it.x-x)<0.9&&Math.abs(it.z-z)<0.9&&it.crit===crit) {
+            if (it.active&&!it.text&&it.age<mt&&Math.abs(it.x-x)<0.9&&Math.abs(it.z-z)<0.9&&it.crit===crit&&it.tint===tint) {
                 it.v+=value;
                 it.age=0;
                 it.t=Math.min(it.t,0.05);
@@ -51,6 +52,7 @@ export class DamageNumbers {
         it.t=0;
         it.age=0;
         it.crit=crit;
+        it.tint=tint;
         it.text=null;
         it.ox=(Math.random()-0.5)*D.drift;
         it.rot=(Math.random()-0.5)*0.3;
@@ -122,7 +124,7 @@ export class DamageNumbers {
             ctx.lineJoin='round';
             ctx.strokeStyle=rgba('paper',a);
             ctx.strokeText(txt,0,0);
-            ctx.fillStyle=it.crit?rgba('red',a):(big>0.5?rgba('darkRed',a):rgba('ink',a));
+            ctx.fillStyle=it.tint?rgba(it.tint,a):(it.crit?rgba('red',a):(big>0.5?rgba('darkRed',a):rgba('ink',a)));
             ctx.fillText(txt,0,0);
             ctx.restore();
         }

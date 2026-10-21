@@ -95,7 +95,7 @@ export const TUNING={
         fovPunchDecay:9
     },
     player:{
-        sling:{fullFx:{sparks:18,speed:[2,6],up:[0.5,2.5],size:[0.07,0.17],life:[0.25,0.55],trail:{every:0.09,jitter:0.22,speed:[0.5,2.2],up:[0.4,2],size:[0.07,0.17],life:[0.3,0.65],cone:1.1},glow:{size:[0.4,0.5],life:[0.07,0.1]},hit:{count:12,speed:[2.5,6],up:[1,3.5],size:[0.07,0.16],life:[0.25,0.5]}},guardInvuln:0.3,auraR:0.95,auraH:1.7,auraAlpha:0.22,auraPulse:6,tipX:0.12,tipZ:0.17,restZ:0.15,pull:0.42,shake:0.03,snapTime:0.16,overshoot:0.35},
+        sling:{fullFx:{sparks:18,speed:[2,6],up:[0.5,2.5],size:[0.07,0.17],life:[0.25,0.55],trail:{every:0.09,jitter:0.22,speed:[0.5,2.2],up:[0.4,2],size:[0.07,0.17],life:[0.3,0.65],cone:1.1},glow:{size:[0.4,0.5],life:[0.07,0.1]},hit:{count:12,speed:[2.5,6],up:[1,3.5],size:[0.07,0.16],life:[0.25,0.5]}},guardInvuln:0.3,guardAt:0.8,auraR:0.95,auraH:1.7,auraAlpha:0.22,auraPulse:6,tipX:0.12,tipZ:0.17,restZ:0.15,pull:0.42,shake:0.03,snapTime:0.16,overshoot:0.35},
         weaponHull:false,
         weaponSoft:0.85,
         arm:{drawTime:0.45,stowTime:0.3,ready:0.7,spin:3.2,lift:0.5,back:0.4,raise:0.9},
@@ -356,7 +356,7 @@ export const TUNING={
         deckOutMax:0.75,
         deckDrag:8
     },
-    summaryUi:{
+    summaryUi:{clearDelay:0.15,clearTime:0.3,clearR:46,
         best:{at:1.7,bursts:9,gap:0.4,life:1.1,sparks:14,strips:40,stampTime:0.45,x:0.19,y:0.22,rot:-0.14},
         stampTime:0.35,
         countTime:0.9,
@@ -534,7 +534,7 @@ export const TUNING={
         crayonB:{color:'crayonBlue',capacity:48,radius:0.15,size:0.18,trailWidth:0.11},
         crayonG:{color:'crayonGreen',capacity:64,radius:0.14,size:0.15,trailWidth:0.09},
         sling:{color:'ink',capacity:24,radius:0.34,wallR:0.24,size:0.3,trailWidth:0.18,pierce:true},
-        slingFull:{color:'slingGlow',capacity:8,radius:0.34,wallR:0.24,size:0.38,trailWidth:0.34,pierce:true},
+        slingFull:{color:'slingGlow',capacity:8,radius:0.34,wallR:0.24,size:0.38,trailWidth:0.34,pierce:true,wallPass:1},
         compass:{color:'nearGray',capacity:16,radius:0.6,wallR:0.3,size:0.8,trailWidth:0.06,pierce:true,boomerang:true,model:'compass',spin:18,returnAccel:0,turnRate:12,propGap:0.4}
     },
     brushStroke:{count:10,height:1.0,fade:0.3,muzzle:0,thickMin:0.3,thickGrow:0.1,arc:1.0,lead:0.35,bow:0.05},
@@ -780,6 +780,7 @@ export const TUNING={
         shake:0,
         flash:0.12
     },
+    depth:{full:18,hp:0.18,timed:0.15,mgTime:0.1},
     meta:{
         price:{color:2,acc:5,weapon:25},
         relicV:2,

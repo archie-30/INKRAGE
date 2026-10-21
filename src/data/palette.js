@@ -11,7 +11,8 @@ export const PALETTE={
     goldDark:'#A87A12',
     crayonBlue:'#3B6FB6',
     crayonGreen:'#3E9A57',
-    slingGlow:'#F2A866'
+    slingGlow:'#F2A866',
+    slingNum:'#E07A1F'
 };
 
 export const SKIN_TONES={
