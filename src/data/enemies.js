@@ -397,7 +397,7 @@ export const ENEMIES={
         accel:10,
         keep:8,
         behind:2.6,
-        stickEvery:6,
+        stickEvery:4,
         maxNotes:3,
         eliteMaxNotes:4,
         blockMax:20,
