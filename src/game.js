@@ -44,7 +44,7 @@ import {WeaponView} from './ui2d/weaponView.js';
 import {RunSummary,MainMenu,PauseMenu,SettingsMenu,Codex,TrainingPicker,LevelView,SkinEditor,TrainingMenu,Coach,LangPicker,InfoPopup,ChoicePanel,DeckPicker,LevelUpView,drawWeaponIcon} from './ui2d/menu.js';
 import {weaponUnlocked,pickWeapon,unlockedWeapons,RANDOM_WEAPON,WEAPONS,WEAPON_ORDER} from './data/weapons.js';
 import {initMeta,gradeOf,grantCoins,clampSkin,grantLevelChest,setGate,setAchHold,bump,setMax,addKind,flushMeta,metaDirty,achQueue,grant,buy,buyAll,presetMissing,checkAch,claimAchChest,runChestCount,levelItems,reviveReady,spendRevive,earnDots,modeSeen,markModeSeen,pullRelic} from './core/meta.js';
-import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult} from './game/relic.js';
+import {startRelic,relic,takeGuard,rearmGuard,hasRelic,flashRelic,tickRelics,dmgMult,killRelic,pageRelic,perfectRelic,dripRelic,usePhoenix,inkMaxBonus,cardRelic,holdRelic,lowHp,relicState,restoreRelic,addRelic,removeRelic,gamblerMult,pageStartRelic,redrawBonus,bigFoeMult,stepRelic,luckRelic} from './game/relic.js';
 import {saveRunSnap,loadRunSnap,clearRunSnap} from './core/runSave.js';
 import {GuidePopup,courseGuide,modeGuide,relicGuide,coinGuide} from './ui2d/guide.js';
 import {ModeSelect,MODE_LIST} from './ui2d/modeSelect.js';
@@ -897,11 +897,23 @@ function boot() {
     playerBullets.onHit=hitEnemies;
     enemyBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
     chalkBullets.onHit=(x,z,r,dmg,vx,vz)=>player.hitBullet(x,z,r,dmg,vx,vz);
-    const playerWall=(x,z,vx,vz,col)=>{
-        if (col&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='target'||col.piece.kind==='paperBox')) {
-            game.room.damagePiece(col.piece,W.damage);
+    const playerWall=(x,z,vx,vz,col,dmg=W.damage)=>{
+        const pc=col&&col.piece;
+        if (pc&&(pc.kind==='barrel'||pc.kind==='crate')) {
+            if (pc.state!=='alive') {
+                return dmg;
+            }
+            const hp=pc.hp;
+            game.room.damagePiece(pc,dmg);
+            if (dmg>=hp) {
+                return Math.max(0,dmg-TUNING.props.passLoss);
+            }
+        }
+        else if (pc&&(pc.kind==='target'||pc.kind==='paperBox')) {
+            game.room.damagePiece(pc,W.damage);
         }
         particles.burst(x,H,z,PT.wallPuff,{color:'nearGray',speed:[1,3.5],up:[1,3],size:[0.06,0.12],life:[0.2,0.4],dirX:-vx,dirZ:-vz,cone:1.3});
+        return 0;
     };
     playerBullets.onWall=playerWall;
     for (const s of extraSys) {
@@ -917,6 +929,15 @@ function boot() {
     };
     const dmgNums=new DamageNumbers();
     let numTint=null;
+    enemies.onSticky=(e,blocked)=>{
+        const h=e.def.height*0.9;
+        particles.burst(e.pos.x,h,e.pos.z,blocked?10:6,{color:'marker',speed:[2,5],up:[1,4],size:[0.06,0.14]});
+        paperShards.burst(e.pos.x,h,e.pos.z,blocked?4:2,0,0,0.6);
+        audio.play('erase',1.4);
+        if (blocked) {
+            dmgNums.spawnText(e.pos.x,h+0.4,e.pos.z,t('enemy.stickyBlock'));
+        }
+    };
     enemies.onDamage=(e,dmg,crit,src)=>{
         if (dmg<=0) {
             return;
@@ -982,7 +1003,7 @@ function boot() {
             }
         }
     };
-    enemies.dmgHook=(e,dmg)=>e.tutor?0:(run.course&&run.state==='combat'?run.course.damage(e,dmg):dmg)*dmgMult();
+    enemies.dmgHook=(e,dmg)=>e.tutor?0:(run.course&&run.state==='combat'?run.course.damage(e,dmg):dmg)*dmgMult()*bigFoeMult(e);
     enemies.onKill=(e,dx,dz)=>{
         const x=e.pos.x;
         const z=e.pos.z;
@@ -998,6 +1019,14 @@ function boot() {
         const bits=killRelic(e.type==='blobSmall');
         if (bits>0) {
             ink.add(bits);
+        }
+        if (player.hp>0&&player.hp<player.maxHp) {
+            const luck=luckRelic();
+            if (luck>0) {
+                player.hp=Math.min(player.maxHp,player.hp+luck);
+                particles.burst(player.pos.x,1.2,player.pos.z,10,{color:'crayonGreen',speed:[1,3],up:[2,4],size:[0.08,0.16]});
+                overlay.hud.toast(t('relic.lucky',{n:luck}));
+            }
         }
         if (run.mode==='training') {
             trainStats.kills++;
@@ -1619,10 +1648,11 @@ function boot() {
             particles.burst(e.pos.x,0.4,e.pos.z,e.def.boss?30:PT.spawnPuff,{color:'midGray',speed:[1,4],up:[1,4],size:[0.1,0.2],life:[0.3,0.6]});
         },
         pageStart:plan=>{
-            redrawState.left=TUNING.redraw.perPage;
+            redrawState.left=TUNING.redraw.perPage+redrawBonus();
             player.pageHits=0;
             const R=TUNING.relics;
             rearmGuard();
+            pageStartRelic();
             if (hasRelic('inkVial')&&ink.value<R.inkVial.min&&!plan.rush) {
                 ink.value=R.inkVial.min;
                 flashRelic('inkVial');
@@ -1631,12 +1661,25 @@ function boot() {
                 player.setShield(player.shield+R.amulet.shields);
                 flashRelic('amulet');
             }
+            if (hasRelic('clipboard')&&plan.boss) {
+                ink.value=ink.max;
+                player.setKeep(player.keepShield+R.clipboard.shields);
+                flashRelic('clipboard');
+            }
+            if (hasRelic('spareHand')&&!plan.peace) {
+                flashRelic('spareHand');
+            }
             if (plan.node==='shop') {
                 flashRelic('coupon',1.5);
             }
         },
         onCleared:plan=>{
             audio.play('clear');
+            const steps=stepRelic(player.pageHits);
+            if (steps>0) {
+                ink.add(steps);
+                overlay.hud.toast(t('relic.steps',{n:steps}));
+            }
             const patch=plan.ambush?0:pageRelic(plan.rush?TUNING.bossRush.bandageEvery:0);
             if (patch>0) {
                 player.hp=Math.min(player.maxHp,player.hp+patch);
@@ -2355,7 +2398,12 @@ function boot() {
             }
         }
         saveSettings();
-        applyQuality();
+        if (key==='quality') {
+            applyQuality();
+        }
+        else {
+            applyBoil();
+        }
         audio.applyVolumes();
         if (key==='fps') {
             time.fpsCap=settings.fpsCap;
@@ -2958,6 +3006,9 @@ function boot() {
         });
         renderer.applyQuality();
         overlay.refresh();
+        applyBoil();
+    }
+    function applyBoil() {
         renderer.post.setBoilScale(boilScale());
         setJitterScale(boilScale());
         time.freezeBoil=settings.reducedMotion||boilScale()<=0;

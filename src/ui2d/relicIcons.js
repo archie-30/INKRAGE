@@ -467,13 +467,149 @@ const ICONS={
         ctx.quadraticCurveTo(24,-22,30,-30);
         ctx.fill();
     },
+    spareHand(ctx,v,ink,fill,accent) {
+        const card=(r,x,col,seed)=>{
+            ctx.save();
+            ctx.translate(x,6);
+            ctx.rotate(r);
+            ctx.fillStyle=col;
+            ctx.fillRect(-12,-20,24,34);
+            drawShape(ctx,sketchRect(-12,-20,24,34,{width:2,seed}),ink,v);
+            ctx.fillStyle=ink;
+            ctx.beginPath();
+            ctx.moveTo(0,-8);
+            ctx.quadraticCurveTo(6,-2,0,6);
+            ctx.quadraticCurveTo(-6,-2,0,-8);
+            ctx.fill();
+            ctx.restore();
+        };
+        card(-0.35,-10,fill,4311);
+        card(0.3,10,accent,4312);
+        drawShape(ctx,sketchPath([[-20,-24],[-6,-34],[10,-34],[22,-24]],{width:2.4,seed:4313}),ink,v);
+        ctx.fillStyle=ink;
+        ctx.beginPath();
+        ctx.moveTo(26,-20);
+        ctx.lineTo(16,-22);
+        ctx.lineTo(24,-30);
+        ctx.closePath();
+        ctx.fill();
+    },
+    redPen(ctx,v,ink,fill,accent) {
+        drawShape(ctx,sketchPath([[-26,4],[-14,18],[10,-14]],{width:4,seed:4321}),PALETTE.red,v);
+        ctx.save();
+        ctx.translate(8,4);
+        ctx.rotate(0.75);
+        ctx.fillStyle=PALETTE.red;
+        ctx.fillRect(-6,-30,12,40);
+        drawShape(ctx,sketchRect(-6,-30,12,40,{width:2,seed:4322}),ink,v);
+        ctx.fillStyle=fill;
+        ctx.fillRect(-6,-16,12,6);
+        ctx.fillStyle=ink;
+        ctx.beginPath();
+        ctx.moveTo(-6,10);
+        ctx.lineTo(6,10);
+        ctx.lineTo(0,24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle=accent;
+        ctx.fillRect(-7,-36,14,7);
+        ctx.restore();
+    },
+    pedometer(ctx,v,ink,fill,accent) {
+        ctx.fillStyle=fill;
+        ctx.beginPath();
+        ctx.ellipse(0,4,24,28,0,0,Math.PI*2);
+        ctx.fill();
+        drawShape(ctx,sketchCircle(0,4,25,{width:2.2,seed:4331}),ink,v);
+        ctx.fillStyle=accent;
+        ctx.fillRect(-14,-12,28,14);
+        drawShape(ctx,sketchRect(-14,-12,28,14,{width:1.6,seed:4332}),ink,v);
+        ctx.fillStyle=ink;
+        ctx.font='bold 10px sans-serif';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('1234',0,-5);
+        for (const [x,y,r] of [[-6,16,-0.3],[6,22,0.3]]) {
+            ctx.save();
+            ctx.translate(x,y);
+            ctx.rotate(r);
+            ctx.beginPath();
+            ctx.ellipse(0,0,3.2,5,0,0,Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.fillRect(-4,-32,8,6);
+    },
+    fourLeaf(ctx,v,ink,fill,accent) {
+        drawShape(ctx,sketchPath([[0,2],[6,16],[4,32]],{width:3,seed:4341}),ink,v);
+        for (let i=0;i<4;i++) {
+            ctx.save();
+            ctx.rotate(i*Math.PI/2+Math.PI/4);
+            ctx.fillStyle=accent;
+            ctx.beginPath();
+            ctx.moveTo(0,0);
+            ctx.bezierCurveTo(-16,-8,-14,-26,-4,-24);
+            ctx.quadraticCurveTo(0,-22,0,-18);
+            ctx.quadraticCurveTo(0,-22,4,-24);
+            ctx.bezierCurveTo(14,-26,16,-8,0,0);
+            ctx.fill();
+            drawShape(ctx,sketchPath([[0,0],[-12,-10],[-8,-24],[0,-18],[8,-24],[12,-10],[0,0]],{width:1.8,seed:4342+i}),ink,v);
+            ctx.restore();
+        }
+        ctx.fillStyle=ink;
+        ctx.beginPath();
+        ctx.arc(0,0,3,0,Math.PI*2);
+        ctx.fill();
+    },
+    cheatSheet(ctx,v,ink,fill,accent) {
+        ctx.save();
+        ctx.rotate(-0.15);
+        ctx.fillStyle=fill;
+        ctx.fillRect(-18,-26,36,50);
+        drawShape(ctx,sketchRect(-18,-26,36,50,{width:2,seed:4351}),ink,v);
+        ctx.fillStyle=accent;
+        ctx.beginPath();
+        ctx.moveTo(18,10);
+        ctx.lineTo(18,24);
+        ctx.lineTo(4,24);
+        ctx.closePath();
+        ctx.fill();
+        for (let i=0;i<5;i++) {
+            const y=-18+i*8;
+            drawShape(ctx,sketchPath([[-12,y],[-4,y-2],[4,y+1],[i===4?2:12,y-1]],{width:1.4,seed:4352+i}),ink,v);
+        }
+        ctx.restore();
+        ctx.fillStyle=PALETTE.red;
+        ctx.font='bold 16px sans-serif';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText('A+',20,-26);
+    },
+    clipboard(ctx,v,ink,fill,accent) {
+        ctx.fillStyle=accent;
+        ctx.fillRect(-22,-28,44,60);
+        drawShape(ctx,sketchRect(-22,-28,44,60,{width:2.2,seed:4361}),ink,v);
+        ctx.fillStyle=fill;
+        ctx.fillRect(-16,-18,32,44);
+        drawShape(ctx,sketchRect(-16,-18,32,44,{width:1.4,seed:4362}),ink,v);
+        for (let i=0;i<4;i++) {
+            drawShape(ctx,sketchLine(-10,-6+i*8,10,-6+i*8,{width:1.2,seed:4363+i}),PALETTE.midGray,v);
+        }
+        ctx.fillStyle=PALETTE.midGray;
+        ctx.fillRect(-10,-34,20,12);
+        drawShape(ctx,sketchRect(-10,-34,20,12,{width:1.8,seed:4368}),ink,v);
+        ctx.fillStyle=ink;
+        ctx.beginPath();
+        ctx.arc(0,-30,2.4,0,Math.PI*2);
+        ctx.fill();
+    },
 };
 
 export function relicTone(id) {
     return SKIN_TONES[RELIC_TINT[id]]||SKIN_TONES.gray;
 }
 
-const FRAMES={refill:'hex',sharpener:'square',inkVial:'drop',styptic:'circle',whiteout:'shield',bandage:'square',sneakers:'scallop',feather:'drop',eraserBits:'octagon',boxCutter:'diamond',glasses:'circle',coupon:'ticket',metronome:'shield',redPact:'diamond',carbon:'square',phoenix:'flame',bigInk:'hex',inkDrip:'octagon',amulet:'shield',lastStand:'star',gambler:'scallop',masochist:'star'};
+const FRAMES={refill:'hex',sharpener:'square',inkVial:'drop',styptic:'circle',whiteout:'shield',bandage:'square',sneakers:'scallop',feather:'drop',eraserBits:'octagon',boxCutter:'diamond',glasses:'circle',coupon:'ticket',metronome:'shield',redPact:'diamond',carbon:'square',phoenix:'flame',bigInk:'hex',inkDrip:'octagon',amulet:'shield',lastStand:'star',gambler:'scallop',masochist:'star',spareHand:'square',redPen:'diamond',pedometer:'circle',fourLeaf:'scallop',cheatSheet:'ticket',clipboard:'shield'};
 
 function ring(n,r,rot=0,f=null) {
     const out=[];

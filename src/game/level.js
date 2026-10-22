@@ -1,3 +1,4 @@
+import {ENEMIES} from '../data/enemies.js';
 import {actDef,LAYOUTS,NORMAL_LAYOUTS,ACTS,ENEMY_COST,ENEMY_ORDER,STORY_INTRO,ENDLESS,ROOM_TYPES,BOSS_POOL,PAIRED} from '../data/levels.js';
 
 export const MODS=['dark','elite','hurry'];
@@ -75,8 +76,20 @@ function addFoe(wave,type) {
     }
 }
 
+function openPool(pool,used) {
+    const out={};
+    for (const k in pool) {
+        const cap=ENEMIES[k]&&ENEMIES[k].maxAlive;
+        if (!cap||(used[k]||0)<cap) {
+            out[k]=pool[k];
+        }
+    }
+    return out;
+}
+
 function buildWaves(pool,budget,nw,rng,fresh) {
     const waves=[];
+    const used={};
     let left=budget;
     for (let w=0;w<nw;w++) {
         let b=w===nw-1?left:Math.max(1,Math.round(budget/nw));
@@ -84,14 +97,16 @@ function buildWaves(pool,budget,nw,rng,fresh) {
         const wave=[];
         if (w===0&&fresh) {
             addFoe(wave,fresh);
+            used[fresh]=(used[fresh]||0)+1;
             b-=ENEMY_COST[fresh];
         }
         while (b>0) {
-            const t=weightedPick(pool,rng,b);
+            const t=weightedPick(openPool(pool,used),rng,b);
             if (!t) {
                 break;
             }
             addFoe(wave,t);
+            used[t]=(used[t]||0)+1;
             b-=ENEMY_COST[t];
         }
         if (wave.length===0) {

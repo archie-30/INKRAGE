@@ -1429,7 +1429,7 @@ export class SettingsMenu extends Panel {
     }
 }
 
-const FOE_LIST=['doodle','blob','sprayer','stampSoldier','inkCloud','bird','compass','eraserMonster'];
+const FOE_LIST=['doodle','blob','sprayer','stampSoldier','inkCloud','paperPlane','bird','stickyHelper','compass','eraserMonster'];
 
 const BOSS_LIST=['inkBottle','scissors','book','exam','bookFinal','alarm','calculator'];
 

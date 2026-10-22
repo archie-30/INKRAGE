@@ -281,6 +281,7 @@ export class Enemy {
         this.evolving=false;
         this.evoT=0;
         this.shielded=false;
+        this.sticky=null;
         this.baseScale=d.scale*(this.elite?TUNING.elite.scale:1);
         this.root.visible=true;
         this.root.position.copy(this.pos);
@@ -5657,7 +5658,641 @@ class Calculator extends Enemy {
     }
 }
 
-const CLASSES={bookmark:Bookmark,stampSoldier:StampSoldier,scissorMinion:ScissorMinion,doodle:Doodle,sprayer:Sprayer,blob:Blob,blobSmall:Blob,compass:Compass,eraserMonster:EraserMonster,bird:Bird,inkCloud:InkCloud,inkBottle:InkBottle,scissors:Scissors,book:Book,exam:Exam,bookFinal:BookFinal,alarm:Alarm,calculator:Calculator};
+function planeGeo(k) {
+    return triGeo([
+        0,0,0.5*k,-0.42*k,0.02*k,-0.38*k,0,0,-0.3*k,
+        0,0,0.5*k,0.42*k,0.02*k,-0.38*k,0,0,-0.3*k,
+        0,0,0.5*k,0,-0.16*k,-0.36*k,0,0,-0.3*k
+    ]);
+}
+
+function sPoint(P,s,amp,out) {
+    const w=amp*P.k*Math.sin(s*Math.PI*2);
+    out.x=P.sx+P.dx*P.len*s-P.dz*w;
+    out.z=P.sz+P.dz*P.len*s+P.dx*w;
+    return out;
+}
+
+function sPath(sx,sz,ex,ez,k,amp) {
+    const dx=ex-sx;
+    const dz=ez-sz;
+    const len=Math.hypot(dx,dz)||1;
+    const P={sx,sz,dx:dx/len,dz:dz/len,len,k,arc:0};
+    const a={x:0,z:0};
+    const b={x:sx,z:sz};
+    for (let i=1;i<=24;i++) {
+        sPoint(P,i/24,amp,a);
+        P.arc+=Math.hypot(a.x-b.x,a.z-b.z);
+        b.x=a.x;
+        b.z=a.z;
+    }
+    return P;
+}
+
+class PaperPlane extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const head=this.mat('head');
+        const limb=this.mat('limb');
+        const ink=this.inkMat();
+        head.side=THREE.DoubleSide;
+        this.legs=[];
+        for (const sx of [-1,1]) {
+            const p=new THREE.Group();
+            p.position.set(sx*0.16,0.42,0);
+            const leg=this.hullify(new THREE.Mesh(geo('leg',()=>capsule(0.11,0.22)),limb));
+            leg.position.y=-0.2;
+            p.add(leg);
+            this.body.add(p);
+            this.legs.push(p);
+        }
+        this.torso=this.hullify(new THREE.Mesh(geo('ppTorso',()=>new THREE.BoxGeometry(0.58,0.58,0.42)),body));
+        this.torso.position.y=0.76;
+        this.body.add(this.torso);
+        this.head=new THREE.Group();
+        this.head.position.y=1.3;
+        this.head.add(this.hullify(new THREE.Mesh(geo('skull',()=>new THREE.SphereGeometry(0.3,9,6)),head)));
+        const hat=this.hullify(new THREE.Mesh(geo('ppHat',()=>{
+            const g=new THREE.ConeGeometry(0.36,0.42,3);
+            g.scale(1,1,0.45);
+            return g;
+        }),head));
+        hat.position.y=0.36;
+        this.head.add(hat);
+        const eg=geo('ppEye',()=>new THREE.BoxGeometry(0.06,0.12,0.04));
+        for (const sx of [-1,1]) {
+            const e=new THREE.Mesh(eg,ink);
+            e.position.set(sx*0.1,0,0.28);
+            this.head.add(e);
+        }
+        this.body.add(this.head);
+        this.arm=new THREE.Group();
+        this.arm.position.set(0.36,0.92,0);
+        const armMesh=this.hullify(new THREE.Mesh(geo('arm',()=>capsule(0.08,0.26)),limb));
+        armMesh.position.y=-0.18;
+        this.arm.add(armMesh);
+        this.handPlane=new THREE.Mesh(geo('ppPlaneS',()=>planeGeo(0.8)),head);
+        this.handPlane.position.set(0,-0.42,0.12);
+        this.arm.add(this.handPlane);
+        this.body.add(this.arm);
+        this.planes=[];
+        this.dashes=[];
+        this.dashMat=null;
+        this.planeMat=head;
+    }
+
+    onReset() {
+        const d=this.def;
+        this.throwT=this.firstT(d.firstThrow);
+        this.strafeSign=rng.sign();
+        this.strafeT=rng.range(1,3);
+        this.launched=0;
+        this.crashed=0;
+        this.outPaths=[];
+        for (const pl of this.planes) {
+            pl.alive=false;
+            pl.mesh.visible=false;
+        }
+        this.hideDashes();
+        this.handPlane.visible=true;
+    }
+
+    hide() {
+        super.hide();
+        for (const pl of this.planes) {
+            pl.alive=false;
+            pl.mesh.visible=false;
+        }
+        this.launched=0;
+        this.hideDashes();
+    }
+
+    plane(i) {
+        while (this.planes.length<=i) {
+            const g=new THREE.Group();
+            const m=new THREE.Mesh(geo('ppPlane',()=>planeGeo(1.4)),this.planeMat);
+            g.add(m);
+            g.visible=false;
+            (this.root.parent||this.fxScene).add(g);
+            this.planes.push({mesh:g,alive:false,uid:0,x:0,z:0,px:0,pz:0,hx:0,hz:1,pos:{x:0,z:0},spin:0});
+        }
+        return this.planes[i];
+    }
+
+    dash(i) {
+        while (this.dashes.length<=i) {
+            if (!this.dashMat) {
+                this.dashMat=inkMaterial('red');
+            }
+            const m=new THREE.Mesh(geo('line',()=>{
+                const q=new THREE.PlaneGeometry(1,1);
+                q.rotateX(-Math.PI/2);
+                q.translate(0.5,0,0);
+                return q;
+            }),this.dashMat);
+            m.visible=false;
+            m.frustumCulled=false;
+            this.fxScene.add(m);
+            this.dashes.push(m);
+        }
+        return this.dashes[i];
+    }
+
+    hideDashes(from=0) {
+        for (let i=from;i<this.dashes.length;i++) {
+            this.dashes[i].visible=false;
+        }
+    }
+
+    busy() {
+        return this.planes.some(pl=>pl.alive);
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        if (this.state==='move'||this.state==='throw') {
+            let push=0;
+            if (this.dist>d.range[1]) {
+                push=1;
+            }
+            else if (this.dist<d.range[0]) {
+                push=-1;
+            }
+            this.strafeT-=dt;
+            if (this.strafeT<=0) {
+                this.strafeT=rng.range(1.2,3);
+                this.strafeSign=-this.strafeSign;
+            }
+            const k=this.state==='throw'?d.throwSlow:1;
+            this.wx=(this.nx*push-this.nz*this.strafeSign*d.strafe)*k;
+            this.wz=(this.nz*push+this.nx*this.strafeSign*d.strafe)*k;
+            this.aimX=this.nx;
+            this.aimZ=this.nz;
+            if (this.state==='move') {
+                this.throwT-=dt;
+                if (this.throwT<=0&&!this.busy()) {
+                    this.aim(ctx);
+                }
+            }
+        }
+        else if (this.state==='aim') {
+            this.manual=true;
+            this.vel.multiplyScalar(Math.exp(-10*dt));
+            const P=this.outPaths[0];
+            this.aimX=P.dx;
+            this.aimZ=P.dz;
+            if (this.stateT>=(this.elite?d.eliteTelegraph:d.telegraph)) {
+                this.launch();
+            }
+        }
+        else if (this.state==='hold') {
+            this.manual=true;
+            this.vel.set(0,0,0);
+        }
+    }
+
+    aim(ctx) {
+        const d=this.def;
+        const p=ctx.player.pos;
+        const sx=this.pos.x+this.nx*0.5;
+        const sz=this.pos.z+this.nz*0.5;
+        const dx=p.x-sx;
+        const dz=p.z-sz;
+        const l=Math.hypot(dx,dz)||1;
+        const len=Math.max(d.flyRange[0],Math.min(d.flyRange[1],l+d.lead));
+        const b=ctx.room.bounds;
+        const ex=Math.max(b.minX+1,Math.min(b.maxX-1,sx+dx/l*len));
+        const ez=Math.max(b.minZ+1,Math.min(b.maxZ-1,sz+dz/l*len));
+        const ks=this.elite?[1,-1]:[rng.sign()];
+        this.outPaths=ks.map(k=>sPath(sx,sz,ex,ez,k,d.amp));
+        this.setState('aim');
+        this.teleSeen();
+    }
+
+    launch() {
+        const d=this.def;
+        this.launched=this.outPaths.length;
+        this.crashed=0;
+        this.outPaths.forEach((P,i)=>{
+            const pl=this.plane(i);
+            pl.alive=true;
+            pl.uid=++uidCounter;
+            pl.leg='out';
+            pl.s=0;
+            pl.path=P;
+            pl.back=null;
+            pl.legHit=false;
+            pl.hitT=0;
+            pl.spin=0;
+            sPoint(P,0,d.amp,pl);
+            pl.px=pl.x;
+            pl.pz=pl.z;
+            pl.mesh.visible=true;
+        });
+        this.handPlane.visible=false;
+        this.kick=1;
+        this.sqv-=1.5;
+        this.setState('throw');
+    }
+
+    planeHit(x,z,r) {
+        const d=this.def;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            const rr=d.planeRadius+r;
+            if ((pl.x-x)*(pl.x-x)+(pl.z-z)*(pl.z-z)<rr*rr) {
+                this.crash(pl);
+                return pl;
+            }
+        }
+        return null;
+    }
+
+    crash(pl) {
+        pl.alive=false;
+        pl.mesh.visible=false;
+        this.crashed++;
+        if (this.ctxRef) {
+            this.ctxRef.particles.burst(pl.x,this.def.planeHeight,pl.z,10,{color:'farGray',speed:[2,5],up:[1,4],size:[0.06,0.14]});
+        }
+    }
+
+    update(dt,ctx) {
+        super.update(dt,ctx);
+        if (this.alive) {
+            this.tickPlanes(this.tele&&!this.dummy?dt/teleSlow():dt,ctx);
+        }
+    }
+
+    tickPlanes(dt,ctx) {
+        const d=this.def;
+        this.ctxRef=ctx;
+        if (this.launched<=0) {
+            return;
+        }
+        const p=ctx.player;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            pl.px=pl.x;
+            pl.pz=pl.z;
+            pl.hitT=Math.max(0,pl.hitT-dt);
+            if (pl.leg==='out') {
+                pl.s=Math.min(1,pl.s+d.outSpeed*dt/pl.path.arc);
+                sPoint(pl.path,pl.s,d.amp,pl);
+                if (pl.s>=1) {
+                    pl.leg='hover';
+                    pl.hoverT=0;
+                    if (this.state==='throw') {
+                        this.setState('hold');
+                    }
+                    pl.back=sPath(pl.x,pl.z,this.pos.x,this.pos.z,-pl.path.k,d.amp);
+                }
+            }
+            else if (pl.leg==='hover') {
+                pl.hoverT+=dt;
+                pl.spin+=dt*14;
+                if (pl.hoverT>=d.hover) {
+                    pl.leg='back';
+                    pl.s=0;
+                    pl.legHit=false;
+                }
+            }
+            else {
+                pl.s=Math.min(1,pl.s+d.backSpeed*dt/pl.back.arc);
+                sPoint(pl.back,pl.s,d.amp,pl);
+                if (pl.s>=1) {
+                    pl.alive=false;
+                    pl.mesh.visible=false;
+                    this.sqv+=1;
+                    continue;
+                }
+            }
+            if (pl.leg!=='hover') {
+                const mx=pl.x-pl.px;
+                const mz=pl.z-pl.pz;
+                if (mx*mx+mz*mz>1e-6) {
+                    pl.hx=mx;
+                    pl.hz=mz;
+                }
+            }
+            pl.pos.x=pl.x;
+            pl.pos.z=pl.z;
+            if (pl.leg!=='hover'&&!pl.legHit&&pl.hitT<=0&&p.hp>0) {
+                const rr=d.planeRadius+TUNING.player.radius;
+                const ex=p.pos.x-pl.x;
+                const ez=p.pos.z-pl.z;
+                if (ex*ex+ez*ez<rr*rr&&!p.isInvulnerable()) {
+                    const l=Math.hypot(ex,ez)||1;
+                    p.hurt(d.planeDamage,ex/l,ez/l);
+                    pl.legHit=true;
+                    pl.hitT=d.rehit;
+                }
+            }
+        }
+        if (!this.busy()) {
+            const all=this.crashed>=this.launched;
+            this.launched=0;
+            this.handPlane.visible=true;
+            this.throwT=this.paced('throw',d.throwEvery);
+            if (all) {
+                this.setState('move');
+                this.stun(d.stagger,true);
+            }
+            else if (this.state==='hold'||this.state==='throw') {
+                this.setState('move');
+            }
+        }
+    }
+
+    canContact() {
+        return this.state!=='hold';
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        const d=this.def;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            const m=pl.mesh;
+            m.position.set(pl.px+(pl.x-pl.px)*alpha,d.planeHeight+Math.sin(time.real*6+pl.uid)*0.06,pl.pz+(pl.z-pl.pz)*alpha);
+            m.rotation.set(pl.leg==='hover'?0:-0.08,Math.atan2(pl.hx,pl.hz)+pl.spin,Math.sin(time.real*5)*0.15);
+        }
+        let n=0;
+        const shown=[];
+        let a=d.dashAlpha;
+        if (this.state==='aim'&&this.alive) {
+            for (const P of this.outPaths) {
+                shown.push(P);
+            }
+            a*=Math.min(1,this.stateT/0.2);
+        }
+        else {
+            for (const pl of this.planes) {
+                if (!pl.alive) {
+                    continue;
+                }
+                if (pl.leg==='out') {
+                    shown.push(pl.path);
+                }
+                else if (pl.back) {
+                    shown.push(pl.back);
+                }
+            }
+        }
+        const N=d.dashes;
+        const pa={x:0,z:0};
+        const pb={x:0,z:0};
+        for (const P of shown) {
+            for (let i=0;i<N;i++) {
+                sPoint(P,i/N,d.amp,pa);
+                sPoint(P,(i+0.55)/N,d.amp,pb);
+                const m=this.dash(n++);
+                this.putLine(m,pa.x,pa.z,pb.x,pb.z,0.13);
+                m.position.y=0.045;
+            }
+        }
+        if (this.dashMat) {
+            this.dashMat.uniforms.uAlpha.value=a;
+        }
+        this.hideDashes(n);
+    }
+
+    pose() {
+        const s=this.speedFrac||0;
+        const sw=Math.sin(this.phase)*0.7*s;
+        this.legs[0].rotation.x=sw;
+        this.legs[1].rotation.x=-sw;
+        this.body.position.y=Math.abs(Math.sin(this.phase))*0.06*s;
+        const wind=this.state==='aim'?Math.min(1,this.stateT/0.3):0;
+        const hold=this.state==='hold'?1:0;
+        this.arm.rotation.x=-0.3-wind*2.2+this.kick*1.6-hold*1.2;
+        this.arm.rotation.z=hold*0.4;
+        this.torso.rotation.y=-wind*0.3+this.kick*0.25;
+        this.head.rotation.x=wind*-0.1;
+    }
+}
+
+class StickyHelper extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const limb=this.mat('limb');
+        const ink=this.inkMat();
+        body.side=THREE.DoubleSide;
+        this.legs=[];
+        for (const sx of [-1,1]) {
+            const p=new THREE.Group();
+            p.position.set(sx*0.18,0.4,0);
+            const leg=this.hullify(new THREE.Mesh(geo('leg',()=>capsule(0.1,0.2)),limb));
+            leg.position.y=-0.19;
+            p.add(leg);
+            this.body.add(p);
+            this.legs.push(p);
+        }
+        this.pad=new THREE.Group();
+        this.pad.position.y=1.0;
+        const sheet=this.hullify(new THREE.Mesh(geo('shPad',()=>new THREE.BoxGeometry(0.95,0.95,0.16)),body));
+        this.pad.add(sheet);
+        const curl=new THREE.Mesh(geo('shCurl',()=>triGeo([0.48,-0.48,0.09,0.12,-0.48,0.09,0.48,-0.12,0.09])),this.mat('head'));
+        this.pad.add(curl);
+        const eg=geo('shEye',()=>new THREE.BoxGeometry(0.07,0.14,0.04));
+        for (const sx of [-1,1]) {
+            const e=new THREE.Mesh(eg,ink);
+            e.position.set(sx*0.16,0.12,0.09);
+            this.pad.add(e);
+        }
+        const mouth=new THREE.Mesh(geo('shMouth',()=>new THREE.BoxGeometry(0.22,0.04,0.04)),ink);
+        mouth.position.set(0,-0.08,0.09);
+        this.pad.add(mouth);
+        this.body.add(this.pad);
+        this.arms=[];
+        for (const sx of [-1,1]) {
+            const a=new THREE.Group();
+            a.position.set(sx*0.5,1.0,0);
+            const m=this.hullify(new THREE.Mesh(geo('shArm',()=>capsule(0.06,0.24)),limb));
+            m.position.y=-0.16;
+            a.add(m);
+            this.body.add(a);
+            this.arms.push(a);
+        }
+        this.notes=[];
+        this.noteMat=null;
+    }
+
+    onReset() {
+        this.stickT=this.def.stickEvery;
+        this.waveT=0;
+        this.dropAll();
+    }
+
+    hide() {
+        super.hide();
+        this.dropAll();
+    }
+
+    dropAll() {
+        for (const n of this.notes) {
+            if (n.e&&n.e.sticky===this&&n.e.uid===n.uid) {
+                n.e.sticky=null;
+            }
+            n.e=null;
+            n.mesh.visible=false;
+        }
+    }
+
+    unstick(e) {
+        for (const n of this.notes) {
+            if (n.e===e) {
+                n.e=null;
+                n.mesh.visible=false;
+            }
+        }
+        if (e.sticky===this) {
+            e.sticky=null;
+        }
+    }
+
+    note() {
+        let n=this.notes.find(q=>!q.e);
+        if (!n) {
+            if (!this.noteMat) {
+                this.noteMat=toonMaterial({...this.def.tones.body,jitter:TUNING.boil.vertexJitter,unique:true});
+                this.noteMat.side=THREE.DoubleSide;
+            }
+            const g=new THREE.Group();
+            const s=this.def.noteSize;
+            const m=new THREE.Mesh(geo('shNote',()=>new THREE.BoxGeometry(1,1,0.05)),this.noteMat);
+            m.scale.set(s,s,1);
+            g.add(m);
+            g.visible=false;
+            (this.root.parent||this.fxScene).add(g);
+            n={mesh:g,e:null,uid:0,t:0};
+            this.notes.push(n);
+        }
+        return n;
+    }
+
+    others(ctx) {
+        return ctx.enemies.filter(o=>o!==this&&o.alive&&o.type!=='stickyHelper'&&!o.dummy);
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        const p=ctx.player.pos;
+        const mates=this.others(ctx);
+        this.rushing=mates.length===0;
+        if (this.rushing) {
+            this.wx=this.nx*d.rush;
+            this.wz=this.nz*d.rush;
+            this.aimX=this.nx;
+            this.aimZ=this.nz;
+            return;
+        }
+        let best=null;
+        let bd=1e9;
+        for (const o of mates) {
+            const dd=Math.hypot(o.pos.x-this.pos.x,o.pos.z-this.pos.z);
+            if (dd<bd) {
+                bd=dd;
+                best=o;
+            }
+        }
+        const bx=best.pos.x-p.x;
+        const bz=best.pos.z-p.z;
+        const bl=Math.hypot(bx,bz)||1;
+        const reach=Math.max(d.keep,bl+d.behind);
+        const tx=p.x+bx/bl*reach;
+        const tz=p.z+bz/bl*reach;
+        const dx=tx-this.pos.x;
+        const dz=tz-this.pos.z;
+        const l=Math.hypot(dx,dz)||1;
+        this.wx=dx/l*Math.min(1,l/1.5);
+        this.wz=dz/l*Math.min(1,l/1.5);
+        if (this.dist<d.keep) {
+            this.wx-=this.nx;
+            this.wz-=this.nz;
+        }
+        this.aimX=this.nx;
+        this.aimZ=this.nz;
+        this.stickT-=dt;
+        if (this.stickT<=0) {
+            this.stickT=d.stickEvery;
+            this.stick(ctx,mates);
+        }
+    }
+
+    stick(ctx,mates) {
+        let best=null;
+        let bd=1e9;
+        for (const o of mates) {
+            if (o.def.boss||o.def.part||o.sticky||o.state==='spawn') {
+                continue;
+            }
+            const dd=Math.hypot(o.pos.x-this.pos.x,o.pos.z-this.pos.z);
+            if (dd<bd) {
+                bd=dd;
+                best=o;
+            }
+        }
+        if (!best) {
+            return;
+        }
+        const n=this.note();
+        n.e=best;
+        n.uid=best.uid;
+        n.t=0;
+        n.mesh.visible=true;
+        best.sticky=this;
+        best.sqv+=1.5;
+        this.waveT=0.5;
+        this.sqv+=2;
+        ctx.particles.burst(best.pos.x,best.def.height*0.9,best.pos.z,8,{color:'marker',speed:[1,3],up:[1,3],size:[0.06,0.12]});
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        this.waveT=Math.max(0,this.waveT-dt);
+        for (const n of this.notes) {
+            if (!n.e) {
+                continue;
+            }
+            const e=n.e;
+            if (!e.alive||e.uid!==n.uid||e.sticky!==this) {
+                n.e=null;
+                n.mesh.visible=false;
+                continue;
+            }
+            n.t+=dt;
+            const pop=EASE.easeOutBack(Math.min(1,n.t/0.3));
+            const h=e.def.height*(e.elite?TUNING.elite.scale:1);
+            n.mesh.position.set(e.renderPos.x,h+0.35+Math.sin(time.real*3+n.uid)*0.05,e.renderPos.z);
+            n.mesh.rotation.set(-0.35,Math.sin(time.real*1.6+n.uid)*0.4,0.12);
+            n.mesh.scale.setScalar(Math.max(0.01,pop));
+        }
+    }
+
+    pose() {
+        const s=this.speedFrac||0;
+        const sw=Math.sin(this.phase)*0.7*s;
+        this.legs[0].rotation.x=sw;
+        this.legs[1].rotation.x=-sw;
+        this.body.position.y=Math.abs(Math.sin(this.phase))*0.07*s;
+        const wave=Math.sin(this.waveT/0.5*Math.PI);
+        this.arms[0].rotation.z=-0.4-wave*1.4;
+        this.arms[1].rotation.z=0.4+(this.rushing?0.9:0);
+        this.arms[0].rotation.x=this.rushing?-1.2:0;
+        this.arms[1].rotation.x=this.rushing?-1.2:0;
+        this.pad.rotation.z=Math.sin(this.phase*0.5)*0.1*s+wave*0.15;
+        this.pad.rotation.x=this.rushing?0.25:0;
+    }
+}
+
+const CLASSES={paperPlane:PaperPlane,stickyHelper:StickyHelper,bookmark:Bookmark,stampSoldier:StampSoldier,scissorMinion:ScissorMinion,doodle:Doodle,sprayer:Sprayer,blob:Blob,blobSmall:Blob,compass:Compass,eraserMonster:EraserMonster,bird:Bird,inkCloud:InkCloud,inkBottle:InkBottle,scissors:Scissors,book:Book,exam:Exam,bookFinal:BookFinal,alarm:Alarm,calculator:Calculator};
 
 export class EnemyManager {
     constructor(parent,fxScene) {
@@ -5854,6 +6489,18 @@ export class EnemyManager {
         if (this.dmgHook) {
             dmg=this.dmgHook(e,dmg);
         }
+        if (e.sticky) {
+            const S=ENEMIES.stickyHelper;
+            const blocked=dmg<=S.blockMax;
+            e.sticky.unstick(e);
+            if (this.onSticky) {
+                this.onSticky(e,blocked);
+            }
+            if (blocked) {
+                return false;
+            }
+            dmg-=S.pierceLoss;
+        }
         let dead=e.hurt(dmg,dx,dz);
         if (dead&&e.immortal) {
             e.hp=e.maxHp;
@@ -5891,6 +6538,14 @@ export class EnemyManager {
     }
 
     hitBullet(x,z,r,dmg,vx,vz,sys,bi) {
+        for (const e of this.list) {
+            if (e.planeHit&&e.alive) {
+                const pl=e.planeHit(x,z,r);
+                if (pl) {
+                    return pl;
+                }
+            }
+        }
         for (const e of this.list) {
             if (e.state==='spawn') {
                 continue;

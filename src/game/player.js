@@ -81,6 +81,7 @@ export class Player {
         this.safeT=0;
         this.bulletProofT=0;
         this.shield=0;
+        this.keepShield=0;
         this.shieldT=0;
         this.fortT=0;
         this.fortAge=0;
@@ -747,16 +748,35 @@ export class Player {
     }
 
     setShield(n,dur=0) {
-        this.shield=n;
+        this.shield=Math.max(0,Math.min(n,TUNING.effects.shieldPanels-(this.keepShield||0)));
         if (dur>0) {
             this.shieldT=dur;
         }
-        if (n<=0) {
+        if (this.shield<=0) {
             this.shieldT=0;
         }
+        this.showShields();
+    }
+
+    setKeep(n) {
+        const cap=TUNING.effects.shieldPanels;
+        this.keepShield=Math.max(0,Math.min(n,cap));
+        this.shield=Math.min(this.shield,cap-this.keepShield);
+        if (this.shield<=0) {
+            this.shieldT=0;
+        }
+        this.showShields();
+    }
+
+    shieldTotal() {
+        return this.shield+(this.keepShield||0);
+    }
+
+    showShields() {
         if (!this.panels) {
             return;
         }
+        const n=this.shieldTotal();
         for (let i=0;i<this.panels.length;i++) {
             this.panels[i].visible=i<n;
             this.panels[i].rotation.y=i*Math.PI*2/Math.max(1,n);
@@ -825,6 +845,7 @@ export class Player {
         this.burstLeft=0;
         this.reloadT=0;
         this.invuln=1.0;
+        this.keepShield=0;
         this.setShield(0);
         this.setFort(0);
     }
@@ -837,6 +858,7 @@ export class Player {
         this.root.position.copy(p);
         this.hp=this.maxHp;
         this.invuln=0;
+        this.keepShield=0;
         this.setShield(0);
         this.setFort(0);
     }
@@ -860,6 +882,7 @@ export class Player {
         }
         this.moveFrame.scale.setScalar(TUNING.player.visualScale);
         this.moveFrame.visible=true;
+        this.keepShield=0;
         this.setShield(0);
         this.setFort(0);
         this.ammo=this.W.magazine;
@@ -995,9 +1018,14 @@ export class Player {
             }
             return false;
         }
-        if (this.shield>0) {
-            const idx=this.shield-1;
-            this.setShield(this.shield-1);
+        if (this.shieldTotal()>0) {
+            const idx=this.shieldTotal()-1;
+            if (this.shield>0) {
+                this.setShield(this.shield-1);
+            }
+            else {
+                this.setKeep(this.keepShield-1);
+            }
             this.invuln=0.35;
             this.sqv+=1.5;
             if (this.events.onShield) {
@@ -1718,7 +1746,7 @@ export class Player {
             this.applyPose();
         }
         this.aimFrame.rotation.y=this.aimYaw-this.poseMoveYaw;
-        if (this.invuln>0&&this.shield===0&&time.timeScale>0) {
+        if (this.invuln>0&&this.shieldTotal()===0&&time.timeScale>0) {
             this.moveFrame.visible=Math.floor(time.real*TUNING.player.flickerFps)%2===0;
         }
         else {

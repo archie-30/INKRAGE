@@ -1825,7 +1825,171 @@ function calcKey(S,x,y,n,a=1,press=0) {
     S.text(String(n),x,y+0.04,17,PALETTE.ink,a);
 }
 
+function sPt(x0,y0,x1,y1,amp,s) {
+    const dx=x1-x0;
+    const dy=y1-y0;
+    const l=Math.hypot(dx,dy)||1;
+    const w=amp*Math.sin(s*Math.PI*2);
+    return [x0+dx*s-dy/l*w,y0+dy*s+dx/l*w];
+}
+
+function sDash(S,x0,y0,x1,y1,amp,a) {
+    if (a<=0) {
+        return;
+    }
+    const N=18;
+    for (let i=0;i<N;i++) {
+        const p=sPt(x0,y0,x1,y1,amp,i/N);
+        const q=sPt(x0,y0,x1,y1,amp,(i+0.55)/N);
+        S.line(p[0],p[1],q[0],q[1],PALETTE.red,0.09,a*0.6);
+    }
+}
+
+function paperDart(S,x,y,ang,a=1,spin=0) {
+    const c=Math.cos(ang+spin);
+    const s=Math.sin(ang+spin);
+    const P=(px,py)=>[x+px*c-py*s,y+px*s+py*c];
+    const pts=[P(0.55,0),P(-0.45,-0.42),P(-0.25,0),P(-0.45,0.42)];
+    S.path(pts,PALETTE.paper,0.08,a,true);
+    S.path(pts.concat([pts[0]]),PALETTE.ink,0.06,a);
+    S.line(pts[0][0],pts[0][1],pts[2][0],pts[2][1],PALETTE.midGray,0.04,a);
+}
+
+function stickyNote(S,x,y,a=1,sc=1) {
+    const h=0.32*sc;
+    S.rect(x-h,y-h,h*2,h*2,PALETTE.marker,a);
+    S.path([[x-h,y-h],[x+h,y-h],[x+h,y+h],[x-h,y+h],[x-h,y-h]],PALETTE.ink,0.05,a);
+}
+
 export const ENEMY_ATTACKS={
+    paperPlane:[
+        {
+            key:'throw',
+            dmg:{kind:'hit',n:1},
+            period:3.8,
+            draw(S,k) {
+                const ex=12.6;
+                const ey=PY;
+                const tx=PX-0.6;
+                const hx=PX+1.2;
+                S.player(hx,PY,0,{flash:seg(k,0.36,0.4)*(1-seg(k,0.4,0.55))});
+                const hold=k>0.24&&k<0.86;
+                S.enemy('paperPlane',ex,ey,{size:1.7,sx:hold?1:1+Math.sin(k*30)*0.02});
+                sDash(S,ex-0.6,ey,tx,PY,1.6,seg(k,0.06,0.16)*(1-seg(k,0.45,0.5)));
+                sDash(S,tx,PY,ex-0.6,ey,-1.6,seg(k,0.5,0.56)*(1-seg(k,0.84,0.88)));
+                let px=null;
+                let py=0;
+                let ang=Math.PI;
+                let spin=0;
+                if (k>=0.22&&k<0.5) {
+                    const f=seg(k,0.22,0.5);
+                    [px,py]=sPt(ex-0.6,ey,tx,PY,1.6,f);
+                    const q=sPt(ex-0.6,ey,tx,PY,1.6,Math.min(1,f+0.03));
+                    ang=Math.atan2(q[1]-py,q[0]-px);
+                }
+                else if (k>=0.5&&k<0.58) {
+                    px=tx;
+                    py=PY;
+                    spin=seg(k,0.5,0.58)*Math.PI*4;
+                }
+                else if (k>=0.58&&k<0.86) {
+                    const f=seg(k,0.58,0.86);
+                    [px,py]=sPt(tx,PY,ex-0.6,ey,-1.6,f);
+                    const q=sPt(tx,PY,ex-0.6,ey,-1.6,Math.min(1,f+0.03));
+                    ang=Math.atan2(q[1]-py,q[0]-px);
+                }
+                if (px!==null) {
+                    paperDart(S,px,py,ang,1,spin);
+                }
+                S.num('-1',hx,PY-0.5,seg(k,0.38,0.7),PALETTE.red,16);
+            }
+        },
+        {
+            key:'elite',
+            dmg:{kind:'hit',n:1},
+            period:3.8,
+            draw(S,k) {
+                const ex=12.6;
+                const ey=PY;
+                const tx=PX-0.2;
+                S.player(PX+1.4,PY+2.4,0);
+                S.enemy('paperPlane',ex,ey,{size:1.8});
+                S.ring(ex,ey+0.2,1.2,PALETTE.darkRed,0.12,1);
+                for (const sg of [1,-1]) {
+                    const amp=1.8*sg;
+                    sDash(S,ex-0.6,ey,tx,PY,amp,seg(k,0.04,0.14)*(1-seg(k,0.45,0.5)));
+                    sDash(S,tx,PY,ex-0.6,ey,-amp,seg(k,0.5,0.56)*(1-seg(k,0.84,0.88)));
+                    let pt=null;
+                    let ang=Math.PI;
+                    let spin=0;
+                    if (k>=0.2&&k<0.5) {
+                        const f=seg(k,0.2,0.5);
+                        pt=sPt(ex-0.6,ey,tx,PY,amp,f);
+                        const q=sPt(ex-0.6,ey,tx,PY,amp,Math.min(1,f+0.03));
+                        ang=Math.atan2(q[1]-pt[1],q[0]-pt[0]);
+                    }
+                    else if (k>=0.5&&k<0.58) {
+                        pt=[tx,PY];
+                        spin=seg(k,0.5,0.58)*Math.PI*4*sg;
+                    }
+                    else if (k>=0.58&&k<0.86) {
+                        const f=seg(k,0.58,0.86);
+                        pt=sPt(tx,PY,ex-0.6,ey,-amp,f);
+                        const q=sPt(tx,PY,ex-0.6,ey,-amp,Math.min(1,f+0.03));
+                        ang=Math.atan2(q[1]-pt[1],q[0]-pt[0]);
+                    }
+                    if (pt) {
+                        paperDart(S,pt[0],pt[1],ang,1,spin);
+                    }
+                }
+            }
+        }
+    ],
+    stickyHelper:[
+        {
+            key:'stick',
+            dmg:{kind:'none',n:0},
+            period:3.6,
+            draw(S,k) {
+                const dx=9;
+                const dy=PY+0.6;
+                const hx=13.4;
+                const hy=PY-1.6;
+                S.player(PX,PY+0.6,0);
+                const hit2=seg(k,0.8,0.84);
+                S.enemy('doodle',dx,dy,{flash:hit2*(1-seg(k,0.84,0.95))});
+                S.enemy('stickyHelper',hx,hy,{size:1.4,rot:Math.sin(seg(k,0.1,0.3)*Math.PI)*0.3});
+                const f=seg(k,0.12,0.3);
+                if (f>0&&f<1) {
+                    stickyNote(S,lerp(hx,dx,f),lerp(hy,dy-1.4,f)-Math.sin(f*Math.PI)*1.2,1,0.8);
+                }
+                const on=f>=1&&k<0.56;
+                if (on) {
+                    stickyNote(S,dx,dy-1.4,1,1+Math.max(0,0.3-(k-0.3)*3));
+                }
+                S.fly(PX+0.5,PY+0.6,dx-0.5,dy,k,0.42,0.56,'ink');
+                S.burst(dx,dy-1.2,1.2,seg(k,0.56,0.76),PALETTE.marker);
+                S.num(t('enemy.stickyBlock'),dx,dy-1.2,seg(k,0.56,0.86),PALETTE.ink,14);
+                S.fly(PX+0.5,PY+0.6,dx-0.5,dy,k,0.68,0.82,'ink');
+                S.num('-12',dx,dy-0.6,seg(k,0.82,1),PALETTE.red,15);
+            }
+        },
+        {
+            key:'rush',
+            dmg:{kind:'hit',n:1},
+            period:2.8,
+            draw(S,k) {
+                S.player(PX+0.4,PY,0,{flash:seg(k,0.6,0.64)*(1-seg(k,0.64,0.8))});
+                const f=inOut(seg(k,0.15,0.6));
+                const x=lerp(13.5,PX+1.3,f)-(k>0.6?Math.sin(seg(k,0.6,0.8)*Math.PI)*0.6:0);
+                S.enemy('stickyHelper',x,PY,{size:1.4,rot:-0.25*seg(k,0.1,0.2)});
+                for (let i=1;i<4;i++) {
+                    S.line(x+0.8+i*0.5,PY-0.4+i*0.2,x+1.4+i*0.5,PY-0.4+i*0.2,PALETTE.midGray,0.06,(1-seg(k,0.55,0.62))*seg(k,0.15,0.2));
+                }
+                S.num('-1',PX+0.4,PY-0.5,seg(k,0.62,0.95),PALETTE.red,16);
+            }
+        }
+    ],
     stampSoldier:[
         {
             key:'stamp',
