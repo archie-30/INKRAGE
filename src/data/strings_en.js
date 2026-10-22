@@ -1859,6 +1859,8 @@ export const STRINGS_EN={
     'course.music.ch.1':'Step into {goal} circles',
     'ach.barrels100.name':'Highly Flammable',
     'ach.barrels100.desc':'Break {n} oil barrels in total',
+    'ach.barrelKill.name':'Barrel of Laughs',
+    'ach.barrelKill.desc':'Defeat {n} enemies with oil barrel blasts',
     'ach.crates100.name':'Crate Expectations',
     'ach.crates100.desc':'Break {n} crates in total',
     'ach.barrelDeath.name':'Over a Barrel',

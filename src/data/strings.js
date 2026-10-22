@@ -1888,6 +1888,8 @@ export const STRINGS={
     'course.music.ch.1':'踩中 {goal} 個圈圈',
     'ach.barrels100.name':'易燃易爆炸',
     'ach.barrels100.desc':'累計打破 {n} 個油桶',
+    'ach.barrelKill.name':'一桶天下',
+    'ach.barrelKill.desc':'用油桶爆炸累計炸倒 {n} 個敵人',
     'ach.crates100.name':'箱當然耳',
     'ach.crates100.desc':'累計打破 {n} 個箱子',
     'ach.barrelDeath.name':'桶歸於盡',

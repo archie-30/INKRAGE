@@ -4,7 +4,7 @@ import {t} from '../data/strings.js';
 import {time} from '../core/loop.js';
 import {EASE} from '../core/easing.js';
 import {sketchRect,sketchLine,drawShape} from './sketch.js';
-import {FONT,inRect,drawButton,fitText,Panel} from './uiKit.js';
+import {FONT,inRect,drawButton,fitText,Panel,flingTrack,flingRelease,flingDecay} from './uiKit.js';
 import {wrapText} from './cardView.js';
 import {drawLock,drawWallet} from './meta.js';
 import {drawWeaponIcon,weaponParams} from './menu.js';
@@ -159,6 +159,7 @@ export class WeaponView extends Panel {
             return false;
         }
         this.layout();
+        this.fling=0;
         if (inRect(this.backBtn,x,y)) {
             this.actions.back();
             return true;
@@ -168,7 +169,7 @@ export class WeaponView extends Panel {
             return true;
         }
         if (inRect(this.V,x,y)) {
-            this.press={x0:x,y0:y,s0:this.scrollTo||0,moved:false};
+            this.press={x0:x,y0:y,s0:this.scrollTo||0,moved:false,ly:y,lt:performance.now(),vel:0};
         }
         return true;
     }
@@ -181,6 +182,7 @@ export class WeaponView extends Panel {
         if (Math.hypot(x-p.x0,y-p.y0)>8) {
             p.moved=true;
         }
+        flingTrack(p,y);
         if (p.moved) {
             this.scrollTo=p.s0-(y-p.y0);
             this.clampScroll();
@@ -191,6 +193,7 @@ export class WeaponView extends Panel {
     up() {
         const p=this.press;
         this.press=null;
+        this.fling=flingRelease(p);
         if (!p||p.moved) {
             return;
         }
@@ -221,6 +224,13 @@ export class WeaponView extends Panel {
         }
         this.stampT=Math.min(1,this.stampT+dt/U().stampTime);
         this.walletK=Math.max(0,this.walletK-dt*2);
+        if (this.fling&&!this.press&&this.V) {
+            const before=this.scrollTo||0;
+            this.scrollTo=before+this.fling*dt;
+            this.clampScroll();
+            this.scroll=this.scrollTo;
+            this.fling=flingDecay(this.fling,dt,this.scrollTo===before);
+        }
         this.scroll=(this.scroll||0)+((this.scrollTo||0)-(this.scroll||0))*Math.min(1,dt*14);
         for (const k in this.pulse) {
             this.pulse[k]=Math.max(0,this.pulse[k]-dt*2.5);

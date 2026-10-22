@@ -1004,6 +1004,7 @@ function boot() {
         }
     };
     enemies.dmgHook=(e,dmg)=>e.tutor?0:(run.course&&run.state==='combat'?run.course.damage(e,dmg):dmg)*dmgMult()*bigFoeMult(e);
+    let barrelBlast=false;
     enemies.onKill=(e,dx,dz)=>{
         const x=e.pos.x;
         const z=e.pos.z;
@@ -1037,6 +1038,9 @@ function boot() {
             markBeaten(e.type);
         }
         bump('kills');
+        if (barrelBlast) {
+            bump('barrelKills');
+        }
         if (e.elite) {
             bump('elites');
         }
@@ -1272,7 +1276,9 @@ function boot() {
         if (piece.kind==='barrel') {
             bump('barrels');
             audio.play('kill',0.6);
+            barrelBlast=true;
             enemies.damageRadius(piece.x,piece.z,P.barrelRadius,P.barrelDamage);
+            barrelBlast=false;
             if (Math.hypot(player.pos.x-piece.x,player.pos.z-piece.z)<P.barrelRadius*0.7&&player.hurt(P.barrelSelf,player.pos.x-piece.x,player.pos.z-piece.z)&&player.hp<=0) {
                 bump('barrelDeaths');
             }

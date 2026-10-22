@@ -20,7 +20,7 @@ import {VERSION} from '../data/version.js';
 import {MINIGAMES} from '../data/minigames.js';
 import {CARD_W,CARD_H,drawCost,wrapText,cardFacts,drawCardTooltip,cardBrief,cardChips} from './cardView.js';
 import {ENEMY_ICONS} from './enemyIcons.js';
-import {FONT,inRect,drawButton,fitText,Panel} from './uiKit.js';
+import {FONT,inRect,drawButton,fitText,Panel,flingTrack,flingRelease,flingDecay} from './uiKit.js';
 import {ACC_SLOTS,ACC_DEFAULT} from '../data/cosmetics.js';
 import {ownsTone,ownsAcc,owns,presetOwned,presetItems,saveOutfit,clampSkin,chestsReady,levelChestsReady,randomSkin} from '../core/meta.js';
 import {drawAcc,drawAccIcon,drawLock,drawWallet,drawCoin,drawMiniChest,drawItemIcon} from './meta.js';
@@ -1579,6 +1579,7 @@ export class Codex extends Panel {
         this.t=0.3;
         this.scroll=0;
         this.scrollTo=0;
+        this.fling=0;
     }
 
     openDetail(kind,id) {
@@ -1587,6 +1588,7 @@ export class Codex extends Panel {
         this.animT=0;
         this.dScroll=0;
         this.dScrollTo=0;
+        this.dFling=0;
         if (this.actions.select) {
             this.actions.select();
         }
@@ -1633,7 +1635,8 @@ export class Codex extends Panel {
                 }
                 return true;
             }
-            this.drag={y0:y,s0:this.dScrollTo,x0:x,moved:false,detail:true};
+            this.dFling=0;
+            this.drag={y0:y,s0:this.dScrollTo,x0:x,moved:false,detail:true,ly:y,lt:performance.now(),vel:0};
             return true;
         }
         if (inRect(this.back,x,y)) {
@@ -1664,7 +1667,8 @@ export class Codex extends Panel {
             }
         }
         else if (inRect(this.view,x,y)) {
-            this.drag={y0:y,s0:this.scrollTo,x0:x,moved:false,detail:false};
+            this.fling=0;
+            this.drag={y0:y,s0:this.scrollTo,x0:x,moved:false,detail:false,ly:y,lt:performance.now(),vel:0};
         }
         return true;
     }
@@ -1677,6 +1681,7 @@ export class Codex extends Panel {
         if (Math.hypot(x-d.x0,y-d.y0)>6) {
             d.moved=true;
         }
+        flingTrack(d,y);
         if (d.detail) {
             this.dScrollTo=d.s0-(y-d.y0);
             this.clampScroll();
@@ -1692,6 +1697,12 @@ export class Codex extends Panel {
     up(x,y) {
         const d=this.drag;
         this.drag=null;
+        if (d&&d.detail) {
+            this.dFling=flingRelease(d);
+        }
+        else if (d) {
+            this.fling=flingRelease(d);
+        }
         if (!d||d.moved||d.detail||x===undefined) {
             return;
         }
@@ -1705,6 +1716,20 @@ export class Codex extends Panel {
 
     update(dt) {
         super.update(dt);
+        if (this.fling&&!this.drag) {
+            const before=this.scrollTo;
+            this.scrollTo+=this.fling*dt;
+            this.clampScroll();
+            this.scroll=this.scrollTo;
+            this.fling=flingDecay(this.fling,dt,this.scrollTo===before);
+        }
+        if (this.dFling&&!this.drag&&this.detail) {
+            const before=this.dScrollTo;
+            this.dScrollTo+=this.dFling*dt;
+            this.clampScroll();
+            this.dScroll=this.dScrollTo;
+            this.dFling=flingDecay(this.dFling,dt,this.dScrollTo===before);
+        }
         const k=1-Math.exp(-TUNING.codex.follow*dt);
         this.scroll+=(this.scrollTo-this.scroll)*k;
         this.dScroll+=(this.dScrollTo-this.dScroll)*k;
