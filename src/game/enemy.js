@@ -6227,6 +6227,10 @@ class StickyHelper extends Enemy {
     }
 
     stick(ctx,mates) {
+        const d=this.def;
+        if (this.notes.filter(n=>n.e).length>=(this.elite?d.eliteMaxNotes:d.maxNotes)) {
+            return;
+        }
         let best=null;
         let bd=1e9;
         for (const o of mates) {

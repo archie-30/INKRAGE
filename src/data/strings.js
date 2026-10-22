@@ -1083,7 +1083,7 @@ export const STRINGS={
     'atk.paperPlane.elite':'雙機交叉（精英）',
     'atk.paperPlane.elite.desc':'一次擲出兩架，一左一右在途中交叉，回程也交叉；預警縮短為 0.5 秒，兩架都被打掉才硬直。',
     'atk.stickyHelper.stick':'貼紙盾',
-    'atk.stickyHelper.stick.desc':'每 4 秒替最近、沒有盾的敵人貼便利貼：20 以下的一擊完全擋下，更強的扣 10 後打穿；助手倒下時全部消失。',
+    'atk.stickyHelper.stick.desc':'每 6 秒替最近、沒有盾的敵人貼便利貼（同時最多 3 隻，精英 4 隻）：20 以下的一擊完全擋下，更強的扣 10 後打穿；助手倒下時全部消失。',
     'atk.stickyHelper.rush':'孤軍衝鋒',
     'atk.stickyHelper.rush.desc':'場上只剩它（或只剩便利貼助手）時，會直接衝向你用身體撞擊。',
     'codex.inkCloud':'飄在半空的烏雲，保持距離在地上畫紅圈降下墨雨。本身不會撞人，優先擊倒就能停止墨雨。',

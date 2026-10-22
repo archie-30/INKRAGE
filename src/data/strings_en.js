@@ -1054,7 +1054,7 @@ export const STRINGS_EN={
     'atk.paperPlane.elite':'Crossing Pair (Elite)',
     'atk.paperPlane.elite.desc':'Throws two planes that cross midway and again on the way back. Warning drops to 0.5s; staggered only if both are shot down.',
     'atk.stickyHelper.stick':'Sticky Shield',
-    'atk.stickyHelper.stick.desc':'Every 4s it sticks a note on the nearest unshielded enemy: hits of 20 or less are blocked, stronger hits lose 10. All notes vanish when it falls.',
+    'atk.stickyHelper.stick.desc':'Every 6s it sticks a note on the nearest unshielded enemy (up to 3 at once, 4 for elites): hits of 20 or less are blocked, stronger hits lose 10. All notes vanish when it falls.',
     'atk.stickyHelper.rush':'Last Stand Charge',
     'atk.stickyHelper.rush.desc':'When only sticky note helpers are left, it charges straight at you to ram.',
     'codex.inkCloud':'A dark cloud floating overhead that keeps its distance and marks red circles where ink rain will fall. It doesn’t ram you — take it out first to stop the rain.',
