@@ -898,7 +898,7 @@ export const STRINGS_EN={
     'atk.bookFinal.sweep':'Barrel Sweep',
     'boss.hint.alarm':'It bursts when the ring meter fills! Stand in the glowing red alarm circle to hit snooze (you can’t be hurt inside); it takes double damage while snoozing',
     'enemy.alarm':'Big Alarm Clock',
-    'codex.alarm':'A giant alarm clock that sweeps the arena with clock-hand beams. It bursts when the ring meter fills! Step into the glowing alarm circle to hit snooze: you can’t be hurt inside, the meter resets, it dozes off taking 2× damage, and you recover 1 ink. Evolves at half HP.',
+    'codex.alarm':'A giant alarm clock that sweeps the arena with clock-hand beams. It bursts when the ring meter fills! Step into the glowing alarm circle to hit snooze: you can’t be hurt inside, the meter drains while you press, then resets, it dozes off taking 2× damage, and you recover 1 ink. Evolves at half HP.',
     'codex.weak.alarm':'Snoozing after you hit the alarm ×2',
     'evolve.alarm':'Wake-up time! Everybody up!',
     'alarm.burst':'RIIIIIIING——!',
