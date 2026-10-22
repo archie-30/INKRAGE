@@ -6128,7 +6128,8 @@ class StickyHelper extends Enemy {
     }
 
     onReset() {
-        this.stickT=this.def.stickEvery;
+        this.stickT=0;
+        this.stuckOnce=false;
         this.waveT=0;
         this.dropAll();
     }
@@ -6224,15 +6225,17 @@ class StickyHelper extends Enemy {
         this.aimZ=this.nz;
         this.stickT-=dt;
         if (this.stickT<=0) {
-            this.stickT=d.stickEvery;
-            this.stick(ctx,mates);
+            if (this.stick(ctx,mates)||this.stuckOnce) {
+                this.stickT=d.stickEvery;
+                this.stuckOnce=true;
+            }
         }
     }
 
     stick(ctx,mates) {
         const d=this.def;
         if (this.notes.filter(n=>n.e).length>=(this.elite?d.eliteMaxNotes:d.maxNotes)) {
-            return;
+            return false;
         }
         let best=null;
         let bd=1e9;
@@ -6247,7 +6250,7 @@ class StickyHelper extends Enemy {
             }
         }
         if (!best) {
-            return;
+            return false;
         }
         const n=this.note();
         n.e=best;
@@ -6259,6 +6262,7 @@ class StickyHelper extends Enemy {
         this.waveT=0.5;
         this.sqv+=2;
         ctx.particles.burst(best.pos.x,best.def.height*0.9,best.pos.z,8,{color:'marker',speed:[1,3],up:[1,3],size:[0.06,0.12]});
+        return true;
     }
 
     sync(alpha,dt) {
