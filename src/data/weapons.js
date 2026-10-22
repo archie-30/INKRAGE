@@ -20,7 +20,7 @@ export const WEAPONS={
         fireInterval:0.09,
         magazine:26,
         reloadTime:1.4,
-        damage:5,
+        damage:6,
         bulletSpeed:34,
         bulletLife:0.7,
         spread:0.06,
