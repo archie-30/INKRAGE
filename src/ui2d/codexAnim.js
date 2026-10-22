@@ -3423,6 +3423,43 @@ for (const id of ['inkBottle','scissors','book','exam','bookFinal','alarm','calc
 }
 
 export const TUTOR_ANIMS={
+    warn:{
+        period:4.4,
+        draw(S,k) {
+            const ex=13.4;
+            const bx=7.6;
+            const by=6.6;
+            const br=1.7;
+            S.enemy('sprayer',ex,PY);
+            const tele=seg(k,0.04,0.3)*(1-seg(k,0.44,0.48));
+            S.tele(ex-0.9,PY,-0.5,PY,tele);
+            const grow=seg(k,0.06,0.3);
+            const boom=seg(k,0.52,0.72);
+            if (grow>0&&boom<=0) {
+                S.circle(bx,by,br*grow,PALETTE.red,0.12+0.1*Math.sin(k*60)*grow);
+                S.ring(bx,by,br,PALETTE.red,0.08,grow,[0.25,0.18]);
+            }
+            if (boom>0&&boom<1) {
+                S.circle(bx,by,br*(1+boom*0.3),PALETTE.red,0.35*(1-boom));
+                S.burst(bx,by,br*1.5,boom,PALETTE.red);
+            }
+            S.stream(ex-0.9,PY,-1,PY,k,0.46,0.62,0.05,0.26,'enemy');
+            const y0=PY;
+            const y1=PY-2.8;
+            const d0=0.34;
+            const d1=0.42;
+            const f=easeOut(seg(k,d0,d1));
+            const fade=1-seg(k,d1,d1+0.2);
+            if (f>0) {
+                for (let g=1;g<=3;g++) {
+                    S.player(PX,lerp(y0,y1,Math.max(0,f-g*0.22)),-Math.PI/2,{ghost:true,alpha:0.55*(1-g/4)*fade});
+                }
+            }
+            const back=seg(k,0.86,0.98);
+            S.player(PX,lerp(lerp(y0,y1,f),y0,back),0,{flash:f>0&&f<1?1:0});
+            S.text('!',ex,PY-1.5+Math.sin(k*30)*0.1,Math.max(10,S.s*0.9),PALETTE.red,tele);
+        }
+    },
     move:{
         period:4.2,
         draw(S,k) {

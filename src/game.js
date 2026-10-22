@@ -2768,6 +2768,7 @@ function boot() {
         }
     });
     const coach=new Coach({
+        tick:()=>audio.play('ui',1.5),
         begin:()=>{
             audio.play('ui');
             fx.paused=false;

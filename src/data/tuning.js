@@ -587,7 +587,8 @@ export const TUNING={
         handDraw:0.3,
         strip:{w:470,wSmall:470,h:78,hSmall:86,line:26,lineSmall:30,top:12,illus:118,illusSmall:130},
         modal:{w:940,h:500,small:600,illus:0.5,illusSmall:0.44,btnW:200,btnWSmall:180,btnH:50,btnHSmall:50},
-        confetti:{count:46,speed:[60,140],size:[4,9],spin:6}
+        confetti:{count:46,speed:[60,140],size:[4,9],spin:6},
+        story:{cps:30,minRead:0.35,walkFrom:2.6,captionLines:2,narrator:0.62,beats:{rules:[2.6,4.4,6.4],warn:[1.24,2.5],upgrade:[0.25,2.2],unlock:[1.3,2.2],rewards:[2.9,3.5],relics:[1.0,1.6,2.2,3.4],end:[0.5,1.5]}}
     },
     menu:{armsIcon:0.026,figure:{height:2.3,width:0.62},
         footW:{big:170,small:136},
