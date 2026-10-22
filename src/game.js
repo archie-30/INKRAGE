@@ -929,6 +929,15 @@ function boot() {
     };
     const dmgNums=new DamageNumbers();
     let numTint=null;
+    enemies.onSticky=(e,blocked)=>{
+        const h=e.def.height*0.9;
+        particles.burst(e.pos.x,h,e.pos.z,blocked?10:6,{color:'marker',speed:[2,5],up:[1,4],size:[0.06,0.14]});
+        paperShards.burst(e.pos.x,h,e.pos.z,blocked?4:2,0,0,0.6);
+        audio.play('erase',1.4);
+        if (blocked) {
+            dmgNums.spawnText(e.pos.x,h+0.4,e.pos.z,t('enemy.stickyBlock'));
+        }
+    };
     enemies.onDamage=(e,dmg,crit,src)=>{
         if (dmg<=0) {
             return;

@@ -276,9 +276,9 @@ export const TRAINING_MAPS=['training','crossroads','colonnade','trenches','crat
 
 export const NORMAL_LAYOUTS=['crossroads','colonnade','trenches','crates','circle','lanes'];
 
-export const ENEMY_ORDER=['doodle','blob','sprayer','stampSoldier','inkCloud','bird','compass','eraserMonster'];
+export const ENEMY_ORDER=['doodle','blob','sprayer','stampSoldier','inkCloud','paperPlane','bird','stickyHelper','compass','eraserMonster'];
 
-export const STORY_INTRO=[0,2,4,6,8,10,12,14];
+export const STORY_INTRO=[0,2,4,6,8,9,10,11,12,14];
 
 export const ROOM_TYPES=3;
 
@@ -286,12 +286,12 @@ export const BOSS_POOL=['inkBottle','scissors','book','exam','bookFinal','alarm'
 
 export const PAIRED=[];
 
-export const ENEMY_COST={doodle:1,blob:2,sprayer:2,inkCloud:2,compass:2,bird:1,eraserMonster:2,stampSoldier:2,scissorMinion:2};
+export const ENEMY_COST={doodle:1,blob:2,sprayer:2,inkCloud:2,compass:2,bird:1,eraserMonster:2,stampSoldier:2,scissorMinion:2,paperPlane:2,stickyHelper:2};
 
 export const ACTS=[
     {rooms:6,budget:[5,5,6,7,7,8],waves:[2,2,2,2,3,3],pool:{doodle:4,blob:2,sprayer:2,bird:1,compass:1},hpMult:1,bossMult:1,bossHp:1.35,modChance:[0,0,0.2,0.3,0.3,0.3],elite:false},
-    {rooms:6,budget:[8,8,9,10,10,11],waves:[2,2,3,3,3,3],pool:{doodle:3,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:1,bird:2,eraserMonster:1},hpMult:1.12,bossMult:1.3,bossHp:1.35,modChance:[0.3,0.3,0.4,0.4,0.5,0.5],elite:true},
-    {rooms:6,budget:[10,11,12,13,14,15],waves:[2,3,3,3,3,3],pool:{doodle:2,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:2,bird:2,eraserMonster:2},hpMult:1.28,bossMult:1.65,bossHp:1.35,modChance:[0.4,0.4,0.5,0.5,0.6,0.6],elite:true}
+    {rooms:6,budget:[8,8,9,10,10,11],waves:[2,2,3,3,3,3],pool:{doodle:3,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:1,bird:2,eraserMonster:1,paperPlane:2,stickyHelper:2},hpMult:1.12,bossMult:1.3,bossHp:1.35,modChance:[0.3,0.3,0.4,0.4,0.5,0.5],elite:true},
+    {rooms:6,budget:[10,11,12,13,14,15],waves:[2,3,3,3,3,3],pool:{doodle:2,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:2,bird:2,eraserMonster:2,paperPlane:2,stickyHelper:2},hpMult:1.28,bossMult:1.65,bossHp:1.35,modChance:[0.4,0.4,0.5,0.5,0.6,0.6],elite:true}
 ];
 
 export const ACT_EXTRA={budget:1,budgetMax:20,hp:0.08,hpMax:1.6,boss:0.15,bossMax:2.1};
