@@ -3,7 +3,7 @@ export const WEAPONS={
         unlock:1,
         sys:'player',
         sound:'shoot',
-        fireInterval:0.12,
+        fireInterval:0.15,
         magazine:12,
         reloadTime:1.1,
         damage:10,
@@ -111,15 +111,15 @@ export const WEAPONS={
         fireInterval:0.15,
         magazine:16,
         reloadTime:1.2,
-        damage:5,
+        damage:6,
         bulletSpeed:27,
         bulletLife:0.8,
         spread:0.04,
         pellets:1,
         colors:[
-            {sys:'crayonR',chance:20,damage:28},
+            {sys:'crayonR',chance:20,damage:30},
             {sys:'crayonB',chance:40,damage:10},
-            {sys:'crayonG',chance:40,damage:5}
+            {sys:'crayonG',chance:40,damage:6}
         ],
         flashColor:'red',
         stats:{dmg:3,rate:3,range:3,mag:3}
@@ -137,7 +137,7 @@ export const WEAPONS={
         bulletLife:1.1,
         spread:0,
         pellets:1,
-        charge:{min:0.6,full:1.5,dmg:[15,65],cool:0.2,slow:0.5,tap:8,tapCool:0.3,pierceBonus:5},
+        charge:{min:0.6,full:1.5,dmg:[15,65],cool:0.2,slow:0.5,tap:8,tapCool:0.3,pierceBonus:5,fullInk:2},
         kick:1.4,
         flashMul:1.3,
         stats:{dmg:5,rate:1,range:4,mag:1}

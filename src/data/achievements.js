@@ -18,6 +18,7 @@ export const ACHIEVEMENTS=[
     {id:'dodgeChain',stat:'dodgeChain',goals:[4],icon:'leave'},
     {id:'pierce3',stat:'pierceBest',goals:[3],icon:'card'},
     {id:'barrels100',stat:'barrels',goals:[60,140,250],icon:'battle'},
+    {id:'barrelKill',stat:'barrelKills',goals:[15,40,80],icon:'battle'},
     {id:'crates100',stat:'crates',goals:[60,140,250],icon:'treasure'},
     {id:'barrelDeath',stat:'barrelDeaths',goals:[1],icon:'rest'},
     {id:'dizzy',stat:'spinTurns',goals:[10],icon:'challenge'},

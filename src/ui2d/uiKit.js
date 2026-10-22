@@ -115,3 +115,29 @@ export class Panel {
     up() {
     }
 }
+
+export function flingTrack(p,y) {
+    const A=TUNING.metaUi.ach;
+    const now=performance.now();
+    const dt=Math.max(1,now-(p.lt??now))/1000;
+    p.vel=p.vel||0;
+    if (p.ly!==undefined) {
+        p.vel+=(-(y-p.ly)/dt-p.vel)*Math.min(1,dt*A.flingSmooth);
+    }
+    p.ly=y;
+    p.lt=now;
+}
+
+export function flingRelease(p) {
+    const A=TUNING.metaUi.ach;
+    if (!p||!p.moved||p.lt===undefined||performance.now()-p.lt>=A.flingWindow) {
+        return 0;
+    }
+    return Math.max(-A.flingMax,Math.min(A.flingMax,p.vel||0));
+}
+
+export function flingDecay(v,dt,stuck) {
+    const A=TUNING.metaUi.ach;
+    v*=Math.exp(-A.flingDecay*dt);
+    return Math.abs(v)<A.flingStop||stuck?0:v;
+}
