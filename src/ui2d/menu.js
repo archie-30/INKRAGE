@@ -5890,7 +5890,7 @@ export class TrainingMenu extends Panel {
     }
 }
 
-const COACH_ANIMS={move:TUTOR_ANIMS.move,shoot:WEAPON_ANIMS.pen,dodge:TUTOR_ANIMS.dodge,cards:CARD_ANIMS.scatter,ult:CARD_ANIMS.execute,warn:ENEMY_ATTACKS.compass[0]};
+const COACH_ANIMS={move:TUTOR_ANIMS.move,shoot:WEAPON_ANIMS.pen,dodge:TUTOR_ANIMS.dodge,cards:CARD_ANIMS.scatter,ult:CARD_ANIMS.execute,warn:TUTOR_ANIMS.warn};
 
 const PRACTICE=TUTOR_STEPS.filter(q=>!q.info).length;
 
@@ -5953,6 +5953,7 @@ export class Coach extends Panel {
         this.t=0;
         this.step=null;
         this.strip=null;
+        this.story=null;
         this.bits=[];
     }
 
@@ -5960,6 +5961,7 @@ export class Coach extends Panel {
         this.step=step;
         this.index=i;
         this.animT=0;
+        this.story=null;
         this.reminding=true;
         this.show();
     }
@@ -5972,7 +5974,88 @@ export class Coach extends Panel {
         this.merged=false;
         this.strip=null;
         this.bits=step.key==='end'?this.confetti():[];
+        this.story=step.info?{beat:-1,mode:'play',text:'',typed:0,readT:0,final:false}:null;
         this.show();
+    }
+
+    beats() {
+        const b=TUNING.tutorial.story.beats[this.step.key]||[];
+        return b.slice(0,Math.min(b.length,this.paras().length));
+    }
+
+    paras() {
+        return t('tut.'+this.step.key+'.body').split('|');
+    }
+
+    say(text) {
+        const S=this.story;
+        S.mode='read';
+        S.text=text;
+        S.typed=0;
+        S.readT=0;
+        if (this.actions.tick) {
+            this.actions.tick();
+        }
+    }
+
+    nextBeat() {
+        const S=this.story;
+        const b=this.beats();
+        if (S.beat+1>=b.length) {
+            return;
+        }
+        S.beat++;
+        this.animT=b[S.beat];
+        this.say(this.paras()[S.beat]);
+    }
+
+    lastBeat() {
+        return this.story.beat>=this.beats().length-1;
+    }
+
+    storyPress() {
+        const S=this.story;
+        if (S.mode==='play') {
+            this.nextBeat();
+            return;
+        }
+        if (S.typed<S.text.length) {
+            S.typed=S.text.length;
+            return;
+        }
+        if (S.readT<TUNING.tutorial.story.minRead) {
+            return;
+        }
+        if (!S.final&&!this.lastBeat()) {
+            S.mode='play';
+            return;
+        }
+        if (this.step.key==='end') {
+            this.actions.finish();
+            return;
+        }
+        if (this.step.merge&&!this.merged) {
+            this.merged=true;
+            S.final=true;
+            S.text=t('tut.mergeDone');
+            S.typed=0;
+            S.readT=0;
+            this.actions.merge();
+            return;
+        }
+        this.actions.next();
+    }
+
+    storyHint() {
+        const S=this.story;
+        let key='tut.tapGo';
+        if (S.mode==='play') {
+            key='tut.playing';
+        }
+        else if (S.final||this.lastBeat()) {
+            key=this.step.key==='end'?'tut.tapFinish':this.step.merge&&!this.merged?'tut.tapMerge':'tut.tapNext';
+        }
+        return t(this.touch&&S.mode!=='play'?key+'.touch':key);
     }
 
     confetti() {
@@ -6035,6 +6118,10 @@ export class Coach extends Panel {
         if (!this.open||!s||this.t<0.3) {
             return;
         }
+        if (this.story) {
+            this.storyPress();
+            return;
+        }
         if (s.key==='end') {
             this.actions.finish();
             return;
@@ -6071,7 +6158,7 @@ export class Coach extends Panel {
         const bw=sm?M.btnWSmall:M.btnW;
         const bh=sm?M.btnHSmall:M.btnH;
         this.btn={x:this.P.x+pw-bw-(sm?16:24),y:this.P.y+ph-bh-(sm?12:20),w:bw,h:bh};
-        this.buttons=[this.btn];
+        this.buttons=this.story?[]:[this.btn];
     }
 
     down(x,y) {
@@ -6079,6 +6166,10 @@ export class Coach extends Panel {
             return false;
         }
         this.layout();
+        if (this.story) {
+            this.press();
+            return true;
+        }
         if (inRect(this.btn,x,y)) {
             this.press();
         }
@@ -6087,7 +6178,21 @@ export class Coach extends Panel {
 
     update(dt) {
         super.update(dt);
-        this.animT+=dt;
+        const S=this.story;
+        if (!S) {
+            this.animT+=dt;
+        }
+        else if (this.open&&S.mode==='play') {
+            this.animT+=dt;
+            const b=this.beats();
+            if (S.beat+1<b.length&&this.animT>=b[S.beat+1]) {
+                this.nextBeat();
+            }
+        }
+        else if (this.open) {
+            S.typed=Math.min(S.text.length,S.typed+dt*TUNING.tutorial.story.cps);
+            S.readT+=dt;
+        }
         const s=this.strip;
         if (s) {
             s.t+=dt;
@@ -6269,7 +6374,7 @@ export class Coach extends Panel {
         ctx.restore();
     }
 
-    drawPages(ctx,x,y,w,h,v,reveal,walker) {
+    drawPages(ctx,x,y,w,h,v,reveal,walker,walkT=this.animT) {
         const n=7;
         const bw=Math.min(80,(w-40)/n-10);
         const bx=x+w/2-(n*(bw+12)-12)/2;
@@ -6294,7 +6399,7 @@ export class Coach extends Panel {
             ctx.fillText(t(boss?'tut.bossPage':'tut.page',{n:i+1}),rx+bw/2,cy+bw*0.75);
         }
         if (walker) {
-            const f=(this.animT*0.22)%1;
+            const f=(walkT*0.22)%1;
             const px=bx+f*(n*(bw+12)-12);
             const py=cy-bw*0.7-16-Math.abs(Math.sin(this.animT*8))*5;
             ctx.fillStyle=PALETTE.midGray;
@@ -6327,7 +6432,8 @@ export class Coach extends Panel {
         ctx.fillStyle=PALETTE.paper;
         ctx.fillRect(x,y,w,h);
         if (step.draw==='goal') {
-            this.drawPages(ctx,x,y,w,h,v,true,false);
+            const wf=TUNING.tutorial.story.walkFrom;
+            this.drawPages(ctx,x,y,w,h,v,true,!!this.story&&this.animT>=wf,this.animT-wf);
             ctx.fillStyle=PALETTE.nearGray;
             ctx.font='12px '+FONT;
             ctx.textAlign='center';
@@ -6479,7 +6585,7 @@ export class Coach extends Panel {
         const gap=Math.min(w*0.24,s*R.gap);
         const cy=y+h*0.5;
         const pick=1;
-        const slots=4;
+        const slots=5;
         const sr=s*R.slotR;
         const sx0=x+w-sr*2*slots-14;
         const sy=y+sr+12;
@@ -6838,11 +6944,134 @@ export class Coach extends Panel {
         }
     }
 
+    drawStory(ctx,art) {
+        const w=this.width;
+        const h=this.height;
+        const v=time.boilIndex;
+        const P=this.P;
+        const sm=this.small();
+        const step=this.step;
+        const S=this.story;
+        const ST=TUNING.tutorial.story;
+        const a=EASE.easeOutBack(Math.min(1,this.t/0.4));
+        ctx.save();
+        ctx.fillStyle=rgba('paper',Math.min(0.6,this.t*3));
+        ctx.fillRect(0,0,w,h);
+        ctx.globalAlpha=Math.min(1,this.t*4);
+        ctx.translate(w/2,h/2);
+        ctx.scale(0.9+0.1*a,0.9+0.1*a);
+        ctx.translate(-w/2,-h/2);
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(P.x,P.y,P.w,P.h);
+        drawShape(ctx,sketchRect(P.x,P.y,P.w,P.h,{width:2.2,seed:1970}),PALETTE.ink,v);
+        const pad=sm?14:24;
+        ctx.textAlign='left';
+        ctx.textBaseline='top';
+        ctx.fillStyle=PALETTE.red;
+        ctx.font='bold '+(sm?14:15)+'px '+FONT;
+        ctx.fillText(t('tut.title')+t('ui.gap')+t('tut.stepOf',{n:this.index+1,total:TUTOR_STEPS.length}),P.x+pad,P.y+(sm?10:18));
+        ctx.fillStyle=PALETTE.ink;
+        ctx.font='bold '+(sm?24:30)+'px '+FONT;
+        ctx.fillText(t('tut.'+step.key+'.title'),P.x+pad,P.y+(sm?28:40));
+        const n=TUTOR_STEPS.length;
+        const gap=sm?14:18;
+        for (let i=0;i<n;i++) {
+            const dx=P.x+P.w-pad-(n-1-i)*gap-6;
+            const cur=i===this.index;
+            ctx.fillStyle=cur?PALETTE.red:(i<this.index?PALETTE.ink:rgba('ink',0.2));
+            ctx.beginPath();
+            ctx.arc(dx,P.y+(sm?20:28),cur?6+Math.sin(time.real*5):4,0,Math.PI*2);
+            ctx.fill();
+        }
+        const lh=sm?24:27;
+        const capH=lh*ST.captionLines+(sm?30:36);
+        const top=P.y+(sm?62:84);
+        const capY=P.y+P.h-pad-capH;
+        const sh=capY-(sm?8:12)-top;
+        const sw=Math.min(P.w-pad*2,sh*16/9*1.25);
+        this.drawIllus(ctx,step,P.x+P.w/2-sw/2,top,sw,sh,art,v,false);
+        if (S.mode==='play') {
+            ctx.save();
+            ctx.globalAlpha*=0.5+0.3*Math.sin(time.real*6);
+            ctx.fillStyle=PALETTE.red;
+            ctx.beginPath();
+            const px=P.x+P.w/2+sw/2-16;
+            const py=top+16;
+            ctx.moveTo(px-5,py-7);
+            ctx.lineTo(px+7,py);
+            ctx.lineTo(px-5,py+7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+        const fs=capH*ST.narrator/62;
+        const talking=S.mode==='read'&&S.typed<S.text.length;
+        const fx=P.x+pad+22*fs+4;
+        const fy=capY+capH/2+4-(talking?Math.abs(Math.sin(time.real*14))*3:0);
+        drawSkinFigure(ctx,fx,fy,fs,{...DEFAULT_SKIN,...settings.skin},v,2600);
+        const bx=fx+22*fs+14;
+        const bw=P.x+P.w-pad-bx;
+        ctx.fillStyle=PALETTE.paper;
+        ctx.fillRect(bx,capY,bw,capH);
+        ctx.beginPath();
+        ctx.moveTo(bx+1,capY+capH*0.4);
+        ctx.lineTo(bx-12,capY+capH*0.52);
+        ctx.lineTo(bx+1,capY+capH*0.64);
+        ctx.closePath();
+        ctx.fill();
+        drawShape(ctx,sketchRect(bx,capY,bw,capH,{width:2,seed:2610}),S.mode==='read'?PALETTE.ink:PALETTE.midGray,v);
+        drawShape(ctx,sketchLine(bx,capY+capH*0.4,bx-12,capY+capH*0.52,{width:2,seed:2611}),PALETTE.ink,v);
+        drawShape(ctx,sketchLine(bx-12,capY+capH*0.52,bx,capY+capH*0.64,{width:2,seed:2612}),PALETTE.ink,v);
+        ctx.font=(sm?'bold 18px ':'bold 19px ')+FONT;
+        ctx.textBaseline='top';
+        ctx.textAlign='left';
+        if (S.text) {
+            let left=Math.floor(S.typed);
+            let ty=capY+(sm?10:12);
+            ctx.fillStyle=S.mode==='read'?PALETTE.ink:rgba('ink',0.4);
+            for (const ln of wrapText(ctx,S.text,bw-28)) {
+                if (left<=0) {
+                    break;
+                }
+                ctx.fillText(ln.slice(0,left),bx+14,ty);
+                left-=ln.length;
+                ty+=lh;
+            }
+        }
+        const nb=this.beats().length;
+        for (let i=0;i<nb;i++) {
+            ctx.fillStyle=i<=S.beat?PALETTE.red:rgba('ink',0.2);
+            ctx.beginPath();
+            ctx.arc(bx+14+i*12,capY+capH-(sm?11:13),3,0,Math.PI*2);
+            ctx.fill();
+        }
+        const ready=S.mode==='read'&&S.typed>=S.text.length;
+        ctx.font=(ready?'bold ':'')+(sm?13:14)+'px '+FONT;
+        ctx.textAlign='right';
+        ctx.textBaseline='middle';
+        ctx.fillStyle=ready?PALETTE.red:PALETTE.nearGray;
+        const hint=this.storyHint()+(ready?' ▼':'');
+        ctx.save();
+        if (ready) {
+            ctx.globalAlpha*=0.65+0.35*Math.sin(time.real*5);
+        }
+        ctx.fillText(hint,bx+bw-12,capY+capH-(sm?11:13)+(ready?Math.sin(time.real*5)*1.5:0));
+        ctx.restore();
+        ctx.restore();
+        if (this.bits.length>0&&this.open) {
+            this.drawConfetti(ctx);
+        }
+    }
+
     draw(ctx,art) {
         if (!this.shown()||!this.step) {
             return;
         }
         this.layout();
+        if (this.story) {
+            this.drawStory(ctx,art);
+            return;
+        }
         const w=this.width;
         const h=this.height;
         const v=time.boilIndex;
