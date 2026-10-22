@@ -883,8 +883,12 @@ function boot() {
     };
     weaponSys.slingFull.onHit=(x,z,r,dmg,vx,vz,sys,i)=>{
         numTint='slingNum';
+        const first=sys.hitN[i]===0;
         const e=hitEnemies(x,z,r,slingDmg(dmg,sys,i),vx,vz,sys,i);
         numTint=null;
+        if (e&&first&&player.W.charge&&player.W.charge.fullInk) {
+            ink.add(player.W.charge.fullInk);
+        }
         if (e) {
             const B=FF.hit;
             particles.burst(x,H,z,B.count,{color:'slingGlow',speed:B.speed,up:B.up,size:B.size,life:B.life});
