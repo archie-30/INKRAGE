@@ -4417,6 +4417,9 @@ class Alarm extends Enemy {
             if (!q.done) {
                 const inside=Math.hypot(p.pos.x-q.x,p.pos.z-q.z)<P.r;
                 q.hold=inside?q.hold+dt:Math.max(0,q.hold-dt*P.decay);
+                if (inside) {
+                    this.bar=Math.max(0,this.bar-P.drain*dt);
+                }
                 if (q.hold>=q.need) {
                     q.done=true;
                     p.safeT=Math.max(p.safeT||0,P.linger);
@@ -6227,6 +6230,10 @@ class StickyHelper extends Enemy {
     }
 
     stick(ctx,mates) {
+        const d=this.def;
+        if (this.notes.filter(n=>n.e).length>=(this.elite?d.eliteMaxNotes:d.maxNotes)) {
+            return;
+        }
         let best=null;
         let bd=1e9;
         for (const o of mates) {

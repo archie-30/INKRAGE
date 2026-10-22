@@ -1,5 +1,5 @@
 import {ENEMIES} from '../data/enemies.js';
-import {actDef,LAYOUTS,NORMAL_LAYOUTS,ACTS,ENEMY_COST,ENEMY_ORDER,STORY_INTRO,ENDLESS,ROOM_TYPES,BOSS_POOL,PAIRED} from '../data/levels.js';
+import {actDef,LAYOUTS,NORMAL_LAYOUTS,ACTS,ENEMY_COST,ENEMY_ORDER,STORY_INTRO,ENDLESS,ROOM_TYPES,MUST_TYPES,BOSS_POOL,PAIRED,BIG_NORMAL,BIG_FROM} from '../data/levels.js';
 
 export const MODS=['dark','elite','hurry'];
 
@@ -45,7 +45,15 @@ export function pickBoss(rng,used=[]) {
     return list[Math.floor(rng.next()*list.length)];
 }
 
-function pickTypes(count,fresh,rng,last=[]) {
+function roomTypes(act) {
+    return ROOM_TYPES[Math.min(act,ROOM_TYPES.length-1)];
+}
+
+function mustAll(act,index) {
+    return act>=MUST_TYPES[0]&&(act>MUST_TYPES[0]||index>=MUST_TYPES[1]);
+}
+
+function pickTypes(count,fresh,rng,last=[],cap=3) {
     const rest=ENEMY_ORDER.slice(0,count).filter(k=>k!==fresh);
     for (let i=rest.length-1;i>0;i--) {
         const j=Math.floor(rng.next()*(i+1));
@@ -55,7 +63,7 @@ function pickTypes(count,fresh,rng,last=[]) {
     }
     rest.sort((a,b)=>(last.includes(a)?1:0)-(last.includes(b)?1:0));
     const out=fresh?[fresh]:[];
-    while (out.length<ROOM_TYPES&&rest.length>0) {
+    while (out.length<cap&&rest.length>0) {
         out.push(rest.shift());
     }
     return out;
@@ -87,9 +95,10 @@ function openPool(pool,used) {
     return out;
 }
 
-function buildWaves(pool,budget,nw,rng,fresh) {
+function buildWaves(pool,budget,nw,rng,fresh,must=[]) {
     const waves=[];
     const used={};
+    const queue=must.filter(k=>k!==fresh);
     let left=budget;
     for (let w=0;w<nw;w++) {
         let b=w===nw-1?left:Math.max(1,Math.round(budget/nw));
@@ -99,6 +108,16 @@ function buildWaves(pool,budget,nw,rng,fresh) {
             addFoe(wave,fresh);
             used[fresh]=(used[fresh]||0)+1;
             b-=ENEMY_COST[fresh];
+        }
+        for (let q=queue.length-1;q>=0;q--) {
+            if (q%nw!==w%nw&&w<nw-1) {
+                continue;
+            }
+            const t=queue[q];
+            addFoe(wave,t);
+            used[t]=(used[t]||0)+1;
+            b-=ENEMY_COST[t];
+            queue.splice(q,1);
         }
         while (b>0) {
             const t=weightedPick(openPool(pool,used),rng,b);
@@ -117,20 +136,27 @@ function buildWaves(pool,budget,nw,rng,fresh) {
     return waves;
 }
 
+function pickLayout(act,rng,lastLayout) {
+    const list=act>=BIG_FROM?BIG_NORMAL:NORMAL_LAYOUTS;
+    let key=list[Math.floor(rng.next()*list.length)];
+    if (key===lastLayout) {
+        key=list[(list.indexOf(key)+1)%list.length];
+    }
+    return key;
+}
+
 export function planRoom(act,index,rng,lastLayout,o={}) {
     const A=actDef(act);
     if (index>=A.rooms) {
         const type=pickBoss(rng,o.used);
-        return {act,index,boss:true,bossType:type,tier:act,layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:A.bossMult,bossHp:A.bossHp,waves:[[{type,boss:true}]]};
+        const arena=act>=BIG_FROM?'bigArena':'bossArena';
+        return {act,index,boss:true,bossType:type,tier:act,layoutKey:arena,layout:LAYOUTS[arena],hpMult:A.bossMult,bossHp:A.bossHp,waves:[[{type,boss:true}]]};
     }
-    let key=NORMAL_LAYOUTS[Math.floor(rng.next()*NORMAL_LAYOUTS.length)];
-    if (key===lastLayout) {
-        key=NORMAL_LAYOUTS[(NORMAL_LAYOUTS.indexOf(key)+1)%NORMAL_LAYOUTS.length];
-    }
+    const key=pickLayout(act,rng,lastLayout);
     const count=storyTypes(act,index);
     const fresh=count>1&&(index>0||act>0)&&count>storyTypes(act,index-1)?ENEMY_ORDER[count-1]:null;
-    const types=pickTypes(count,fresh,rng,o.lastTypes);
-    const waves=buildWaves(limitPool(A.pool,types),A.budget[index],A.waves[index],rng,fresh);
+    const types=pickTypes(count,fresh,rng,o.lastTypes,roomTypes(act));
+    const waves=buildWaves(limitPool(A.pool,types),A.budget[index],A.waves[index],rng,fresh,mustAll(act,index)?types:[]);
     let mod=null;
     if (rng.next()<A.modChance[index]) {
         const mods=A.elite?MODS:MODS.filter(m=>m!=='elite');
@@ -147,12 +173,10 @@ export function planEndless(page,rng,lastLayout,o={}) {
     const hpMult=1+page*E.hpPerPage;
     if (page%E.bossEvery===E.bossEvery-1) {
         const type=pickBoss(rng,o.used);
-        return {act,index:page,endless:true,boss:true,bossType:type,tier,layoutKey:'bossArena',layout:LAYOUTS.bossArena,hpMult:1+page*E.bossHpPerPage,bossHp:0.75,waves:[[{type,boss:true}]]};
+        const arena=act>=BIG_FROM?'bigArena':'bossArena';
+        return {act,index:page,endless:true,boss:true,bossType:type,tier,layoutKey:arena,layout:LAYOUTS[arena],hpMult:1+page*E.bossHpPerPage,bossHp:0.75,waves:[[{type,boss:true}]]};
     }
-    let key=NORMAL_LAYOUTS[Math.floor(rng.next()*NORMAL_LAYOUTS.length)];
-    if (key===lastLayout) {
-        key=NORMAL_LAYOUTS[(NORMAL_LAYOUTS.indexOf(key)+1)%NORMAL_LAYOUTS.length];
-    }
+    const key=pickLayout(act,rng,lastLayout);
     const budget=Math.min(E.budgetMax,Math.round(E.budgetBase+page*E.budgetPerPage));
     const nw=Math.min(4,2+Math.floor(page/4));
     const count=endlessTypes(page);
@@ -161,8 +185,8 @@ export function planEndless(page,rng,lastLayout,o={}) {
         q--;
     }
     const fresh=q>=0&&count>endlessTypes(q)?ENEMY_ORDER[count-1]:null;
-    const types=pickTypes(count,fresh,rng,o.lastTypes);
-    const waves=buildWaves(limitPool(A.pool,types),budget,nw,rng,fresh);
+    const types=pickTypes(count,fresh,rng,o.lastTypes,roomTypes(act));
+    const waves=buildWaves(limitPool(A.pool,types),budget,nw,rng,fresh,act>=MUST_TYPES[0]?types:[]);
     let mod=null;
     if (page>=E.modFrom&&rng.next()<E.modChance) {
         const mods=page>=E.eliteFrom?MODS:MODS.filter(m=>m!=='elite');

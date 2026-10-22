@@ -91,6 +91,117 @@ export const LAYOUTS={
     ],{size:[32,22],spawn:[0,5],bossSpawn:[0,-3]})
 };
 
+const BIG=1.28;
+
+const BIG_SPAWNS=EDGE_SPAWNS.map(([x,z])=>[x*BIG,z*BIG]);
+
+const BIG_DECOR=DECOR.map(d=>({...d,x:d.x*BIG,z:d.z*BIG}));
+
+function bigRoom(props,extra={}) {
+    return {
+        size:[38,26],
+        spawn:[0,8],
+        wallHeight:0.7,
+        wallThickness:0.6,
+        spawnPoints:BIG_SPAWNS,
+        props:props.concat(BIG_DECOR),
+        big:true,
+        ...extra
+    };
+}
+
+export const BIG_LAYOUTS={
+    bigPlaza:bigRoom([
+        {type:'pillar',x:0,z:-1.5,r:1.0,h:3.4},
+        {type:'pillar',x:-7,z:-5,r:0.7,h:2.8},
+        {type:'pillar',x:7,z:-5,r:0.7,h:2.8},
+        {type:'pillar',x:-7,z:2.5,r:0.7,h:2.8},
+        {type:'pillar',x:7,z:2.5,r:0.7,h:2.8},
+        {type:'wall',x:-14,z:-7.5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:14,z:-7.5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-14.5,z:6,w:5,h:1.1,d:0.8,rot:0.45},
+        {type:'wall',x:14.5,z:6,w:5,h:1.1,d:0.8,rot:-0.45},
+        {type:'box',x:-3.5,z:-8.5,w:1.6,h:1.4,d:1.6,rot:0.4},
+        {type:'box',x:4,z:-9,w:1.4,h:1.8,d:1.4,rot:-0.3},
+        {type:'box',x:-11.5,z:-1,w:1.8,h:1.3,d:1.4,rot:0.2},
+        {type:'box',x:11.5,z:-0.5,w:1.6,h:1.5,d:1.6,rot:-0.5}
+    ]),
+    bigMaze:bigRoom([
+        {type:'wall',x:-12,z:-6.5,w:9,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:5,z:-6.5,w:11,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-4.5,z:-1,w:11,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:13.5,z:-1,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-12.5,z:4.5,w:7,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:8.5,z:5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'pillar',x:-16.5,z:-1,r:0.6,h:2.4},
+        {type:'pillar',x:0.5,z:4.5,r:0.6,h:2.4},
+        {type:'pillar',x:-6.5,z:-9.5,r:0.6,h:2.6},
+        {type:'box',x:15,z:-9.5,w:1.6,h:1.4,d:1.6,rot:0.3},
+        {type:'box',x:-15,z:9,w:1.6,h:1.3,d:1.6,rot:-0.4}
+    ]),
+    bigRuins:bigRoom([
+        {type:'wall',x:-11,z:-6,w:4.5,h:1.0,d:0.7,rot:0.7},
+        {type:'wall',x:-4,z:-8,w:3.5,h:1.0,d:0.7,rot:-0.3},
+        {type:'wall',x:6,z:-7,w:5,h:1.0,d:0.7,rot:0.25},
+        {type:'wall',x:13,z:-3,w:4,h:1.0,d:0.7,rot:-0.9},
+        {type:'wall',x:-13,z:3,w:4,h:1.0,d:0.7,rot:-0.5},
+        {type:'wall',x:10,z:6,w:4.5,h:1.0,d:0.7,rot:0.6},
+        {type:'pillar',x:-6,z:-2,r:0.8,h:3.0},
+        {type:'pillar',x:4,z:0,r:0.7,h:2.6},
+        {type:'pillar',x:-2,z:4,r:0.5,h:1.8},
+        {type:'pillar',x:15.5,z:9,r:0.6,h:2.2},
+        {type:'box',x:0,z:-3.5,w:1.8,h:1.2,d:1.8,rot:0.6},
+        {type:'box',x:-9,z:8,w:1.4,h:1.6,d:1.4,rot:0.2},
+        {type:'box',x:9.5,z:-0.5,w:1.2,h:2.2,d:1.2,rot:-0.2},
+        {type:'box',x:-16,z:-9,w:1.6,h:1.4,d:1.6,rot:0.5}
+    ]),
+    bigHalls:bigRoom([
+        {type:'wall',x:-6.5,z:-5,w:0.8,h:1.2,d:8,rot:0},
+        {type:'wall',x:6.5,z:-5,w:0.8,h:1.2,d:8,rot:0},
+        {type:'wall',x:-6.5,z:5.5,w:0.8,h:1.2,d:4,rot:0},
+        {type:'wall',x:6.5,z:5.5,w:0.8,h:1.2,d:4,rot:0},
+        {type:'pillar',x:0,z:-5,r:0.8,h:3.0},
+        {type:'pillar',x:0,z:1,r:0.6,h:2.4},
+        {type:'pillar',x:-13,z:-6,r:0.7,h:2.8},
+        {type:'pillar',x:13,z:-6,r:0.7,h:2.8},
+        {type:'box',x:-13,z:2,w:2.0,h:1.3,d:1.4,rot:0.1},
+        {type:'box',x:13,z:2.5,w:1.6,h:1.6,d:1.6,rot:-0.6},
+        {type:'box',x:-15.5,z:9,w:1.4,h:1.2,d:1.4,rot:0.4},
+        {type:'box',x:15.5,z:-10,w:1.4,h:1.4,d:1.4,rot:-0.2}
+    ]),
+    bigFort:bigRoom([
+        {type:'wall',x:-3.2,z:-6,w:4,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:3.2,z:2.5,w:4,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-5.5,z:0.5,w:0.8,h:1.1,d:4,rot:0},
+        {type:'wall',x:5.5,z:-3,w:0.8,h:1.1,d:4,rot:0},
+        {type:'pillar',x:0,z:-1.8,r:0.7,h:2.6},
+        {type:'pillar',x:-14,z:-8,r:0.8,h:3.2},
+        {type:'pillar',x:14,z:-8,r:0.8,h:3.2},
+        {type:'pillar',x:-14,z:7,r:0.7,h:2.6},
+        {type:'pillar',x:14,z:7,r:0.7,h:2.6},
+        {type:'box',x:-10,z:-3,w:1.6,h:1.4,d:1.6,rot:0.5},
+        {type:'box',x:10.5,z:1,w:1.8,h:1.3,d:1.4,rot:-0.3},
+        {type:'box',x:-9,z:5.5,w:1.4,h:1.8,d:1.4,rot:0.1},
+        {type:'box',x:9,z:-9,w:1.4,h:1.2,d:1.4,rot:0.7}
+    ]),
+    bigArena:bigRoom([
+        {type:'pillar',x:-14,z:-8,r:0.9,h:3.4},
+        {type:'pillar',x:14,z:-8,r:0.9,h:3.4},
+        {type:'pillar',x:-14,z:8,r:0.9,h:3.4},
+        {type:'pillar',x:14,z:8,r:0.9,h:3.4},
+        {type:'pillar',x:-8,z:-1,r:0.6,h:2.4},
+        {type:'pillar',x:8,z:-1,r:0.6,h:2.4},
+        {type:'wall',x:-7.5,z:5,w:3.5,h:1.0,d:0.7,rot:0.4},
+        {type:'wall',x:7.5,z:5,w:3.5,h:1.0,d:0.7,rot:-0.4}
+    ],{size:[40,28],spawn:[0,8.5],bossSpawn:[0,-4]})
+};
+
+Object.assign(LAYOUTS,BIG_LAYOUTS);
+
+export const BIG_NORMAL=['bigPlaza','bigMaze','bigRuins','bigHalls','bigFort'];
+
+export const BIG_FROM=2;
+
 const PEACE_SPAWNS=[[-9,-5],[9,-5],[-10,1],[10,1],[0,-5.5],[-5,-6],[5,-6],[-7,3],[7,3]];
 
 function peace(props,npcs) {
@@ -280,7 +391,9 @@ export const ENEMY_ORDER=['doodle','blob','sprayer','stampSoldier','inkCloud','p
 
 export const STORY_INTRO=[0,2,4,6,8,9,10,11,12,14];
 
-export const ROOM_TYPES=3;
+export const ROOM_TYPES=[3,3,4];
+
+export const MUST_TYPES=[1,2];
 
 export const BOSS_POOL=['inkBottle','scissors','book','exam','bookFinal','alarm','calculator'];
 
