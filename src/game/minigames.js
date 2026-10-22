@@ -1028,9 +1028,13 @@ const GAMES={
                         break;
                     }
                     const aim=k===0&&g.r()<P.aim;
-                    const A=P.area;
-                    q.x=aim?Math.max(-A[0],Math.min(A[0],pl.pos.x+g.range(-P.near,P.near))):g.range(-A[0],A[0]);
-                    q.z=aim?Math.max(-A[1],Math.min(A[1],pl.pos.z+g.range(-P.near,P.near))):g.range(-A[1],A[1]);
+                    const B=g.room.bounds;
+                    const x0=B.minX+P.edge;
+                    const x1=B.maxX-P.edge;
+                    const z0=B.minZ+P.edge;
+                    const z1=B.maxZ-P.edge;
+                    q.x=aim?Math.max(x0,Math.min(x1,pl.pos.x+g.range(-P.near,P.near))):g.range(x0,x1);
+                    q.z=aim?Math.max(z0,Math.min(z1,pl.pos.z+g.range(-P.near,P.near))):g.range(z0,z1);
                     q.t=0;
                     q.w=warn;
                     q.on=true;
