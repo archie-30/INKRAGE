@@ -1199,20 +1199,29 @@ export class SettingsMenu extends Panel {
         return {x:P.x+P.w-w-L.pad,y:P.y+L.pad,w,h:L.h};
     }
 
-    drawPrivacy(ctx,v) {
+    feedBox() {
         const b=this.privBox();
+        return {x:b.x-b.w-10,y:b.y,w:b.w,h:b.h};
+    }
+
+    drawPrivacy(ctx,v) {
+        this.drawTopBtn(ctx,v,this.feedBox(),t('settings.feedback'),1492);
+        this.drawTopBtn(ctx,v,this.privBox(),t('settings.privacy'),1491);
+    }
+
+    drawTopBtn(ctx,v,b,label,seed) {
         const a=Math.min(1,this.t*4);
         ctx.save();
         ctx.globalAlpha*=a;
         const hv=inRect(b,this.hx??-1,this.hy??-1);
         ctx.fillStyle=hv?rgba('farGray',0.95):PALETTE.paper;
         ctx.fillRect(b.x,b.y,b.w,b.h);
-        drawShape(ctx,sketchRect(b.x,b.y,b.w,b.h,{width:1.8,seed:1491}),PALETTE.ink,v);
+        drawShape(ctx,sketchRect(b.x,b.y,b.w,b.h,{width:1.8,seed}),PALETTE.ink,v);
         ctx.fillStyle=PALETTE.ink;
         ctx.font='bold 14px '+FONT;
         ctx.textAlign='center';
         ctx.textBaseline='middle';
-        ctx.fillText(t('settings.privacy'),b.x+b.w/2,b.y+b.h/2+1,b.w-12);
+        ctx.fillText(label,b.x+b.w/2,b.y+b.h/2+1,b.w-12);
         ctx.restore();
     }
 
@@ -1222,6 +1231,10 @@ export class SettingsMenu extends Panel {
         }
         if (inRect(this.privBox(),x,y)) {
             this.actions.privacy();
+            return true;
+        }
+        if (inRect(this.feedBox(),x,y)) {
+            this.actions.feedback();
             return true;
         }
         return false;
