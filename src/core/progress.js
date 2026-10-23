@@ -35,6 +35,9 @@ export function loadProgress() {
     if (saved) {
         Object.assign(progress,saved);
     }
+    if (progress.welcome===undefined) {
+        progress.welcome=saved?'done':'pending';
+    }
     if (progress.unlockVer!==TUNING.levels.unlockVer) {
         const lv=Math.max(1,Math.floor(Number(progress.level)||1));
         const kc=[];

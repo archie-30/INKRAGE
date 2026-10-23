@@ -619,6 +619,7 @@ export const TUNING={
         camLook:1.3,
         camSpin:0.1
     },
+    welcome:{coins:20},
     slingComp:{coins:15,hold:3,delay:0.8,rows:['dmg','full','guard','pierce','wall','fx','aim','dual']},
     levelUp:{stampAt:0.15,stampTime:0.45,stampFrom:2.6,levelAt:0.6,cardsAt:1.1,cardGap:0.28,cardTime:0.55,drops:22,titleY:0.2,cardsY:0.58,weaponY:0.86},
     levelView:{

@@ -82,7 +82,7 @@ function applyTheme() {
         meta.setAttribute('content',PALETTE.paper);
     }
     document.getElementById('rotate-text').textContent=t('ui.rotate');
-    document.getElementById('rotate-ver').textContent=VERSION.stage+' '+VERSION.number;
+    document.getElementById('rotate-ver').textContent=(VERSION.stage?VERSION.stage+' ':'')+VERSION.number;
 }
 
 function exitFullscreen() {
@@ -2212,6 +2212,18 @@ function boot() {
         ]},{ok:t('resume.continue'),cancel:t('resume.settle'),esc:'ok',onOk:()=>resumeRun(s,false),onCancel:()=>resumeRun(s,true)});
         return true;
     }
+    function checkWelcome() {
+        if (progress.welcome!=='ready'||game.mode!=='menu'||!mainMenu.open||transition.active||langPick.open) {
+            return;
+        }
+        if (popup.shown()||guide.shown()||confirmPop.shown()||chestView.shown()||levelUp.open||settingsMenu.open||codex.open||levelView.open||relicView.open||armsView.open||skinEditor.open||achView.open||buyPrompt.open||modeSelect.open) {
+            return;
+        }
+        progress.welcome='done';
+        const items=grantCoins(TUNING.welcome.coins);
+        audio.play('ui');
+        chestView.open2(items,t('welcome.chestTitle'),settings.skin,null);
+    }
     function checkSlingComp() {
         const C=TUNING.slingComp;
         if (progress.slingComp||game.mode!=='menu'||!mainMenu.open||transition.active||langPick.open||time.real<TUNING.ui.loaderMin+TUNING.ui.loaderFade+C.delay) {
@@ -2797,6 +2809,10 @@ function boot() {
         },
         finish:()=>{
             audio.play('clear',1.3);
+            if (progress.welcome==='pending') {
+                progress.welcome='ready';
+                saveProgress();
+            }
             coach.hide();
             transition.run(()=>enterMenu());
         }
@@ -4036,6 +4052,7 @@ function boot() {
             achToast.push(achQueue.shift());
             audio.play('equip',1.2);
         }
+        checkWelcome();
         checkSlingComp();
         checkRushUnlock();
         for (let i=laterQ.length-1;i>=0;i--) {
