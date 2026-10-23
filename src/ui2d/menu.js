@@ -504,7 +504,7 @@ export class MainMenu extends Panel {
         ctx.font='bold '+TUNING.menu.versionSize+'px '+FONT;
         ctx.textAlign='left';
         ctx.textBaseline='bottom';
-        ctx.fillText(VERSION.stage+' '+VERSION.number,16,h-12);
+        ctx.fillText((VERSION.stage?VERSION.stage+' ':'')+VERSION.number,16,h-12);
         ctx.restore();
     }
 }

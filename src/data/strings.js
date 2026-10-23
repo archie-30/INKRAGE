@@ -783,6 +783,7 @@ export const STRINGS={
     'slingComp.gift':'已持有墨弓的玩家獲得 {n} 金幣補償，已直接放進你的金幣。',
     'settings.privacy':'隱私權政策',
     'settings.feedback':'問題回饋',
+    'welcome.chestTitle':'新手禮物',
     'privacy.title':'隱私權政策',
     'privacy.body':'INKRAGE 不需要帳號，也不會蒐集、上傳或販售任何個人資料。遊戲內容全部在你的裝置裡，可以離線遊玩；設定、角色外觀與進度只儲存在你的裝置上，解除安裝或清除應用程式資料後就會一併刪除。目前沒有廣告，也沒有內購；日後若新增，會先更新這份政策。',
     'privacy.open':'開啟完整版',
