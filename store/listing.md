@@ -104,14 +104,14 @@ No sign-in, no personal data collected, no ads.
 | --- | --- | --- |
 | App 圖示 | `store/icon-512.png` | 512×512 PNG |
 | 主圖（Feature graphic） | `store/feature-graphic-1024x500.png` | 1024×500 PNG |
-| 手機截圖（至少 2 張，最多 8 張） | `store/screenshots/phone/1…5-*.png`（主選單、一般戰、頭目戰、武器、敵人圖鑑） | 2400×1236（比例 < 2:1） |
-| 7 吋平板截圖 | `store/screenshots/tablet-7in/1…5-*.png` | 1920×1080（16:9，每邊 320–3840） |
-| 10 吋平板截圖 | `store/screenshots/tablet-10in/1…5-*.png` | 2560×1440（16:9，每邊 1080–7680） |
-| Google Play Games 電腦版截圖（4–8 張） | `store/screenshots/pc-google-play-games/1…5-*.png` | 2560×1440（16:9） |
+| 手機截圖（至少 2 張，最多 8 張） | `store/screenshots/phone/1…6-*.png`（主選單、一般戰、頭目戰、武器、敵人圖鑑、遺物） | 2400×1236（比例 < 2:1） |
+| 7 吋平板截圖 | `store/screenshots/tablet-7in/1…6-*.png` | 1920×1080（16:9，每邊 320–3840） |
+| 10 吋平板截圖 | `store/screenshots/tablet-10in/1…6-*.png` | 2560×1440（16:9，每邊 1080–7680） |
+| Google Play Games 電腦版截圖（4–8 張） | `store/screenshots/pc-google-play-games/1…6-*.png` | 2560×1440（16:9） |
 | Google Play Games 電腦版標誌 | `store/screenshots/pc-google-play-games/logo-600x400.png` | 600×400 透明 PNG，含遊戲名稱 |
 | Google Play Games 電腦版主題圖片 | `store/screenshots/pc-google-play-games/hero-1-battle-no-text.png`（另有備選 `hero-2-boss-no-text.png`、`hero-3-character-no-text.png`） | 2560×1440（16:9，不含任何文字） |
 
-截圖都是用 v0.9.32 的實際遊戲畫面，以裝置的原生解析度渲染（手機 3 倍、平板與電腦 2 倍），不是放大圖。
+截圖都是用 v0.12.39 的實際遊戲畫面，以裝置的原生解析度渲染（手機 3 倍、平板與電腦 2 倍），不是放大圖。
 手機與平板截圖顯示觸控介面；電腦版截圖顯示滑鼠鍵盤介面（Tab、1、2、3 快捷鍵提示）。
 每張圖都 < 8 MB，符合 Play Console 限制。遊戲更新後想重拍，可以請 Claude 重做。
 
