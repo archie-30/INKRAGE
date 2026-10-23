@@ -2679,6 +2679,7 @@ function boot() {
         }
     });
     const PRIVACY_URL='https://archie-30.github.io/INKRAGE/privacy.html';
+    const FEEDBACK_URL='https://forms.gle/TVHhpRbNGzGir61E7';
     let lastDev='mouse';
     let devSeen=false;
     function checkDevice() {
@@ -2935,6 +2936,10 @@ function boot() {
     };
     const settingsMenu=new SettingsMenu({
         changed:settingsChanged,
+        feedback:()=>{
+            audio.play('ui');
+            window.open(FEEDBACK_URL,'_blank');
+        },
         privacy:()=>{
             audio.play('ui');
             guide.open2({title:t('privacy.title'),icon:null,blocks:[

@@ -753,6 +753,7 @@ export const STRINGS_EN={
     'notice.ok':'Got it',
     'notes.wait':'{ok} ({n})',
     'settings.privacy':'Privacy',
+    'settings.feedback':'Feedback',
     'privacy.title':'Privacy Policy',
     'privacy.body':'INKRAGE needs no account and does not collect, upload or sell any personal data. All game content is stored on your device and works offline; settings, character look and progress stay on your device and are deleted when you uninstall the game or clear its data. There are currently no ads and no in-app purchases; if that changes, this policy will be updated first.',
     'privacy.open':'Open full version',
