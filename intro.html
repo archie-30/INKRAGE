@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F2F0EB">
 <title>INKRAGE 狂墨</title>
-<meta name="description" content="INKRAGE 狂墨：在筆記本上展開的手繪射擊 × 牌組構築遊戲（開發中）。">
+<meta name="description" content="INKRAGE 狂墨：在筆記本上展開的手繪射擊 × 牌組構築遊戲。一邊射擊、一邊花墨水出牌，每頁自選路線，一路打倒頭目。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23F2F0EB'/%3E%3Cpath d='M32 8C32 8 14 30 14 41a18 18 0 0 0 36 0C50 30 32 8 32 8z' fill='%231A1A1A'/%3E%3Cpath d='M41 38a9 9 0 0 1-9 11' stroke='%23D62828' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -153,9 +153,9 @@ section{position:relative}
 
 /* ===== 橫向捲動玩法 ===== */
 #play .intro{padding:150px 0 40px}
-.hs{position:relative;height:400vh}
+.hs{position:relative;height:500vh}
 .hs-sticky{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
-.hs-track{display:flex;height:100%;width:400vw;will-change:transform;overflow:hidden}
+.hs-track{display:flex;height:100%;width:500vw;will-change:transform;overflow:hidden}
 .hpanel{position:relative;width:100vw;height:100%;flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:center;gap:clamp(20px,5vw,80px);padding:70px max(var(--gut),calc((100vw - 1240px)/2 + 64px)) 70px}
 .hpanel .num{position:absolute;left:max(var(--gut),calc((100vw - 1240px)/2 + 40px));top:8vh;font-size:clamp(140px,24vw,340px);font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(26,26,26,.16);pointer-events:none;z-index:0}
 .hpanel .txt{position:relative;z-index:1}
@@ -171,6 +171,20 @@ section{position:relative}
 .hs-bar .rail{flex:1;height:4px;background:rgba(26,26,26,.12);position:relative}
 .hs-bar .rail i{position:absolute;left:0;top:-1px;bottom:-1px;width:0;background:var(--ink)}
 .hs-bar .rail b{position:absolute;top:50%;width:14px;height:14px;margin:-7px;background:var(--red);transform:rotate(45deg)}
+
+
+.hero-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.evo-b{position:absolute;left:50%;top:54%;width:220px;height:220px;margin:-110px;--bc:var(--card);animation:evoLoop 5.5s infinite}
+.evo-b .tint{animation:tintLoop 5.5s infinite}
+.evo-b svg{width:100%;height:100%;overflow:visible}
+@keyframes evoLoop{0%,38%{transform:scale(1) rotate(0);filter:none}55%{transform:scale(1.3) rotate(720deg);filter:none}60%,92%{transform:scale(1.22) rotate(720deg);filter:none}100%{transform:scale(1) rotate(720deg);filter:none}}
+.evo-hp{position:absolute;left:12%;right:12%;top:22px;height:14px;border:2.5px solid var(--ink);background:#fff}
+.evo-hp i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);animation:hp2 5.5s infinite}
+.evo-hp b{position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;background:var(--red)}
+@keyframes hp2{0%,30%{width:100%}42%,96%{width:50%}100%{width:100%}}
+.evo-say{position:absolute;left:54%;top:54px;background:var(--red);color:#fff;font-weight:900;font-size:14px;padding:4px 10px;white-space:nowrap;opacity:0;animation:say 5.5s infinite}
+@keyframes tintLoop{0%,54%{--bc:#FBFAF7}60%,92%{--bc:#F2B8B0}100%{--bc:#FBFAF7}}
+@keyframes say{0%,54%{opacity:0;transform:scale(.4)}58%,90%{opacity:1;transform:none}96%,100%{opacity:0}}
 
 /* 卡牌合成動畫（純 CSS） */
 .mcard{position:absolute;top:50%;left:50%;width:118px;height:160px;margin:-80px -59px;background:var(--card);border:2.5px solid var(--ink);background-image:repeating-linear-gradient(transparent 0 15px,rgba(26,26,26,.07) 15px 16px);display:flex;flex-direction:column;align-items:center;padding-top:12px;font-weight:900;box-shadow:3px 4px 0 rgba(26,26,26,.12)}
@@ -206,32 +220,39 @@ section{position:relative}
 .actdots i:last-child{border-radius:0;transform:rotate(45deg);width:20px;height:20px}
 @keyframes dot{0%{background:var(--card);border-color:var(--ink)}8%,12%{background:var(--red);border-color:var(--red);transform:translateY(-8px)}20%,100%{background:var(--ink);border-color:var(--ink);transform:none}}
 
-/* ===== 模式：斜切 ===== */
-#modes{padding:150px 0 0}
-.split2{position:relative;height:min(86vh,720px);min-height:540px;margin-top:50px;--a:58%;--b:42%}
-.split2 .side{position:absolute;inset:0;transition:clip-path .6s cubic-bezier(.3,1,.3,1);overflow:hidden}
-.split2 .nb{clip-path:polygon(0 0,var(--a) 0,var(--b) 100%,0 100%);background:var(--paper);background-image:repeating-linear-gradient(transparent 0 33px,rgba(59,111,182,.14) 33px 34px)}
-.split2 .nb::before{content:"";position:absolute;left:calc(var(--gut) + 40px);top:0;bottom:0;width:2px;background:rgba(214,40,40,.4)}
-.split2 .tt{clip-path:polygon(var(--a) 0,100% 0,100% 100%,var(--b) 100%);background:var(--ink);color:var(--paper)}
-.split2:has(.nb:hover){--a:68%;--b:52%}
-.split2:has(.tt:hover){--a:48%;--b:32%}
-.split2 .content{position:absolute;top:50%;transform:translateY(-50%);max-width:min(440px,38vw)}
-.split2 .nb .content{left:calc(var(--gut) + 70px)}
-.split2 .tt .content{right:var(--gut);text-align:right}
-.split2 h3{font-size:clamp(36px,5vw,72px)}
-.split2 .content p{margin-top:14px;font-size:clamp(15px,1.4vw,18px)}
-.split2 .tt .content p{color:var(--far)}
-.split2 .nb .content p{color:var(--near)}
-.mlabel{font-weight:900;letter-spacing:.3em;font-size:12px;color:var(--red)}
-.ticker{position:absolute;top:0;bottom:0;right:var(--gut);width:44%;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent)}
+/* ===== 模式：三片斜切 ===== */
+#modes{padding:150px 0 0;overflow:hidden}
+.modes3{display:flex;height:min(84vh,680px);min-height:540px;margin:50px -4vw 0}
+.mp{position:relative;flex:1;min-width:0;transform:skewX(-8deg);margin:0 -.7vw;overflow:hidden;transition:flex .7s cubic-bezier(.3,1,.3,1)}
+.modes3:hover .mp{flex:.8}
+.modes3 .mp:hover{flex:1.9}
+.mpi{position:absolute;inset:0;transform:skewX(8deg);display:flex;flex-direction:column;justify-content:center;padding:0 clamp(44px,7vw,110px);z-index:1}
+.mp h3{font-size:clamp(32px,3.8vw,58px);white-space:nowrap}
+.mp p{margin-top:14px;font-size:clamp(14px,1.25vw,17px);max-width:23em}
+.mp .tags{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap}
+.mlabel{font-weight:900;letter-spacing:.3em;font-size:12px;color:var(--red);margin-bottom:6px}
+.m1{background:var(--paper);background-image:repeating-linear-gradient(transparent 0 33px,rgba(59,111,182,.14) 33px 34px)}
+.m1::before{content:"";position:absolute;left:calc(8vw);top:0;bottom:0;width:2px;background:rgba(214,40,40,.4)}
+.m1 p{color:var(--near)}
+.m2{background:var(--ink);color:var(--paper)}
+.m2 p{color:var(--far)}
+.m2 .chip,.m3 .chip{background:transparent;color:var(--paper);border-color:rgba(242,240,235,.6)}
+.m3{background:var(--dred);color:var(--paper)}
+.m3 p{color:#F0CFC9}
+.m3 .mlabel,.m2 .mlabel{color:#FF8A7E}
+.rec{position:absolute;right:clamp(36px,6vw,90px);top:clamp(36px,8vh,80px);border:3px solid var(--red);color:var(--red);font-weight:900;font-size:16px;padding:2px 12px;transform:rotate(8deg);letter-spacing:.1em;background:rgba(251,250,247,.6)}
+.pgs{display:flex;gap:10px;align-items:center;margin-top:24px}
+.pgs i{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);animation:dot 5s infinite}
+.pgs i.boss{border-radius:0;transform:rotate(45deg)}
+@keyframes dot{0%{background:var(--card);border-color:var(--ink)}8%,12%{background:var(--red);border-color:var(--red);transform:translateY(-8px)}20%,100%{background:var(--ink);border-color:var(--ink);transform:none}}
+.ticker{position:absolute;inset:0;overflow:hidden;z-index:0;-webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);transform:skewX(8deg)}
 .ticker .col{display:flex;flex-direction:column;animation:tick 12s linear infinite}
-.ticker .col div{font-size:clamp(34px,4vw,56px);font-weight:900;line-height:1.5;color:transparent;-webkit-text-stroke:1.5px rgba(242,240,235,.13);white-space:nowrap;text-align:right;font-size:clamp(50px,7vw,110px)!important;line-height:1.3!important}
+.ticker .col div{font-size:clamp(50px,7vw,110px);font-weight:900;line-height:1.3;color:transparent;-webkit-text-stroke:1.5px rgba(242,240,235,.08);white-space:nowrap;text-align:right;padding-right:3%}
 .ticker .col div.hl{-webkit-text-stroke:1.5px rgba(214,40,40,.6)}
-.split2 .content{z-index:1}
 @keyframes tick{to{transform:translateY(-50%)}}
-.pages{position:absolute;left:calc(var(--gut) + 70px);bottom:9%;display:flex;gap:10px;align-items:center}
-.pages i{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);animation:dot 5s infinite}
-.pages i.boss{border-radius:0;transform:rotate(45deg)}
+.rating{position:absolute;right:6%;bottom:2%;z-index:0;font-size:clamp(120px,17vw,260px);font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(242,240,235,.25);transform:skewX(8deg)}
+.rating.pop{animation:rpop .35s}
+@keyframes rpop{0%{transform:skewX(8deg) scale(1.25);-webkit-text-stroke-color:#fff}100%{transform:skewX(8deg) scale(1)}}
 .extra-modes{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:40px var(--gut) 0;color:var(--near)}
 
 /* ===== 卡牌扇形 ===== */
@@ -364,16 +385,16 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
     .hpanel{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;gap:24px;padding:70px 22px 80px}
     .hpanel .num{top:auto;bottom:70px;right:10px;left:auto;font-size:150px}
     .ill{height:38vh}
-    .split2{height:auto;min-height:0;display:flex;flex-direction:column}
-    .split2 .side{position:relative;inset:auto;height:420px}
-    .split2 .nb{clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}
-    .split2 .tt{clip-path:polygon(0 12%,100% 0,100% 100%,0 100%);margin-top:-50px}
-    .split2:has(.nb:hover),.split2:has(.tt:hover){--a:58%;--b:42%}
-    .split2 .content{max-width:none;left:22px!important;right:22px!important;text-align:left!important}
-    .pages{left:22px}
     .blist{flex-wrap:wrap;gap:30px 18px}
     .bs{flex:0 1 40%}
     .tiles{grid-template-columns:1fr}
+    .modes3{flex-direction:column;height:auto;min-height:0;margin:40px 0 0}
+    .mp,.modes3:hover .mp,.modes3 .mp:hover{transform:none;flex:none;height:380px;margin:-30px 0 0;clip-path:polygon(0 0,100% 0,100% 90%,0 100%)}
+    .mp:first-child{margin-top:0}
+    .mpi,.ticker,.rating{transform:none}
+    .mpi{padding:30px 22px 20px}
+    .m1::before{left:22px}
+    @keyframes rpop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
     .bands{margin:-70px 0 -30px;height:150px}
     .band{font-size:18px;height:46px;margin-top:-23px}
     .wchip{font-size:18px;padding:8px 18px 8px 10px}
@@ -400,6 +421,7 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
         <a href="#play" data-go>玩法</a>
         <a href="#modes" data-go>模式</a>
         <a href="#cards" data-go>卡牌</a>
+        <a href="#arsenal" data-go>武器</a>
         <a href="#bosses" data-go>頭目</a>
     </div>
     <a class="btn sk sm r" href="https://archie-30.github.io/INKRAGE/">立即遊玩</a>
@@ -425,7 +447,8 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
         <h1 class="logo-big boil" id="logo">INKRAGE</h1>
         <svg class="uline" viewBox="0 0 400 12" preserveAspectRatio="none"><path d="M2 7 Q100 2 200 6 T320 6" stroke="#1A1A1A" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M320 6 Q360 3 398 7" stroke="#D62828" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
         <div class="tag">整個世界，都畫在一本筆記本上。</div>
-        <p class="hero-desc">用鋼筆射擊、用墨水出牌，一頁一頁打倒塗鴉敵人。</p>
+        <p class="hero-desc">一邊閃躲射擊、一邊花墨水出牌。每一頁自己選門、選路線，一路打到頭目。</p>
+        <div class="hero-chips"><span class="chip">雙搖桿射擊</span><span class="chip">62 張卡牌</span><span class="chip">每頁自選路線</span><span class="chip r">半血進化的頭目</span></div>
         <div class="cta">
             <a class="btn sk ink" href="https://archie-30.github.io/INKRAGE/">立即遊玩</a>
             <a class="btn sk" href="#play" data-go>看看怎麼玩</a>
@@ -434,7 +457,7 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
 </header>
 
 <div class="bands" aria-hidden="true">
-    <div class="band a"><div class="mq" data-speed="70"><span>射擊 × 牌組構築</span><span>手繪筆記本世界</span><span>42 張卡牌</span><span>7 把文具武器</span><span>5 隻頭目</span><span>16 種小遊戲</span><span>免安裝・電腦與平板</span></div></div>
+    <div class="band a"><div class="mq" data-speed="70"><span>射擊 × 牌組構築</span><span>手繪筆記本世界</span><span>62 張卡牌</span><span>8 把文具武器</span><span>7 隻頭目</span><span>18 種小遊戲</span><span>3 種遊玩模式</span><span>免安裝・電腦與平板</span></div></div>
 </div>
 
 <main>
@@ -442,30 +465,25 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
 <section id="play">
     <div class="wrap intro">
         <span class="eyebrow rv">HOW TO PLAY</span>
-        <h2 class="big split">一枝筆，寫完一整本。</h2>
-        <p class="lead rv">往下捲，翻過四頁筆記。</p>
+        <h2 class="big split">一局這樣玩。</h2>
+        <p class="lead rv">往下捲，看一局從開始到打倒頭目，你都在做什麼。</p>
     </div>
     <div class="hs" id="hs">
         <div class="hs-sticky">
             <div class="hs-track" id="hsTrack">
                 <div class="hpanel">
                     <div class="num">01</div>
-                    <div class="txt"><h3>射擊・閃避</h3><p>移動、瞄準、按住射擊。用衝刺穿過子彈就是<b class="red">完美閃避</b>，時間會瞬間放慢。</p><div class="tags"><span class="chip">雙搖桿</span><span class="chip">衝刺無敵</span><span class="chip r">完美閃避</span></div></div>
+                    <div class="txt"><h3>射擊・閃避</h3><p>雙搖桿移動、瞄準、射擊。用衝刺穿過敵人的子彈就是<b class="red">完美閃避</b>：時間放慢，還回 1 點墨水。</p><div class="tags"><span class="chip">雙搖桿</span><span class="chip">衝刺無敵</span><span class="chip r">完美閃避</span></div></div>
                     <div class="ill sk"><div class="frame"><canvas id="dodgeCv"></canvas></div></div>
                 </div>
                 <div class="hpanel">
                     <div class="num">02</div>
-                    <div class="txt"><h3>收集墨水</h3><p>打倒敵人會滴下墨水。墨水就是出牌的費用，打得越兇、牌出得越多。</p><div class="tags"><span class="chip">上限 10</span><span class="chip">精英加倍</span></div></div>
+                    <div class="txt"><h3>墨水・出牌</h3><p>打倒敵人會掉墨水，墨水就是出牌的費用。手上 2 張牌加 1 格特殊技，邊射擊邊放技能。</p><div class="tags"><span class="chip">62 張卡牌</span><span class="chip r">18 張特殊技</span><span class="chip">每頁可重抽手牌</span></div></div>
                     <div class="ill sk"><div class="frame"><svg class="full" id="inkSvg" viewBox="0 0 400 300"></svg></div></div>
                 </div>
                 <div class="hpanel">
                     <div class="num">03</div>
-                    <div class="txt"><h3>出牌構築</h3><p>手上 2 張牌加 1 格特殊技。每場戰鬥後挑新卡，3 張相同的卡會自動合成強化版。</p><div class="tags"><span class="chip">42 張卡牌</span><span class="chip r">特殊技演出</span><span class="chip">3 合 1</span></div></div>
-                    <div class="ill sk"><div class="frame" id="mergeIll"><div class="mflash"></div></div></div>
-                </div>
-                <div class="hpanel">
-                    <div class="num">04</div>
-                    <div class="txt"><h3>挑一扇門</h3><p>過關後上方會開 2～3 扇門：戰鬥、寶箱、文具店、小遊戲、奇遇……先看好再選你的路。</p><div class="tags"><span class="chip">8 種頁面</span><span class="chip">每幕一隻頭目</span></div></div>
+                    <div class="txt"><h3>選門・闖關</h3><p>每打完一頁，上方會開 2～3 扇門：戰鬥、寶箱、文具店、小遊戲、奇遇、休息區。路線自己決定。</p><div class="tags"><span class="chip">8 種頁面</span><span class="chip">每幕 6 頁</span><span class="chip">共 3 幕</span></div></div>
                     <div class="ill sk"><div class="frame">
                         <div class="doors3">
                             <div class="door"><div class="fr"><div class="lf"></div></div><div class="lb">寶箱頁</div></div>
@@ -475,45 +493,64 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
                         <div class="actdots"><i></i><i style="animation-delay:.6s"></i><i style="animation-delay:1.2s"></i><i style="animation-delay:1.8s"></i><i style="animation-delay:2.4s"></i><i style="animation-delay:3s"></i><i style="animation-delay:3.6s"></i></div>
                     </div></div>
                 </div>
+                <div class="hpanel">
+                    <div class="num">04</div>
+                    <div class="txt"><h3>打倒頭目</h3><p>每一幕的最後一頁是頭目戰。七隻頭目各有自己的招式，血量降到一半會進化，換上一套新招。</p><div class="tags"><span class="chip">7 隻頭目</span><span class="chip r">半血進化</span></div></div>
+                    <div class="ill sk"><div class="frame"><div class="evo-hp"><i></i><b></b></div><div class="evo-say">你的筆跡好醜。</div><div class="evo-b" id="evoIll"></div></div></div>
+                </div>
+                <div class="hpanel">
+                    <div class="num">05</div>
+                    <div class="txt"><h3>越打越強</h3><p>擊敗頭目後進圖書館：挑卡牌、拿遺物。三張相同的卡會合成強化版，牌組慢慢變成你的風格。</p><div class="tags"><span class="chip">圖書館</span><span class="chip">28 件遺物</span><span class="chip r">3 合 1 強化</span></div></div>
+                    <div class="ill sk"><div class="frame" id="mergeIll"><div class="mflash"></div></div></div>
+                </div>
             </div>
-            <div class="hs-bar"><span id="hsNo">01</span><div class="rail"><i id="hsFill"></i><b id="hsDot" style="left:0"></b></div><span>04</span></div>
+            <div class="hs-bar"><span id="hsNo">01</span><div class="rail"><i id="hsFill"></i><b id="hsDot" style="left:0"></b></div><span>05</span></div>
         </div>
     </div>
 </section>
 
-<!-- 模式：斜切 -->
+<!-- 模式 -->
 <section id="modes">
     <div class="wrap">
         <span class="eyebrow rv">MODES</span>
-        <h2 class="big split">兩種寫法。</h2>
+        <h2 class="big split">三種玩法。</h2>
     </div>
-    <div class="split2">
-        <div class="side nb">
-            <div class="content rv-l">
-                <div class="mlabel">MODE 01</div>
-                <h3>筆記本模式</h3>
-                <p>3 幕、每幕 6 頁加一隻頭目。<br>選門、選路，把一整本寫完。</p>
-            </div>
-            <div class="pages"><i></i><i style="animation-delay:.7s"></i><i style="animation-delay:1.4s"></i><i style="animation-delay:2.1s"></i><i style="animation-delay:2.8s"></i><i style="animation-delay:3.5s"></i><i class="boss" style="animation-delay:4.2s"></i></div>
-        </div>
-        <div class="side tt">
+    <div class="modes3">
+        <div class="mp m1"><div class="mpi">
+            <span class="rec">推薦</span>
+            <div class="mlabel">MODE 01</div>
+            <h3>筆記本模式</h3>
+            <p>3 幕、每幕 6 頁加一隻頭目。選門、選路，把一整本寫完。第一次玩，從這裡開始。</p>
+            <div class="pgs"><i></i><i style="animation-delay:.7s"></i><i style="animation-delay:1.4s"></i><i style="animation-delay:2.1s"></i><i style="animation-delay:2.8s"></i><i style="animation-delay:3.5s"></i><i class="boss" style="animation-delay:4.2s"></i></div>
+        </div></div>
+        <div class="mp m2">
             <div class="ticker"><div class="col" id="ticker"></div></div>
-            <div class="content rv-r">
+            <div class="mpi">
                 <div class="mlabel">MODE 02</div>
                 <h3>課表模式</h3>
-                <p>永遠上不完的課。每頁一堂特殊規則的課，<br>每 5 頁一隻頭目，挑戰最高分。</p>
+                <p>永遠上不完的課。每頁一堂有特殊規則的課，每 5 頁一隻頭目，挑戰最高分。</p>
+                <div class="tags"><span class="chip">5 堂課</span><span class="chip">無盡</span></div>
+            </div>
+        </div>
+        <div class="mp m3">
+            <div class="rating" id="rating">S++</div>
+            <div class="mpi">
+                <div class="mlabel">MODE 03</div>
+                <h3>頭目連戰</h3>
+                <p>七隻頭目一隻接一隻，每隻打完都評分，總分評 S++ 到 D。保健室裡回血、選牌、拿遺物。</p>
+                <div class="tags"><span class="chip">等級 5 或通關一次解鎖</span></div>
             </div>
         </div>
     </div>
-    <div class="extra-modes rv"><span class="chip">訓練場：自由試卡</span><span class="chip">新手教學：一步一步帶你玩</span></div>
+    <div class="extra-modes rv"><span class="chip">訓練場：自由試卡、試武器、召喚頭目</span><span class="chip">新手教學：一步一步帶你玩</span></div>
 </section>
 
 <!-- 卡牌扇形 -->
 <section id="cards">
     <div class="wrap">
         <span class="eyebrow rv">CARDS</span>
-        <h2 class="big split">墨水，就是你的手牌。</h2>
-        <p class="lead rv" style="margin-left:auto;margin-right:auto">攻擊、地形、防禦、輔助，紅框的是特殊技。</p>
+        <h2 class="big split">62 張卡，組你的牌組。</h2>
+        <p class="lead rv" style="margin-left:auto;margin-right:auto">攻擊、地形、防禦、輔助四大類，紅框的是特殊技。</p>
     </div>
     <div class="fan" id="fan"></div>
 </section>
@@ -521,8 +558,8 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
 <!-- 武器 -->
 <section id="arsenal">
     <div class="wrap arsenal-head">
-        <div><span class="eyebrow rv">ARSENAL</span><h2 class="big split">七把文具武器。</h2></div>
-        <p class="lead rv-r" style="max-width:24em">鋼筆、自動鉛筆、毛筆、釘書機、螢光筆、圓規、彩色筆——每把手感都不一樣，升級解鎖。</p>
+        <div><span class="eyebrow rv">ARSENAL</span><h2 class="big split">八把文具武器。</h2></div>
+        <p class="lead rv-r" style="max-width:24em">鋼筆、自動鉛筆、毛筆、釘書機、螢光筆、圓規、彩色筆、墨弓——每把手感都不一樣，升級解鎖。</p>
     </div>
     <div class="rows">
         <div class="row"><div class="mq" id="wRow" data-speed="-60"></div></div>
@@ -534,7 +571,7 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
 <section id="bosses">
     <div class="wrap">
         <span class="eyebrow rv">BOSSES</span>
-        <h2 class="big split">五隻頭目，半血進化。</h2>
+        <h2 class="big split">七隻頭目，半血進化。</h2>
         <p class="lead rv">血量見底時會鎖血、邊轉邊變大、全身轉紅，然後換一套新招式。滑過或點一下看看。</p>
     </div>
     <div class="blist" id="blist"></div>
@@ -545,7 +582,7 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
 <section id="more">
     <div class="wrap">
         <span class="eyebrow rv">AND MORE</span>
-        <h2 class="big split">還有更多頁。</h2>
+        <h2 class="big split">還有更多。</h2>
         <div class="tiles" id="tiles"></div>
     </div>
 </section>
@@ -563,7 +600,7 @@ footer .fine{font-size:12px;color:var(--mid);margin-top:40px}
     <p class="fine" style="margin-top:8px">Knight_。<a href="mailto:passer0012@gmail.com">passer0012@gmail.com</a></p>
 </footer>
 
-<div class="wip">仍在開發中・beta v0.9.55</div>
+<div class="wip">v1.0.0・持續更新中</div>
 <div id="door"><canvas id="doorCv"></canvas></div>
 <div id="cutin"><div class="dim"></div><div class="band2"><div class="lines"></div><div class="who" id="cutWho"></div></div><div class="ttl" id="cutTtl"></div><div class="sub" id="cutSub"></div><div class="white"></div></div>
 <script>
@@ -580,7 +617,7 @@ const ease=t=>1-Math.pow(1-t,3);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 
 /* ================= 資料 ================= */
-const CARDS=[{"id":"scatter","n":"散射","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"朝指定方向射出 5 發擴散墨彈，每發 14 傷害。","u":"朝指定方向射出 7 發擴散墨彈，每發 16 傷害。"},{"id":"pierce","n":"穿透筆","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"射出巨型筆尖，穿過牆壁並貫穿路徑上所有敵人，造成 45 傷害；每貫穿一名敵人，傷害再提升 25%。","u":"射出巨型筆尖，穿過牆壁並貫穿路徑上所有敵人，造成 60 傷害；每貫穿一名敵人，傷害再提升 35%。"},{"id":"homing","n":"追蹤墨點","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"放出 3 顆自動追蹤敵人的墨點，每顆 18 傷害。","u":"放出 5 顆自動追蹤敵人的墨點，每顆 18 傷害。"},{"id":"bomb","n":"爆墨","c":3,"uc":3,"r":0,"t":"attack","lv":1,"d":"投出墨水炸彈，半徑 3 內造成最多 40 傷害。","u":"投出墨水炸彈，半徑 3.8 內造成最多 55 傷害。"},{"id":"rapid","n":"連射","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"4 秒內射速提升為 2 倍。","u":"5 秒內射速提升為 2 倍。"},{"id":"execute","n":"紅墨處決","c":5,"uc":4,"r":1,"t":"attack","lv":1,"d":"對目標附近最近的敵人造成 250 點毀滅性傷害。","u":"對目標附近最近的敵人造成 250 點毀滅性傷害。"},{"id":"pencilWall","n":"鉛筆牆","c":2,"uc":2,"r":0,"t":"terrain","lv":1,"d":"在地上畫出最長 8 的路徑，長出一道擋住敵彈的牆，持續 6 秒後消失。","u":"在地上畫出最長 11 的路徑，長出一道擋住敵彈的牆，持續 9 秒後消失。"},{"id":"eraser","n":"橡皮擦","c":2,"uc":2,"r":0,"t":"terrain","lv":1,"d":"朝指定方向揮動橡皮擦，立刻擦掉扇形範圍內所有敵彈，並對範圍內的敵人造成 5 傷害並擊退。","u":"朝指定方向揮動橡皮擦，立刻擦掉扇形範圍內所有敵彈，並對範圍內的敵人造成 5 傷害並擊退。"},{"id":"trap","n":"陷阱圈","c":1,"uc":1,"r":0,"t":"terrain","lv":1,"d":"在地上畫一個圈，6 秒內圈中敵人減速 65%。","u":"在地上畫一個圈，8 秒內圈中敵人減速 75%。"},{"id":"paperShield","n":"紙盾","c":3,"uc":3,"r":0,"t":"defense","lv":1,"d":"召喚 3 片環繞的紙盾，每片可抵擋一次攻擊。","u":"召喚 4 片環繞的紙盾，每片可抵擋一次攻擊。"},{"id":"inkDash","n":"閃避墨跡","c":2,"uc":2,"r":0,"t":"defense","lv":2,"d":"先往指定方向墊步一小段再衝刺（避免一起跑就撞上敵人），留下墨跡，4 秒內每秒造成 40 傷害。","u":"先往指定方向墊步一小段再衝刺（避免一起跑就撞上敵人），留下墨跡，5 秒內每秒造成 60 傷害。"},{"id":"timeStop","n":"時停","c":3,"uc":3,"r":0,"t":"utility","lv":7,"d":"凍結所有敵彈 2 秒，世界翻轉為負片。","u":"凍結所有敵彈 3 秒，世界翻轉為負片。"},{"id":"clone","n":"分身","c":3,"uc":3,"r":0,"t":"utility","lv":5,"d":"在目標位置畫出一個分身，5 秒內自動射擊（每發 8）。","u":"在目標位置畫出一個分身，7 秒內自動射擊（每發 10）。"},{"id":"redraw","n":"重畫","c":3,"uc":2,"r":1,"t":"utility","lv":8,"d":"重新提筆：5.5 秒內施放一般卡都不消耗墨水（特殊技仍需墨水）。","u":"重新提筆：5.5 秒內施放一般卡都不消耗墨水（特殊技仍需墨水）。"},{"id":"whiteout","n":"修正液","c":3,"uc":3,"r":0,"t":"defense","lv":2,"d":"塗上修正液，回復 2 點生命。","u":"塗上修正液，回復 3 點生命。"},{"id":"shockwave","n":"衝擊波","c":2,"uc":2,"r":0,"t":"defense","lv":3,"d":"以自己為中心震開半徑 5.5 內的敵人並造成 15 傷害，同時擦掉附近敵彈。","u":"以自己為中心震開半徑 7 內的敵人並造成 22 傷害，同時擦掉附近敵彈。"},{"id":"mark","n":"標記","c":1,"uc":1,"r":0,"t":"utility","lv":4,"d":"標記目標附近的一名敵人，6 秒內受到的傷害變為 2 倍。","u":"標記目標附近的一名敵人，8 秒內受到的傷害變為 2 倍。"},{"id":"inkMine","n":"墨水地雷","c":2,"uc":2,"r":0,"t":"terrain","lv":6,"d":"在地上埋一顆地雷，敵人靠近時爆炸，半徑 3 內造成 50 傷害。","u":"在地上埋一顆地雷，敵人靠近時爆炸，半徑 3.6 內造成 70 傷害。"},{"id":"dualWield","n":"雙持","c":3,"uc":2,"r":1,"t":"attack","lv":2,"d":"6 秒內左手也拿起一把同樣的武器，每次攻擊兩把一起發射；時間到時會把左手的武器甩掉收起。","u":"6 秒內左手也拿起一把同樣的武器，每次攻擊兩把一起發射；時間到時會把左手的武器甩掉收起。"},{"id":"pin","n":"釘住","c":2,"uc":2,"r":0,"t":"utility","lv":7,"d":"把目標附近半徑 3.2 內的敵人釘在原地 2.5 秒（首領效果減為 30%）。","u":"把目標附近半徑 4 內的敵人釘在原地 3.5 秒（首領效果減為 30%）。"},{"id":"chain","n":"連鎖墨線","c":2,"uc":2,"r":0,"t":"attack","lv":10,"d":"墨線在敵人之間跳躍 5 次，每次造成 25 傷害。","u":"墨線在敵人之間跳躍 7 次，每次造成 30 傷害。"},{"id":"inkRain","n":"墨雨","c":3,"uc":3,"r":0,"t":"attack","lv":11,"d":"在目標區域降下 8 滴墨水，每滴造成 18 範圍傷害。","u":"在目標區域降下 11 滴墨水，每滴造成 20 範圍傷害。"},{"id":"reflect","n":"反彈紙","c":2,"uc":2,"r":0,"t":"defense","lv":12,"d":"3 秒內，碰到你的敵彈會被反彈回去攻擊敵人。","u":"4.5 秒內，碰到你的敵彈會被反彈回去攻擊敵人。"},{"id":"inkWell","n":"墨水補給","c":1,"uc":1,"r":0,"t":"utility","lv":13,"d":"立刻獲得 3 點墨水。","u":"立刻獲得 4 點墨水。"},{"id":"tsunami","n":"墨水海嘯","c":4,"uc":3,"r":1,"t":"attack","lv":1,"d":"掀起一道墨浪橫掃前方，對所有敵人造成 75 傷害並沖走敵彈。","u":"掀起一道墨浪橫掃前方，對所有敵人造成 75 傷害並沖走敵彈。"},{"id":"blackHole","n":"墨漩渦","c":5,"uc":4,"r":1,"t":"attack","lv":10,"d":"在目標處形成漩渦，把半徑 5.5 內的敵人吸過來，2.5 秒後爆炸造成 90 傷害；只炸到 1 個敵人時改為 100 傷害。","u":"在目標處形成漩渦，把半徑 5.5 內的敵人吸過來，2.5 秒後爆炸造成 90 傷害；只炸到 1 個敵人時改為 100 傷害。"},{"id":"barrage","n":"百筆齊發","c":4,"uc":3,"r":1,"t":"attack","lv":13,"d":"3 秒內連續放出 36 支追蹤筆，每支造成 12 傷害。","u":"3 秒內連續放出 36 支追蹤筆，每支造成 12 傷害。"},{"id":"giantPen","n":"巨筆一劃","c":4,"uc":3,"r":1,"t":"attack","lv":14,"d":"用巨筆朝指定方向劃過整個房間，路徑上所有敵人受到 210 傷害。","u":"用巨筆朝指定方向劃過整個房間，路徑上所有敵人受到 210 傷害。"},{"id":"freezeAll","n":"定格","c":4,"uc":3,"r":1,"t":"utility","lv":15,"d":"畫面定格 3 秒：所有敵人與敵彈完全靜止，首領也不例外。","u":"畫面定格 3 秒：所有敵人與敵彈完全靜止，首領也不例外。"},{"id":"paperBlade","n":"紙飛刃","c":2,"uc":2,"r":0,"t":"attack","lv":9,"d":"擲出紙飛刃，飛出 8 後折返；去程與回程各對路徑上的敵人造成 22 傷害，並切掉碰到的敵彈。","u":"擲出紙飛刃，飛出 10 後折返；去程與回程各對路徑上的敵人造成 30 傷害，並切掉碰到的敵彈。"},{"id":"blot","n":"吸墨紙","c":1,"uc":1,"r":0,"t":"defense","lv":6,"d":"吸走身邊半徑 4 內的所有敵彈，每吸 4 發獲得 1 墨水（最多 3）。","u":"吸走身邊半徑 5.5 內的所有敵彈，每吸 3 發獲得 1 墨水（最多 4）。"},{"id":"inkField","n":"墨刺地","c":2,"uc":2,"r":0,"t":"terrain","lv":11,"d":"在目標處鋪一片半徑 2.5 的墨刺地，5 秒內每秒對其中的地面敵人造成 24 傷害。","u":"在目標處鋪一片半徑 3 的墨刺地，6 秒內每秒對其中的地面敵人造成 32 傷害。"},{"id":"clusterBomb","n":"分裂墨彈","c":3,"uc":3,"r":0,"t":"attack","lv":14,"d":"投出會分裂的墨彈：主爆炸造成 30 傷害，接著向四周炸出 4 顆小墨彈。","u":"投出會分裂的墨彈：主爆炸造成 36 傷害，接著向四周炸出 6 顆小墨彈。"},{"id":"haste","n":"疾筆","c":1,"uc":1,"r":0,"t":"utility","lv":4,"d":"5 秒內移動速度與衝刺冷卻加快為 1.4 倍。","u":"7 秒內移動速度與衝刺冷卻加快為 1.5 倍。"},{"id":"echo","n":"回聲","c":3,"uc":2,"r":1,"t":"utility","lv":9,"d":"免費再施放一次你上一張使用的特殊卡（自動瞄準最近的敵人）；若還沒用過特殊卡則獲得 2 墨水。","u":"免費再施放一次你上一張使用的特殊卡（自動瞄準最近的敵人）；若還沒用過特殊卡則獲得 2 墨水。"},{"id":"inkBarrier","n":"紙壘","c":3,"uc":2,"r":1,"t":"defense","lv":5,"d":"用一整圈紙牆把自己包住 4 秒：期間刀槍不入、不受任何傷害，敵彈會被紙牆擋下。","u":"用一整圈紙牆把自己包住 4 秒：期間刀槍不入、不受任何傷害，敵彈會被紙牆擋下。"},{"id":"inkStorm","n":"墨暴","c":4,"uc":3,"r":1,"t":"attack","lv":15,"d":"召喚墨暴 5 秒，每 0.45 秒劈中一名隨機敵人，造成 40 傷害。","u":"召喚墨暴 5 秒，每 0.45 秒劈中一名隨機敵人，造成 40 傷害。"},{"id":"sketchLeap","n":"速寫後撤","c":3,"uc":3,"r":0,"t":"defense","lv":8,"d":"先向四周射出 8 發墨彈（每發 15），再跳到目標位置，跳躍中不會受傷。","u":"先向四周射出 12 發墨彈（每發 18），再跳到目標位置，跳躍中不會受傷。"},{"id":"puppet","n":"傀儡","c":4,"uc":3,"r":1,"t":"utility","lv":12,"d":"放出不會攻擊的傀儡，5 秒內吸引所有敵人；同時紙盾補到 3 片，時間到收回這次補的紙盾。","u":"放出不會攻擊的傀儡，5 秒內吸引所有敵人；同時紙盾補到 3 片，時間到收回這次補的紙盾。"},{"id":"bounceBall","n":"彈跳皮球","c":2,"uc":2,"r":0,"t":"attack","lv":3,"d":"丟出皮球（傷害 12），能穿過敵人並在牆上反彈 3 次。","u":"丟出皮球（傷害 12），能穿過敵人並在牆上反彈 4 次。"},{"id":"stamp","n":"蓋章","c":3,"uc":3,"r":0,"t":"attack","lv":5,"d":"在目標蓋下大印章，半徑 2.2 內的敵人都受到 20 傷害。","u":"在目標蓋下大印章，半徑 2.2 內的敵人都受到 20 傷害。"},{"id":"ruler","n":"尺子","c":2,"uc":2,"r":0,"t":"terrain","lv":10,"d":"放一把半透明的尺 8 秒，不擋子彈；你的子彈穿過它傷害 +30%。","u":"放一把半透明的尺 10 秒，不擋子彈；你的子彈穿過它傷害 +40%。"}];
+const CARDS=[{"id":"scatter","n":"散射","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"朝指定方向射出 5 發擴散墨彈，每發 14 傷害。","u":"朝指定方向射出 7 發擴散墨彈，每發 16 傷害。"},{"id":"pierce","n":"穿透筆","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"射出巨型筆尖，穿過牆壁並貫穿路徑上所有敵人，造成 45 傷害；每貫穿一名敵人，傷害再提升 25%。","u":"射出巨型筆尖，穿過牆壁並貫穿路徑上所有敵人，造成 60 傷害；每貫穿一名敵人，傷害再提升 35%。"},{"id":"homing","n":"追蹤墨點","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"放出 3 顆自動追蹤敵人的墨點，每顆 18 傷害。","u":"放出 5 顆自動追蹤敵人的墨點，每顆 18 傷害。"},{"id":"bomb","n":"爆墨","c":3,"uc":3,"r":0,"t":"attack","lv":1,"d":"投出墨水炸彈，半徑 3 公尺內造成最多 40 傷害。","u":"投出墨水炸彈，半徑 3.8 公尺內造成最多 55 傷害。"},{"id":"rapid","n":"連射","c":2,"uc":2,"r":0,"t":"attack","lv":1,"d":"4 秒內射速提升為 2 倍。","u":"5 秒內射速提升為 2 倍。"},{"id":"execute","n":"紅墨處決","c":5,"uc":4,"r":1,"t":"attack","lv":1,"d":"對目標範圍內的敵人造成 250 點毀滅性傷害：優先頭目，其次菁英怪，再來才是最近的敵人。","u":"對目標範圍內的敵人造成 250 點毀滅性傷害：優先頭目，其次菁英怪，再來才是最近的敵人。"},{"id":"pencilWall","n":"鉛筆牆","c":2,"uc":2,"r":0,"t":"terrain","lv":1,"d":"在地上畫出最長 8 公尺的路徑，長出一道擋住敵彈的牆，持續 6 秒後消失。","u":"在地上畫出最長 11 公尺的路徑，長出一道擋住敵彈的牆，持續 9 秒後消失。"},{"id":"eraser","n":"橡皮擦","c":2,"uc":2,"r":0,"t":"terrain","lv":1,"d":"朝指定方向揮動橡皮擦，立刻擦掉扇形範圍內所有敵彈，並對範圍內的敵人造成 8 傷害、擊退，再緩速 2 秒。","u":"朝指定方向揮動橡皮擦，立刻擦掉扇形範圍內所有敵彈，並對範圍內的敵人造成 10 傷害、擊退，再緩速 2.5 秒。"},{"id":"trap","n":"陷阱圈","c":1,"uc":1,"r":0,"t":"terrain","lv":1,"d":"在地上畫一個圈，6 秒內圈中敵人減速 65%。","u":"在地上畫一個圈，8 秒內圈中敵人減速 75%。"},{"id":"paperShield","n":"紙盾","c":3,"uc":3,"r":0,"t":"defense","lv":1,"d":"召喚 2 片環繞的紙盾，每片可抵擋一次攻擊，持續 7 秒。","u":"召喚 3 片環繞的紙盾，每片可抵擋一次攻擊，持續 7 秒。"},{"id":"inkDash","n":"閃避墨跡","c":2,"uc":2,"r":0,"t":"defense","lv":2,"d":"先往指定方向墊步一小段再衝刺（避免一起跑就撞上敵人），留下墨跡，4 秒內每秒造成 40 傷害。","u":"先往指定方向墊步一小段再衝刺（避免一起跑就撞上敵人），留下墨跡，5 秒內每秒造成 60 傷害。"},{"id":"timeStop","n":"時停","c":3,"uc":3,"r":0,"t":"utility","lv":7,"d":"凍結所有敵彈 2 秒，世界翻轉為負片。","u":"凍結所有敵彈 3 秒，世界翻轉為負片。"},{"id":"clone","n":"分身","c":3,"uc":3,"r":0,"t":"utility","lv":5,"d":"在目標位置畫出一個分身，5 秒內自動射擊（每發 8）。","u":"在目標位置畫出一個分身，7 秒內自動射擊（每發 10）。"},{"id":"redraw","n":"重畫","c":3,"uc":2,"r":1,"t":"utility","lv":8,"d":"重新提筆：5.5 秒內施放一般卡都不消耗墨水（特殊技仍需墨水）。","u":"重新提筆：5.5 秒內施放一般卡都不消耗墨水（特殊技仍需墨水）。"},{"id":"whiteout","n":"修正液","c":3,"uc":3,"r":0,"t":"defense","lv":2,"d":"塗上修正液，回復 1 點生命。","u":"塗上修正液，回復 2 點生命。"},{"id":"shockwave","n":"衝擊波","c":2,"uc":2,"r":0,"t":"defense","lv":3,"d":"以自己為中心震開半徑 5.5 公尺內的敵人並造成 22 傷害，同時擦掉附近敵彈。","u":"以自己為中心震開半徑 7 公尺內的敵人並造成 22 傷害，同時擦掉附近敵彈。"},{"id":"mark","n":"標記","c":1,"uc":1,"r":0,"t":"utility","lv":4,"d":"標記目標附近的一名敵人，6 秒內受到的傷害變為 2 倍。","u":"標記目標附近的一名敵人，8 秒內受到的傷害變為 2 倍。"},{"id":"inkMine","n":"墨水地雷","c":2,"uc":2,"r":0,"t":"terrain","lv":6,"d":"在地上埋一顆地雷，敵人靠近時爆炸，半徑 3 公尺內造成 50 傷害。","u":"在地上埋一顆地雷，敵人靠近時爆炸，半徑 3.6 公尺內造成 70 傷害。"},{"id":"dualWield","n":"雙持","c":3,"uc":2,"r":1,"t":"attack","lv":2,"d":"6 秒內左手也拿起一把同樣的武器，每次攻擊兩把一起發射；時間到時會把左手的武器甩掉收起。","u":"6 秒內左手也拿起一把同樣的武器，每次攻擊兩把一起發射；時間到時會把左手的武器甩掉收起。"},{"id":"pin","n":"釘住","c":2,"uc":2,"r":0,"t":"utility","lv":7,"d":"把目標附近半徑 3.2 公尺內的敵人釘在原地 2.5 秒（首領效果減為 30%）。","u":"把目標附近半徑 4 公尺內的敵人釘在原地 3.5 秒（首領效果減為 30%）。"},{"id":"chain","n":"連鎖墨線","c":2,"uc":2,"r":0,"t":"attack","lv":10,"d":"墨線在敵人之間跳躍 5 次，每次造成 25 傷害。","u":"墨線在敵人之間跳躍 7 次，每次造成 30 傷害。"},{"id":"inkRain","n":"墨雨","c":3,"uc":3,"r":0,"t":"attack","lv":11,"d":"在目標區域降下 8 滴墨水，每滴造成 18 範圍傷害。","u":"在目標區域降下 11 滴墨水，每滴造成 20 範圍傷害。"},{"id":"reflect","n":"反彈紙","c":2,"uc":2,"r":0,"t":"defense","lv":12,"d":"3 秒內，碰到你的敵彈會被反彈回去攻擊敵人。","u":"4.5 秒內，碰到你的敵彈會被反彈回去攻擊敵人。"},{"id":"inkWell","n":"墨水補給","c":1,"uc":1,"r":0,"t":"utility","lv":13,"d":"立刻獲得 3 點墨水。","u":"立刻獲得 4 點墨水。"},{"id":"tsunami","n":"墨水海嘯","c":4,"uc":3,"r":1,"t":"attack","lv":1,"d":"掀起一道墨浪橫掃前方，對所有敵人造成 75 傷害並沖走敵彈。","u":"掀起一道墨浪橫掃前方，對所有敵人造成 75 傷害並沖走敵彈。"},{"id":"blackHole","n":"墨漩渦","c":5,"uc":4,"r":1,"t":"attack","lv":10,"d":"在目標處形成漩渦，把半徑 5.5 公尺內的敵人吸過來，2.5 秒後爆炸造成 90 傷害；只炸到 1 個敵人時改為 100 傷害。","u":"在目標處形成漩渦，把半徑 5.5 公尺內的敵人吸過來，2.5 秒後爆炸造成 90 傷害；只炸到 1 個敵人時改為 100 傷害。"},{"id":"barrage","n":"百筆齊發","c":4,"uc":3,"r":1,"t":"attack","lv":13,"d":"3 秒內連續放出 36 支追蹤筆，每支造成 12 傷害。","u":"3 秒內連續放出 36 支追蹤筆，每支造成 12 傷害。"},{"id":"giantPen","n":"巨筆一劃","c":4,"uc":3,"r":1,"t":"attack","lv":14,"d":"用巨筆朝指定方向劃過整個房間，路徑上所有敵人受到 210 傷害。","u":"用巨筆朝指定方向劃過整個房間，路徑上所有敵人受到 210 傷害。"},{"id":"freezeAll","n":"定格","c":4,"uc":3,"r":1,"t":"utility","lv":15,"d":"畫面定格 3 秒：所有敵人與敵彈完全靜止，首領也不例外。","u":"畫面定格 3 秒：所有敵人與敵彈完全靜止，首領也不例外。"},{"id":"paperBlade","n":"紙飛刃","c":2,"uc":2,"r":0,"t":"attack","lv":9,"d":"擲出紙飛刃，飛出 8 公尺後折返；去程與回程各對路徑上的敵人造成 22 傷害，並切掉碰到的敵彈。","u":"擲出紙飛刃，飛出 10 公尺後折返；去程與回程各對路徑上的敵人造成 30 傷害，並切掉碰到的敵彈。"},{"id":"blot","n":"吸墨紙","c":1,"uc":1,"r":0,"t":"defense","lv":6,"d":"吸走身邊半徑 4 公尺內的所有敵彈，每吸 4 發獲得 1 墨水（最多 3）。","u":"吸走身邊半徑 5.5 公尺內的所有敵彈，每吸 3 發獲得 1 墨水（最多 4）。"},{"id":"inkField","n":"墨刺地","c":2,"uc":2,"r":0,"t":"terrain","lv":11,"d":"在目標處鋪一片半徑 2.5 公尺的墨刺地，5 秒內每秒對其中的地面敵人造成 24 傷害。","u":"在目標處鋪一片半徑 3 公尺的墨刺地，6 秒內每秒對其中的地面敵人造成 32 傷害。"},{"id":"clusterBomb","n":"分裂墨彈","c":3,"uc":3,"r":0,"t":"attack","lv":14,"d":"投出會分裂的墨彈：主爆炸造成 30 傷害，接著向四周炸出 4 顆小墨彈。","u":"投出會分裂的墨彈：主爆炸造成 36 傷害，接著向四周炸出 6 顆小墨彈。"},{"id":"haste","n":"疾筆","c":1,"uc":1,"r":0,"t":"utility","lv":4,"d":"5 秒內移動速度與衝刺冷卻加快為 1.4 倍。","u":"7 秒內移動速度與衝刺冷卻加快為 1.5 倍。"},{"id":"echo","n":"回聲","c":3,"uc":2,"r":1,"t":"utility","lv":9,"d":"免費再施放一次你上一張使用的特殊卡（自動瞄準最近的敵人）；若還沒用過特殊卡則獲得 2 墨水。","u":"免費再施放一次你上一張使用的特殊卡（自動瞄準最近的敵人）；若還沒用過特殊卡則獲得 2 墨水。"},{"id":"inkBarrier","n":"紙壘","c":3,"uc":2,"r":1,"t":"defense","lv":5,"d":"用一整圈紙牆把自己包住 5 秒：期間刀槍不入、不受任何傷害，敵彈會被紙牆擋下。","u":"用一整圈紙牆把自己包住 5 秒：期間刀槍不入、不受任何傷害，敵彈會被紙牆擋下。"},{"id":"inkStorm","n":"墨暴","c":4,"uc":3,"r":1,"t":"attack","lv":18,"d":"召喚墨暴 5 秒，每 0.45 秒劈中一名隨機敵人，造成 40 傷害。","u":"召喚墨暴 5 秒，每 0.45 秒劈中一名隨機敵人，造成 40 傷害。"},{"id":"sketchLeap","n":"速寫後撤","c":3,"uc":3,"r":0,"t":"defense","lv":8,"d":"從目前位置跳到目標位置，起跳與落地時各向四周射出 8 發墨彈（每發 15），跳躍中不會受傷。","u":"從目前位置跳到目標位置，起跳與落地時各向四周射出 12 發墨彈（每發 18），跳躍中不會受傷。"},{"id":"puppet","n":"傀儡","c":4,"uc":3,"r":1,"t":"utility","lv":12,"d":"放出不會攻擊的傀儡（從天而降砸在目標位置），5 秒內所有敵人都會被吸引、往傀儡移動；這段時間你不會受到任何子彈（遠程攻擊）的傷害，被子彈打中也不會扣紙盾。衝撞、砸地等近身攻擊仍會受傷。","u":"放出不會攻擊的傀儡（從天而降砸在目標位置），5 秒內所有敵人都會被吸引、往傀儡移動；這段時間你不會受到任何子彈（遠程攻擊）的傷害，被子彈打中也不會扣紙盾。衝撞、砸地等近身攻擊仍會受傷。"},{"id":"bounceBall","n":"彈跳皮球","c":2,"uc":2,"r":0,"t":"attack","lv":3,"d":"丟出皮球（傷害 15），能穿過敵人並在牆上反彈 3 次。","u":"丟出皮球（傷害 15），能穿過敵人並在牆上反彈 4 次。"},{"id":"stamp","n":"蓋章","c":3,"uc":3,"r":0,"t":"attack","lv":5,"d":"在目標蓋下大印章，半徑 2.2 公尺內的敵人都受到 20 傷害。","u":"在目標蓋下大印章，半徑 2.2 公尺內的敵人都受到 20 傷害。"},{"id":"ruler","n":"尺子","c":2,"uc":2,"r":0,"t":"terrain","lv":10,"d":"放一把半透明的尺 8 秒，不擋子彈；你的子彈穿過它傷害 +30%。","u":"放一把半透明的尺 10 秒，不擋子彈；你的子彈穿過它傷害 +40%。"},{"id":"miniShield","n":"小紙盾","c":1,"uc":1,"r":0,"t":"defense","lv":3,"d":"獲得 1 片紙盾，持續 8 秒（可以和其他紙盾疊加）。","u":"獲得 1 片紙盾，持續 12 秒（可以和其他紙盾疊加）。"},{"id":"boxFort","n":"紙箱陣","c":1,"uc":1,"r":0,"t":"terrain","lv":9,"d":"在目標處放 3 個紙箱，可以擋下敵彈；任何武器或敵彈打一下就會破。打破時 40% 沒有掉落、20% 掉出 1 點生命、40% 掉出 1 墨水。","u":"在目標處放 4 個紙箱，可以擋下敵彈；任何武器或敵彈打一下就會破。打破時 40% 沒有掉落、20% 掉出 1 點生命、40% 掉出 1 墨水。"},{"id":"spareMag","n":"備用彈匣","c":1,"uc":0,"r":0,"t":"utility","lv":4,"d":"立刻補滿彈匣（螢光筆熱度歸零，圓規重置投擲冷卻），並增加 1 次重抽次數。","u":"立刻補滿彈匣（螢光筆熱度歸零，圓規重置投擲冷卻），並增加 1 次重抽次數。"},{"id":"recopy","n":"重抄筆記","c":1,"uc":0,"r":0,"t":"utility","lv":13,"d":"立刻重新抽 3 張手牌（2 張一般牌＋特殊技格），不消耗重抽次數。","u":"立刻重新抽 3 張手牌（2 張一般牌＋特殊技格），不消耗重抽次數。"},{"id":"reserve","n":"預約","c":1,"uc":1,"r":0,"t":"utility","lv":20,"d":"你打出的下一張一般牌，會在 3 秒後自動免費再施放一次；特殊技不適用，也不能預約預約。","u":"你打出的下一張一般牌，會在 2 秒後自動免費再施放一次；特殊技不適用，也不能預約預約。"},{"id":"crossCut","n":"四面射擊","c":2,"uc":2,"r":0,"t":"attack","lv":12,"d":"以面向為正面，朝前、後、左、右 4 個方向各射出一道穿透墨線，每道 22 傷害。","u":"以面向為正面，朝前、後、左、右 4 個方向各射出一道穿透墨線，每道 30 傷害。"},{"id":"bearTrap","n":"捕獸夾","c":2,"uc":2,"r":0,"t":"terrain","lv":15,"d":"在目標處放捕獸夾 10 秒；敵人踩到時受到 50 傷害並被夾住 2 秒（頭目 0.5 秒）。","u":"在目標處放捕獸夾 10 秒；敵人踩到時受到 70 傷害並被夾住 2 秒（頭目 0.5 秒）。"},{"id":"umbrella","n":"紙傘","c":2,"uc":2,"r":0,"t":"defense","lv":16,"d":"5 秒內舉傘，面向方向 120 度扇形內擋下所有敵彈，移動速度 −30%。","u":"6 秒內舉傘，面向方向 120 度扇形內擋下所有敵彈，移動速度 −30%。"},{"id":"plant","n":"站樁","c":2,"uc":2,"r":0,"t":"utility","lv":16,"d":"4 秒內你站著不動時，武器傷害 +40%，子彈不散布。","u":"6 秒內你站著不動時，武器傷害 +40%，子彈不散布。"},{"id":"alarmClock","n":"延遲鬧鐘","c":2,"uc":2,"r":0,"t":"attack","lv":17,"d":"在目標處放鬧鐘，3 秒後響起，半徑 3 公尺內的敵人受到 40 傷害並暈眩 1 秒。","u":"在目標處放鬧鐘，3 秒後響起，半徑 3 公尺內的敵人受到 55 傷害並暈眩 1 秒。"},{"id":"slowShot","n":"減速射擊","c":2,"uc":2,"r":0,"t":"attack","lv":17,"d":"射出一顆慢速子彈，傷害隨飛行時間遞增：10 起，每 0.5 秒 +15，最高 70。","u":"射出一顆慢速子彈，傷害隨飛行時間遞增：10 起，每 0.5 秒 +15，最高 90。"},{"id":"mirror","n":"鏡子","c":2,"uc":2,"r":0,"t":"defense","lv":18,"d":"在目標處立一面寬 4 公尺的鏡子，持續 6 秒，敵彈撞到會反彈回去攻擊敵人。","u":"在目標處立一面寬 4 公尺的鏡子，持續 9 秒，敵彈撞到會反彈回去攻擊敵人。"},{"id":"sponge","n":"墨水海綿","c":2,"uc":2,"r":0,"t":"defense","lv":18,"d":"4.5 秒內吸收所有受到的傷害（不扣血），結束時以「吸收點數 × 40」在半徑 3.6 公尺內爆炸，傷害上限 100。","u":"4.5 秒內吸收所有受到的傷害（不扣血），結束時以「吸收點數 × 40」在半徑 3.6 公尺內爆炸，傷害上限 140。"},{"id":"grudge","n":"記仇","c":2,"uc":2,"r":0,"t":"attack","lv":19,"d":"圈選範圍內一名敵人，造成 15＋本頁被打到的次數 × 10 傷害（上限 60）。","u":"圈選範圍內一名敵人，造成 15＋本頁被打到的次數 × 15 傷害（上限 80）。"},{"id":"slowMo","n":"慢速播放","c":3,"uc":2,"r":1,"t":"utility","lv":11,"d":"6 秒內敵人與敵彈速度降為 40%（頭目 70%），你不受影響。","u":"6 秒內敵人與敵彈速度降為 40%（頭目 70%），你不受影響。"},{"id":"luckyDice","n":"幸運骰","c":3,"uc":2,"r":1,"t":"attack","lv":17,"d":"演出時骰出 1～6，對圈內最近的一名敵人造成「點數 × 30」傷害。","u":"演出時骰出 1～6，對圈內最近的一名敵人造成「點數 × 30」傷害。"},{"id":"rewind","n":"倒帶","c":4,"uc":3,"r":1,"t":"attack","lv":18,"d":"立刻把場上的敵彈變成你的子彈，各自飛向最近的敵人，每發 12 傷害，最多轉換 20 發。","u":"立刻把場上的敵彈變成你的子彈，各自飛向最近的敵人，每發 12 傷害，最多轉換 20 發。"},{"id":"fullInk","n":"滿格墨水","c":4,"uc":3,"r":1,"t":"utility","lv":19,"d":"8 秒內武器不用換彈，傷害 +20%。使用圓規或墨弓時不會出現（抽到直接棄掉）。","u":"8 秒內武器不用換彈，傷害 +20%。使用圓規或墨弓時不會出現（抽到直接棄掉）。"},{"id":"firstAid","n":"急救圈","c":4,"uc":3,"r":1,"t":"defense","lv":16,"d":"在腳下畫半徑 2.5 公尺的圈，持續 8 秒；站在圈內時每 2 秒回復 1 點生命（最多 4 點）。","u":"在腳下畫半徑 2.5 公尺的圈，持續 8 秒；站在圈內時每 2 秒回復 1 點生命（最多 4 點）。"},{"id":"planeDash","n":"紙飛機衝鋒","c":5,"uc":4,"r":1,"t":"attack","lv":20,"d":"4 秒變成紙飛機：移動速度 ×2、無敵，碰到敵人造成 40 傷害（同一隻每 0.5 秒一次）；期間不能射擊與出牌。","u":"4 秒變成紙飛機：移動速度 ×2、無敵，碰到敵人造成 40 傷害（同一隻每 0.5 秒一次）；期間不能射擊與出牌。"}];
 const CARD=Object.fromEntries(CARDS.map(c=>[c.id,c]));
 const TYPE={attack:'攻擊',terrain:'地形',defense:'防禦',utility:'輔助'};
 
@@ -669,6 +706,12 @@ const BOSSART={
     pen:`<ellipse cx="60" cy="114" rx="30" ry="6" fill="url(#hat)"/><path d="M40 20 l6 -14 6 10 8 -12 8 12 6 -10 6 14z" fill="${R}" stroke="${K}" stroke-width="2.5"/><rect x="40" y="20" width="40" height="52" fill="var(--bc)" stroke="${K}" stroke-width="3.5"/><rect x="40" y="56" width="40" height="16" fill="${R}" stroke="${K}" stroke-width="3"/><path d="M40 72 H80 L60 112z" fill="${K}"/><path d="M50 38 l8 4 M70 38 l-8 4" stroke="${K}" stroke-width="3.5"/>`
 };
 const TAUNTS=['就這？','你的墨水好像不太夠喔。','再畫快一點啊！','我還以為你會更強。','這就是你的全力？','連我的影子都碰不到。','回去重寫吧！','你的筆尖在發抖喔。','哈，打偏了！','我都快睡著了。','你確定你會畫畫？','塗鴉而已嘛。','擦掉你只要一下下。','來啊，再靠近一點。','你的筆芯斷了嗎？','這頁就是你的終點。','橡皮擦都比你有威脅。','別躲了，我看到你了。','你的手速不太行喔。','再多練練吧，菜鳥。','我才是這頁的主角。','墨水快見底了吧？','畫錯了吧？哈哈！','這麼慢，是在描線嗎？','小心別被我擦掉囉。','你只會亂塗嗎？','笑死，完全沒感覺。','還不放棄嗎？','你的作業要遲交了喔。','今天就到這裡吧。','我還沒認真呢。','你的筆跡好醜。','老師會給你不及格！','抓不到我吧～','就這樣而已？','就這點程度？'];
+WICON.slingshot=`<path d="M30 38 V24 L16 8 M30 24 L44 8" fill="none" stroke="#AC8E64" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 38 V24 L16 8 M30 24 L44 8" fill="none" stroke="#1A1A1A" stroke-width="1.6" stroke-linecap="round"/><path d="M16 8 L30 26 L44 8" fill="none" stroke="#D62828" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="27" r="4.5" fill="#1A1A1A"/>`;
+FOEART.paperPlane=`<ellipse cx="50" cy="98" rx="20" ry="4" fill="url(#hat)"/><path d="M8 62 Q40 30 66 54 T96 40" fill="none" stroke="#D62828" stroke-width="2.5" stroke-dasharray="5 5" opacity=".7"/><path d="M12 56 L92 22 L58 76 L48 54z" fill="#fff" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/><path d="M48 54 L92 22 M48 54 L58 76" stroke="#1A1A1A" stroke-width="2"/><circle cx="34" cy="50" r="2.5" fill="#1A1A1A"/>`;
+FOEART.stickyHelper=`<ellipse cx="50" cy="98" rx="24" ry="5" fill="url(#hat)"/><rect x="38" y="82" width="8" height="14" fill="#4A4946"/><rect x="54" y="82" width="8" height="14" fill="#4A4946"/><path d="M22 24 H78 V70 L66 82 H22z" fill="#F3E7A6" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/><path d="M66 82 V70 H78" fill="#E0D082" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round"/><circle cx="40" cy="46" r="4" fill="#1A1A1A"/><circle cx="60" cy="46" r="4" fill="#1A1A1A"/><path d="M42 58 Q50 65 58 58" fill="none" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/><path d="M30 33 H70" stroke="#9A9892" stroke-width="2.5"/>`;
+BOSSART.alarm=`<ellipse cx="60" cy="114" rx="36" ry="6" fill="url(#hat)"/><circle cx="26" cy="26" r="13" fill="#D6D3CC" stroke="#1A1A1A" stroke-width="3.5"/><circle cx="94" cy="26" r="13" fill="#D6D3CC" stroke="#1A1A1A" stroke-width="3.5"/><circle cx="60" cy="66" r="44" fill="var(--bc)" stroke="#1A1A1A" stroke-width="4"/><circle cx="60" cy="66" r="33" fill="#fff" stroke="#1A1A1A" stroke-width="2.5"/><path d="M60 66 V42 M60 66 L80 76" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="66" r="4.5" fill="#D62828"/><path d="M42 50 l10 4 M78 50 l-10 4" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/><path d="M40 108 l-6 8 M80 108 l6 8" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>`;
+BOSSART.calculator=`<ellipse cx="60" cy="114" rx="38" ry="6" fill="url(#hat)"/><rect x="26" y="8" width="68" height="102" rx="8" fill="var(--bc)" stroke="#1A1A1A" stroke-width="4"/><rect x="34" y="16" width="52" height="26" fill="#fff" stroke="#1A1A1A" stroke-width="2.5"/><text x="80" y="37" text-anchor="end" font-size="19" font-weight="900" fill="#D62828" font-family="monospace">7+3=?</text>${[0,1,2].map(r=>[0,1,2].map(c=>`<rect x="${36+c*17}" y="${52+r*18}" width="13" height="13" rx="2" fill="#D6D3CC" stroke="#1A1A1A" stroke-width="2"/>`).join('')).join('')}<path d="M44 96 l8 3 M76 96 l-8 3" stroke="#1A1A1A" stroke-width="3.5" stroke-linecap="round"/>`;
+
 </script>
 <script>
 'use strict';
@@ -1311,12 +1354,12 @@ function onFrame(dt){
     // 橫向捲動
     const r=hs.getBoundingClientRect(),vh=innerHeight;
     const p=clamp(-r.top/(r.height-vh),0,1);
-    const maxX=(panels.length-1)*innerWidth;
+    const NP=panels.length-1,maxX=NP*innerWidth;
     track.style.transform=`translate3d(${-p*maxX}px,0,0)`;
     $('#hsFill').style.width=p*100+'%';$('#hsDot').style.left=p*100+'%';
-    $('#hsNo').textContent='0'+(Math.min(3,Math.round(p*3))+1);
+    $('#hsNo').textContent='0'+(Math.min(NP,Math.round(p*NP))+1);
     panels.forEach((pn,i)=>{
-        const local=p*3-i;            // 0 時正對畫面
+        const local=p*NP-i;            // 0 時正對畫面
         const t=$('.txt',pn),il=$('.ill',pn);
         t.style.transform=`translateY(${local*-90}px)`;t.style.opacity=1-Math.min(1,Math.abs(local)*1.1);
         il.style.transform=`translate(${local*-60}px,${local*60}px) rotate(${local*-8}deg)`;
@@ -1345,15 +1388,21 @@ function frame(now){
     requestAnimationFrame(frame);
 }
 
-/* ================= 墨水插圖 ================= */
+/* ================= 墨水・出牌插圖 ================= */
 (function(){
     const svg=$('#inkSvg');
+    const xs=[170,230,185,215],tm=['0','.22','.44','.66'];
     svg.innerHTML=`<defs><clipPath id="bc2"><path d="M150 90 h100 v22 l26 34 v124 H124 V146 l26 -34z"/></clipPath></defs>
+        <g transform="translate(-62 6) scale(.9)">
         <rect x="100" y="270" width="200" height="200" fill="${K}" clip-path="url(#bc2)"><animate attributeName="y" values="270;250;250;210;210;170;170;130;130;270" keyTimes="0;.1;.2;.3;.45;.55;.7;.8;.95;1" dur="6s" repeatCount="indefinite"/></rect>
         <path d="M160 52h80v36h-80zM150 90 h100 v22 l26 34 v124 H124 V146 l26 -34z" fill="none" stroke="${K}" stroke-width="5" stroke-linejoin="round"/>
         <path d="M268 170h-20M268 200h-20M268 230h-20" stroke="${G2}" stroke-width="3"/>
-        ${[0,1,2,3].map(i=>`<g><animateTransform attributeName="transform" type="translate" values="${[60,330,90,310][i]} -30;${[60,330,90,310][i]} -30;${[60,330,90,310][i]} 150" keyTimes="0;${(i*0.22).toFixed(2)};${(i*0.22+0.12).toFixed(2)}" dur="6s" repeatCount="indefinite" additive="sum"/>${drop(0,0,1.6)}</g>`).join('')}
-        ${[0,1,2,3].map(i=>`<text x="${[60,330,90,310][i]}" y="200" text-anchor="middle" font-weight="900" font-size="26" fill="${R}" opacity="0">+${[1,1.5,1,2][i]}<animate attributeName="opacity" values="0;0;1;0" keyTimes="0;${(i*0.22+0.12).toFixed(2)};${(i*0.22+0.15).toFixed(2)};${(i*0.22+0.3).toFixed(2)}" dur="6s" repeatCount="indefinite"/></text>`).join('')}`;
+        ${xs.map((x,i)=>`<g><animateTransform attributeName="transform" type="translate" values="${x} -30;${x} -30;${x} 150" keyTimes="0;${(i*0.22).toFixed(2)};${(i*0.22+0.12).toFixed(2)}" dur="6s" repeatCount="indefinite"/>${drop(0,0,1.6)}</g>`).join('')}
+        ${xs.map((x,i)=>`<text x="${x}" y="200" text-anchor="middle" font-weight="900" font-size="26" fill="${R}" opacity="0">+${[1,1.5,1,2][i]}<animate attributeName="opacity" values="0;0;1;0" keyTimes="0;${(i*0.22+0.12).toFixed(2)};${(i*0.22+0.15).toFixed(2)};${(i*0.22+0.3).toFixed(2)}" dur="6s" repeatCount="indefinite"/></text>`).join('')}
+        </g>
+        <g font-weight="900" font-size="13" text-anchor="middle">
+        ${[['散射',0],['爆墨',1],['特殊技',2]].map(([n,i])=>`<g transform="translate(${196+i*64} 120)"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 -26;0 -26;0 0;0 0" keyTimes="0;${(0.3+i*0.2).toFixed(2)};${(0.34+i*0.2).toFixed(2)};${(0.44+i*0.2).toFixed(2)};${(0.5+i*0.2).toFixed(2)};1" dur="6s" repeatCount="indefinite"/><rect width="54" height="76" fill="${W}" stroke="${i==2?R:K}" stroke-width="2.5" ${i==2?'stroke-dasharray="5 4"':''}/><text x="27" y="42" fill="${i==2?R:K}">${n}</text></g></g>`).join('')}
+        </g>`;
 })();
 
 /* 合成插圖 */
@@ -1362,6 +1411,8 @@ function frame(now){
     const one=(cls,up)=>`<div class="mcard ${cls}"><div class="cst">${costBadge(c.c)}</div>${c.n}${up?'+':''}<svg viewBox="0 0 80 60">${ICON.scatter}</svg></div>`;
     ill.insertAdjacentHTML('afterbegin',one('c1')+one('c3')+one('c2')+one('up',true));
 })();
+$('#evoIll').innerHTML=`<svg viewBox="0 0 120 120" class="tint">${BOSSART.exam}</svg>`;
+(function(){const r=$('#rating');if (!r||REDUCED) return;const L=['D','C','B','A','S','S+','S++'];let i=6;setInterval(()=>{i=(i+1)%L.length;r.textContent=L[i];r.classList.remove('pop');void r.offsetWidth;r.classList.add('pop')},900)})();
 
 /* 課表跑馬燈（直向） */
 (function(){
@@ -1392,33 +1443,33 @@ function playCut(id){
 
 /* ================= 武器、卡名列 ================= */
 (function(){
-    const W7=[['pen','鋼筆','均衡單發'],['pencil','自動鉛筆','高射速'],['brush','毛筆','橫掃墨痕'],['stapler','釘書機','三連點射'],['highlighter','螢光筆','持續光束'],['compass','圓規','回力鏢'],['crayon','彩色筆','隨機三色']];
+    const W7=[['pen','鋼筆','均衡單發'],['pencil','自動鉛筆','高射速'],['brush','毛筆','橫掃墨痕'],['stapler','釘書機','三連點射'],['highlighter','螢光筆','持續光束'],['compass','圓規','回力鏢'],['crayon','彩色筆','隨機三色'],['slingshot','墨弓','蓄力穿透']];
     $('#wRow').innerHTML=W7.map(([k,n,s])=>`<span class="wchip"><svg viewBox="0 0 60 40">${WICON[k]}</svg><span>${n}<br><small>${s}</small></span></span>`).join('');
     $('#cRow').innerHTML=CARDS.map(c=>`<span class="cchip${c.r?' r':''}"><i><svg viewBox="0 0 34 40" width="18" height="22"><path d="M17 1 C17 1 3 18 3 26 a14 14 0 0 0 28 0 C31 18 17 1 17 1z" fill="${c.r?R:K}"/></svg></i>${c.n}</span>`).join('');
 })();
 
 /* ================= 頭目 ================= */
 (function(){
-    const B=[['bottle','巨型墨瓶','就這？'],['scissors','剪刀魔','擦掉你只要一下下。'],['book','墨跡之書','這頁就是你的終點。'],['exam','考卷魔王','老師會給你不及格！'],['pen','巨筆暴君','你的筆跡好醜。']];
-    blist.innerHTML=B.map(([k,n,say],i)=>`<div class="bs"><div class="rv${i%2?'-dr':'-d'}" style="transition-delay:${i*0.08}s"><div class="bubble">${say}</div><div class="disc"><svg viewBox="0 0 120 120">${BOSSART[k]}</svg></div><h4>${n}</h4><small>第二型態：${['翻滾衝撞','高速繞圈','飛撲重壓','期末考','書寫衝刺'][i]}</small></div></div>`).join('');
+    const B=[['bottle','巨型墨瓶','就這？','翻滾衝撞'],['scissors','剪刀魔','擦掉你只要一下下。','高速繞圈'],['book','墨跡之書','這頁就是你的終點。','飛撲重壓'],['exam','考卷魔王','老師會給你不及格！','期末考'],['pen','巨筆暴君','你的筆跡好醜。','書寫衝刺'],['alarm','大鬧鐘','今天就到這裡吧。','秒針掃射'],['calculator','加減法官','就這點程度？','踩鍵答題']];
+    blist.innerHTML=B.map(([k,n,say,mv],i)=>`<div class="bs"><div class="rv${i%2?'-dr':'-d'}" style="transition-delay:${i*0.08}s"><div class="bubble">${say}</div><div class="disc"><svg viewBox="0 0 120 120">${BOSSART[k]}</svg></div><h4>${n}</h4><small>招牌：${mv}</small></div></div>`).join('');
     $$('.bs',blist).forEach(b=>{
         let t=0;
         const on=()=>{clearTimeout(t);if (b.classList.contains('evo')) return;b.classList.add('evo');t=setTimeout(()=>b.classList.remove('evo'),3200)};
         b.addEventListener('mouseenter',on);b.addEventListener('click',on);
     });
-    const F=[['doodle','塗鴉兵'],['blob','墨團'],['sprayer','散彈兵'],['stamp','印章兵'],['cloud','墨雲'],['bird','摺紙鳥'],['compassE','圓規手'],['eraserM','橡皮怪']];
+    const F=[['doodle','塗鴉兵'],['blob','墨團'],['sprayer','散彈兵'],['stamp','印章兵'],['cloud','墨雲'],['bird','摺紙鳥'],['compassE','圓規手'],['eraserM','橡皮怪'],['paperPlane','紙飛機兵'],['stickyHelper','便利貼助手']];
     $('#march').innerHTML=F.map(([k,n])=>`<div class="foe"><svg viewBox="0 0 100 104">${FOEART[k].replace(/fill="url\(#hat\)"/g,'fill="none"').replace(/#1A1A1A/g,'#F2F0EB')}</svg><span>${n}</span></div>`).join('');
 })();
 
 /* ================= 更多 ================= */
 (function(){
     const T=[
-        ['16 種小遊戲','記憶音鈴、紙飛機、躲墨雨、猜杯子……事件頁每次都不一樣。',`<path d="M10 36 Q32 -6 54 30" fill="none" stroke="${K}" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M48 24 L62 30 L48 36 L52 30z" fill="#fff" stroke="${K}" stroke-width="2.5"/><path d="M4 44 h16 l-3 10 h-10z" fill="${G1}" stroke="${K}" stroke-width="2.5"/>`],
+        ['18 種小遊戲','記憶音鈴、紙飛機、躲墨雨、猜杯子、老師說……事件頁每次都不一樣，過關有獎勵、失敗有懲罰。',`<path d="M10 36 Q32 -6 54 30" fill="none" stroke="${K}" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M48 24 L62 30 L48 36 L52 30z" fill="#fff" stroke="${K}" stroke-width="2.5"/><path d="M4 44 h16 l-3 10 h-10z" fill="${G1}" stroke="${K}" stroke-width="2.5"/>`],
         ['8 種奇遇','會說話的橡皮擦、扭蛋機、塗鴉幽靈——每個選項都有代價。',`<rect x="8" y="8" width="44" height="40" fill="#FFF8C9" stroke="${K}" stroke-width="2.5" transform="rotate(-6 30 28)"/><text x="30" y="38" text-anchor="middle" font-size="26" font-weight="900" fill="${R}">?</text>`],
         ['文具店與寶箱','用分數買卡、補血、換武器；三個寶箱裡有一個會咬人。',`<path d="M8 26 H52 V50 H8z" fill="#DECBAA" stroke="${K}" stroke-width="2.5"/><path d="M6 26 Q30 2 54 26z" fill="#C9AD7E" stroke="${K}" stroke-width="2.5"/><rect x="26" y="22" width="8" height="8" fill="${R}"/>`],
+        ['圖書館與 28 件遺物','每次擊敗頭目都能進圖書館，挑一般牌、特殊技，或帶走一件遺物，讓這一局的構築更成形。',`<path d="M6 12 H24 V52 H6z M24 8 H42 V52 H24z M42 14 H58 V52 H42z" fill="#fff" stroke="${K}" stroke-width="2.5"/><path d="M10 20 h10 M28 16 h10 M46 22 h8" stroke="${R}" stroke-width="2.5"/>`],
         ['訓練場','所有解鎖的卡牌、武器、頭目，隨你召喚、隨你試。',`<circle cx="30" cy="28" r="22" fill="none" stroke="${K}" stroke-width="2.5"/><circle cx="30" cy="28" r="12" fill="none" stroke="${R}" stroke-width="2.5"/><circle cx="30" cy="28" r="3.5" fill="${K}"/>`],
-        ['角色外觀','20 種布色、32 種配飾，存成自己的套組。',`<circle cx="30" cy="20" r="12" fill="#fff" stroke="${K}" stroke-width="2.5"/><path d="M30 0 Q40 12 38 14 a8 8 0 0 1 -16 0 Q20 12 30 0z" fill="${K}"/><rect x="18" y="32" width="24" height="20" fill="#C8554A" stroke="${K}" stroke-width="2.5"/>`],
-        ['等級與成就','15 個等級解鎖新卡與武器，成就分三階慢慢解。',`<path d="M30 4 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z" fill="#E8B931" stroke="${K}" stroke-width="2.5" stroke-linejoin="round"/>`]
+        ['外觀、等級與成就','20 個等級解鎖新卡與武器，20 種布色、32 種配飾存成自己的套組，成就分三階慢慢解。',`<path d="M30 4 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z" fill="#E8B931" stroke="${K}" stroke-width="2.5" stroke-linejoin="round"/>`]
     ];
     const dirs=['rv-l','rv','rv-r','rv-d','rv','rv-dr'];
     $('#tiles').innerHTML=T.map(([h,p,ic],i)=>`<div class="tile sk ${dirs[i]}" style="transition-delay:${(i%3)*0.08}s"><div class="ic"><svg viewBox="0 0 60 56">${ic}</svg></div><h4>${h}</h4><p>${p}</p></div>`).join('');
