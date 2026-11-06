@@ -245,6 +245,13 @@ export class Rings {
         it.mesh.material.uniforms.uColor.value.copy(pal(color));
     }
 
+    clear() {
+        for (const it of this.items) {
+            it.active=false;
+            it.mesh.visible=false;
+        }
+    }
+
     update(dt) {
         for (const it of this.items) {
             if (!it.active) {

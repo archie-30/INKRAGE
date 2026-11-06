@@ -8,7 +8,7 @@ const SH=9;
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 const PX=3;
 const PY=4.5;
-const BOSSES=new Set(['inkBottle','scissors','book','exam','bookFinal']);
+const BOSSES=new Set(['inkBottle','scissors','book','exam','bookFinal','alarm','calculator']);
 
 function clamp01(v) {
     return Math.max(0,Math.min(1,v));
@@ -1029,34 +1029,48 @@ export const CARD_ANIMS={
             S.circle(lerp(PX,tx,f),lerp(PY,ty,f)+0.5,0.5*(1-Math.sin(f*Math.PI)*0.4),PALETTE.farGray,0.6);
             S.player(x,y,0);
             S.burst(tx,ty,1,seg(k,0.6,0.75),PALETTE.midGray);
+            for (let i=0;i<8;i++) {
+                const an=(i+0.5)/8*Math.PI*2;
+                S.fly(tx+Math.cos(an)*0.6,ty+Math.sin(an)*0.6,tx+Math.cos(an)*4.2,ty+Math.sin(an)*4.2,k,0.6,0.76,'ink');
+            }
+            S.target('doodle',tx+2.6,ty-2.8,k,0.72);
         }
     },
     puppet:{
-        period:3.4,
+        period:3.6,
         draw(S,k,t) {
             const cx=9;
             const cy=PY;
-            const on=seg(k,0.08,0.16)*(1-seg(k,0.86,0.94));
+            const drop=seg(k,0.06,0.14);
+            const on=(drop>=1?1:0)*(1-seg(k,0.88,0.95));
             S.player(PX,PY,0);
-            if (on>0) {
-                for (let i=0;i<2;i++) {
-                    const r=((t*0.9+i*0.5)%1)*2.2;
-                    S.ring(cx,cy,r,PALETTE.red,0.07,on*(1-r/2.2));
-                }
-                S.player(cx,cy,t*2,{ghost:true,alpha:on*0.9});
-                const n=3;
-                for (let i=0;i<n;i++) {
-                    const an=t*0.8+i*Math.PI*2/n;
-                    S.rect(PX+Math.cos(an)*1.3-0.12,PY+Math.sin(an)*1.3-0.35,0.24,0.7,PALETTE.paper,on);
+            if (drop>0&&drop<1) {
+                S.ring(cx,cy,1.1,PALETTE.red,0.08,0.8,[0.2,0.15]);
+                S.player(cx,cy-6*(1-drop*drop),0,{ghost:true});
+            }
+            const land=seg(k,0.14,0.32);
+            for (let i=0;i<3;i++) {
+                const f=seg(k,0.14+i*0.03,0.32+i*0.03);
+                if (f>0&&f<1) {
+                    S.ring(cx,cy,0.6+f*(3+i),i%2?PALETTE.ink:PALETTE.red,0.14,1-f);
                 }
             }
+            S.burst(cx,cy,1.6,land,PALETTE.red);
+            if (on>0) {
+                S.player(cx,cy,t*2,{ghost:true,alpha:on*0.9});
+                S.ring(PX,PY,0.75,PALETTE.red,0.06,on*0.6,[0.15,0.12]);
+            }
+            const pull=easeOut(seg(k,0.18,0.8))*on;
             const foes=[['doodle',13.5,1.6],['sprayer',14,7.4],['blob',12.5,4.5]];
             foes.forEach(([id,x,y],i)=>{
-                const pull=on*0.35;
-                S.enemy(id,lerp(x,cx+2,pull),lerp(y,cy,pull*0.6));
-                const k0=0.25+i*0.15;
-                S.fly(lerp(x,cx+2,pull)-0.6,lerp(y,cy,pull*0.6),cx+0.4,cy,k,k0,k0+0.12,'enemy');
+                S.enemy(id,lerp(x,cx+1.4+i*0.3,pull),lerp(y,cy+(i-1)*1.1,pull));
             });
+            S.fly(13.4,7,PX+0.5,PY+0.3,k,0.45,0.62,'enemy');
+            const hit=seg(k,0.62,0.74);
+            if (hit>0&&hit<1) {
+                S.burst(PX+0.4,PY+0.2,0.8,hit,PALETTE.red);
+                S.text('0',PX+0.4,PY-1.1-hit*0.6,14,PALETTE.red,1-hit);
+            }
         }
     },
     bounceBall:{
@@ -1392,10 +1406,590 @@ export const CARD_ANIMS={
                 }
             }
         }
+    },
+    miniShield:{
+        period:2.8,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            S.enemy('doodle',13,PY);
+            const on=seg(k,0.08,0.2);
+            const hit=0.6;
+            S.fly(12.3,PY,PX+1.1,PY,k,0.38,hit,'enemy');
+            const lost=seg(k,hit,hit+0.15);
+            if (on>0&&lost<1) {
+                const an=t*2.2;
+                const r=1.15+lost*1.2;
+                const c=S.ctx;
+                c.save();
+                c.globalAlpha=on*(1-lost);
+                c.translate(PX+Math.cos(an)*r,PY+Math.sin(an)*r);
+                c.rotate(an+lost*4);
+                c.fillStyle=PALETTE.paper;
+                c.fillRect(-0.3,-0.42,0.6,0.84);
+                c.strokeStyle=PALETTE.ink;
+                c.lineWidth=0.07;
+                c.strokeRect(-0.3,-0.42,0.6,0.84);
+                c.restore();
+            }
+        }
+    },
+    boxFort:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            S.enemy('sprayer',13.5,PY);
+            const pts=[[8,3.2],[8,5.8],[9.2,4.5]];
+            let hp=3;
+            const hits=[0.45,0.6,0.75];
+            for (const h of hits) {
+                S.fly(12.8,PY,9.7,PY,k,h-0.12,h,'enemy');
+                if (k>=h) {
+                    hp--;
+                }
+            }
+            for (let i=0;i<3;i++) {
+                const ap=seg(k,0.08+i*0.05,0.16+i*0.05);
+                const broken=i===2&&hp<=0;
+                const b=broken?seg(k,0.75,0.85):0;
+                if (ap>0&&b<1) {
+                    S.box(pts[i][0],pts[i][1]-(1-easeOut(ap))*2,1,0.9,ap*(1-b));
+                    S.rect(pts[i][0]-0.08,pts[i][1]-0.45,0.16,0.9,PALETTE.red,ap*(1-b));
+                }
+                if (broken) {
+                    S.burst(pts[i][0],pts[i][1],1.2,b,PALETTE.ink);
+                }
+            }
+            if (hp<=0) {
+                S.circle(9.2,5.3,0.25,PALETTE.ink,seg(k,0.8,0.86));
+            }
+        }
+    },
+    spareMag:{
+        period:2.8,
+        draw(S,k) {
+            const ref=seg(k,0.3,0.4);
+            S.player(PX,PY,0,{kick:k>0.45&&k<0.85?(Math.floor(k*50)%2)*0.5:0});
+            const n=Math.round(lerp(0,6,ref));
+            for (let i=0;i<6;i++) {
+                S.circle(1.2+i*0.42,7.6,0.16,i<n?PALETTE.ink:PALETTE.farGray);
+            }
+            S.text('+1',PX,PY-1.4,15,PALETTE.red,seg(k,0.35,0.45)*(1-seg(k,0.8,0.9)));
+            S.stream(PX+0.9,PY,12,PY,k,0.45,0.82,0.05,0.12);
+            S.target('doodle',12.4,PY,k,0.86);
+        }
+    },
+    recopy:{
+        period:2.8,
+        draw(S,k) {
+            for (let i=0;i<3;i++) {
+                const out=seg(k,0.2,0.35);
+                const inn=seg(k,0.45+i*0.06,0.6+i*0.06);
+                const x=5+i*2.4;
+                S.rect(x-0.8,4-out*4,1.6,2.2,PALETTE.midGray,1-out);
+                if (inn>0) {
+                    S.rect(x-0.8,8-easeOut(inn)*4,1.6,2.2,PALETTE.paper,inn);
+                    S.path([[x-0.8,8-easeOut(inn)*4],[x+0.8,8-easeOut(inn)*4],[x+0.8,10.2-easeOut(inn)*4],[x-0.8,10.2-easeOut(inn)*4],[x-0.8,8-easeOut(inn)*4]],i===2?PALETTE.red:PALETTE.ink,0.08,inn);
+                }
+            }
+            S.text('↻',12.5,2,26,PALETTE.red,seg(k,0.15,0.25)*(1-seg(k,0.85,0.95)));
+        }
+    },
+    reserve:{
+        period:3.6,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const arm=seg(k,0.08,0.15)*(1-seg(k,0.7,0.75));
+            S.ring(PX,PY,1.1,PALETTE.red,0.08,arm,[0.2,0.15]);
+            S.text('⏱',PX,PY-1.5,16,PALETTE.red,arm);
+            S.stream(PX+0.9,PY,12,PY,k,0.25,0.29,0.02,0.15);
+            S.stream(PX+0.9,PY,12,PY,k,0.7,0.74,0.02,0.15);
+            S.target('blob',12.4,PY,k,0.86);
+            S.num('×2',8,PY-0.6,seg(k,0.7,0.85),PALETTE.red);
+        }
+    },
+    crossCut:{
+        period:2.6,
+        draw(S,k) {
+            const cx=8;
+            const cy=PY;
+            S.player(cx,cy,0);
+            const f=seg(k,0.2,0.5);
+            const foes=[['doodle',cx+4.6,cy],['blob',cx-4.6,cy],['bird',cx,cy+3.6]];
+            for (const [id,x,y] of foes) {
+                S.target(id,x,y,k,0.42);
+            }
+            if (f>0&&f<1) {
+                for (let i=0;i<4;i++) {
+                    const a=i*Math.PI/2;
+                    const r=lerp(0.6,7,f);
+                    S.line(cx+Math.cos(a)*Math.max(0.6,r-1.6),cy+Math.sin(a)*Math.max(0.6,r-1.6),cx+Math.cos(a)*r,cy+Math.sin(a)*r,PALETTE.ink,0.2);
+                }
+            }
+        }
+    },
+    bearTrap:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const tx=9;
+            const snap=0.55;
+            const x=lerp(14,tx,seg(k,0.15,snap));
+            const shut=seg(k,snap,snap+0.04);
+            S.ring(tx,PY,0.9,PALETTE.ink,0.1,seg(k,0.05,0.12));
+            for (let i=0;i<5;i++) {
+                const xx=tx-0.8+i*0.4;
+                S.path([[xx-0.15,PY-0.5+shut*0.35],[xx,PY-0.9+shut*0.35],[xx+0.15,PY-0.5+shut*0.35]],PALETTE.ink,0.06,1,true);
+                S.path([[xx-0.15,PY+0.5-shut*0.35],[xx,PY+0.9-shut*0.35],[xx+0.15,PY+0.5-shut*0.35]],PALETTE.ink,0.06,1,true);
+            }
+            S.enemy('doodle',x,PY,{flash:k>snap&&k<snap+0.1?1:0,shake:k>snap&&k<0.85?k:0});
+            S.num('50',tx,PY-0.6,seg(k,snap,snap+0.3),PALETTE.red);
+        }
+    },
+    umbrella:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.85,0.92));
+            S.player(PX,PY,0);
+            S.enemy('sprayer',13.5,PY);
+            for (let i=0;i<6;i++) {
+                const k0=0.15+i*0.1;
+                const y=PY+(i%3-1)*0.8;
+                S.fly(12.8,PY,PX+1.6,y,k,k0,k0+0.25,'enemy');
+            }
+            if (on>0) {
+                S.ring(PX+0.4,PY,1.5,PALETTE.red,0.32,on,null,-1.05,1.05);
+                S.line(PX,PY,PX+1.6,PY,PALETTE.ink,0.08,on);
+            }
+        }
+    },
+    plant:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
+            S.circle(PX,PY+0.6,0.9,PALETTE.midGray,0.3*on);
+            S.player(PX,PY,0,{kick:k>0.25&&k<0.85?(Math.floor(k*40)%2)*0.5:0});
+            for (let i=0;i<9;i++) {
+                const k0=0.25+i*0.065;
+                if (k>=k0&&k<=k0+0.12) {
+                    const f=(k-k0)/0.12;
+                    const x=lerp(PX+0.9,12,f);
+                    S.line(x-0.7,PY,x,PY,PALETTE.red,0.12,0.6);
+                    S.circle(x,PY,0.2,PALETTE.ink);
+                }
+            }
+            S.target('eraserMonster',12.5,PY,k,0.88);
+            S.text('+40%',PX,PY-1.4,14,PALETTE.red,on);
+        }
+    },
+    alarmClock:{
+        period:3.4,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            const cx=10;
+            const ring=0.62;
+            const shake=k<ring?seg(k,0.3,ring)*Math.sin(t*60)*0.12:0;
+            const gone=seg(k,ring,ring+0.05);
+            S.circle(cx+shake,PY,0.7,PALETTE.red,1-gone);
+            S.circle(cx+shake,PY,0.5,PALETTE.paper,1-gone);
+            S.line(cx+shake,PY,cx+shake+Math.cos(k*30)*0.4,PY+Math.sin(k*30)*0.4,PALETTE.ink,0.07,1-gone);
+            S.ring(cx,PY,3,PALETTE.red,0.06,0.5*(1-gone),[0.25,0.2]);
+            for (const [id,x,y] of [['doodle',11.6,3.2],['blob',8.6,6],['bird',12,5.8]]) {
+                S.target(id,x,y,k,ring);
+            }
+            const e=seg(k,ring,ring+0.2);
+            if (e>0&&e<1) {
+                S.ring(cx,PY,3*easeOut(e),PALETTE.red,0.25*(1-e)+0.05);
+                S.burst(cx,PY,3,e,PALETTE.red);
+            }
+        }
+    },
+    slowShot:{
+        period:3.6,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const hit=0.8;
+            const f=seg(k,0.1,hit);
+            if (k>=0.1&&k<hit) {
+                const x=lerp(PX+0.9,12.5,f);
+                const r=0.15+f*0.45;
+                S.circle(x,PY,r,f>0.85?PALETTE.red:PALETTE.ink);
+                S.text(String(Math.min(70,10+Math.floor(f*4)*15)),x,PY-1,13,PALETTE.ink);
+            }
+            S.target('eraserMonster',12.8,PY,k,hit);
+            S.num('70',12.8,PY-0.6,seg(k,hit,hit+0.2),PALETTE.red);
+        }
+    },
+    mirror:{
+        period:3,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const mx=7.5;
+            const on=seg(k,0.06,0.14)*(1-seg(k,0.88,0.95));
+            S.rect(mx-0.15,2,0.3,5,PALETTE.farGray,on);
+            S.line(mx-0.15,2,mx-0.15,7,PALETTE.ink,0.06,on);
+            S.enemy('sprayer',13.5,PY);
+            for (let i=0;i<3;i++) {
+                const k0=0.2+i*0.18;
+                const y=PY+(i-1)*1.2;
+                S.fly(12.8,PY,mx+0.3,y,k,k0,k0+0.15,'enemy');
+                S.fly(mx+0.3,y,12.8,PY,k,k0+0.15,k0+0.3,'ink');
+            }
+            S.target('sprayer',13.5,PY,k,0.82);
+        }
+    },
+    sponge:{
+        period:3.4,
+        draw(S,k) {
+            const on=seg(k,0.06,0.12);
+            const boom=0.66;
+            S.player(PX+3,PY,0);
+            if (k<boom) {
+                S.rect(PX+3-0.8,PY-0.55,1.6,1.1,PALETTE.marker,0.6*on);
+            }
+            for (let i=0;i<3;i++) {
+                const k0=0.15+i*0.12;
+                S.fly(13,PY+(i-1)*1.5,PX+3.6,PY,k,k0,k0+0.18,'enemy');
+            }
+            S.enemy('doodle',13.5,PY-1.5);
+            S.target('blob',8.4,PY+1.6,k,boom);
+            const e=seg(k,boom,boom+0.2);
+            if (e>0&&e<1) {
+                S.ring(PX+3,PY,3*easeOut(e),PALETTE.ink,0.25*(1-e)+0.05);
+                S.burst(PX+3,PY,3,e,PALETTE.ink);
+            }
+            S.num('×3',PX+3,PY-0.8,seg(k,0.5,0.66),PALETTE.red);
+        }
+    },
+    grudge:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0,{flash:[0.12,0.24,0.36].some(q=>k>q&&k<q+0.04)?1:0});
+            S.enemy('sprayer',13.5,2.5);
+            for (let i=0;i<3;i++) {
+                S.fly(12.8,2.5,PX+0.5,PY,k,i*0.12,i*0.12+0.12,'enemy');
+                if (k>i*0.12+0.12) {
+                    S.line(1+i*0.4,7.2,1+i*0.4,7.9,PALETTE.ink,0.08);
+                }
+            }
+            const hit=0.68;
+            S.ring(11,PY+1,2,PALETTE.red,0.08,seg(k,0.45,0.5)*(1-seg(k,hit,hit+0.1)));
+            S.target('eraserMonster',11,PY+1,k,hit);
+            S.num('45',11,PY+0.4,seg(k,hit,hit+0.25),PALETTE.red);
+        }
+    },
+    slowMo:{
+        period:3.6,
+        draw(S,k) {
+            const on=seg(k,0.15,0.2)*(1-seg(k,0.8,0.85));
+            const te=k<0.2?k:(k<0.8?0.2+(k-0.2)*0.4:0.44+(k-0.8));
+            S.rect(0,0,SW,SH,PALETTE.ink,0.12*on);
+            S.player(PX,lerp(PY,7,seg(k,0.25,0.7)),0);
+            S.enemy('compass',13,2.5);
+            for (let i=0;i<6;i++) {
+                const f=(te-i*0.07)/0.5;
+                if (f<0||f>1) {
+                    continue;
+                }
+                S.bullet(lerp(12.4,PX-2,f),lerp(2.5,PY,f),'enemy');
+            }
+            S.text('40%',8,1,16,PALETTE.red,on);
+        }
+    },
+    luckyDice:{
+        period:3.4,
+        draw(S,k,t) {
+            S.player(PX,PY,0);
+            const roll=seg(k,0.1,0.45);
+            const face=roll<1?1+Math.floor(t*14)%6:6;
+            const dx=8;
+            const dy=PY-lerp(2,0,easeOut(roll));
+            S.rect(dx-0.8,dy-0.8,1.6,1.6,PALETTE.paper,1-seg(k,0.85,0.95));
+            S.path([[dx-0.8,dy-0.8],[dx+0.8,dy-0.8],[dx+0.8,dy+0.8],[dx-0.8,dy+0.8],[dx-0.8,dy-0.8]],PALETTE.ink,0.08,1-seg(k,0.85,0.95));
+            S.text(String(face),dx,dy+0.05,18,face===6?PALETTE.red:PALETTE.ink,1-seg(k,0.85,0.95));
+            const hit=0.6;
+            S.ring(12,PY,2,PALETTE.red,0.08,seg(k,0.45,0.5)*(1-seg(k,hit,hit+0.1)));
+            S.target('eraserMonster',12,PY,k,hit);
+            S.num('180',12,PY-0.6,seg(k,hit,hit+0.25),PALETTE.red,16);
+        }
+    },
+    rewind:{
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const flip=0.45;
+            const foes=[['sprayer',13.5,2.4],['doodle',13.2,6.6]];
+            for (const [id,x,y] of foes) {
+                S.target(id,x,y,k,0.75);
+            }
+            for (let i=0;i<5;i++) {
+                const y=1.8+i*1.3;
+                const f=seg(k,0.05,flip);
+                const bx=lerp(12,6.5,f);
+                if (k<flip) {
+                    S.bullet(bx,y,'enemy');
+                }
+                else {
+                    const g=seg(k,flip,0.75);
+                    const [,tx,ty]=foes[i%2];
+                    if (g<1) {
+                        S.bullet(lerp(6.5,tx,g),lerp(y,ty,g),'ink');
+                    }
+                }
+            }
+            S.text('⏪',7,1,18,PALETTE.red,seg(k,flip-0.05,flip)*(1-seg(k,0.7,0.8)));
+        }
+    },
+    fullInk:{
+        period:3,
+        draw(S,k) {
+            const on=seg(k,0.08,0.15)*(1-seg(k,0.88,0.95));
+            S.inkBottle(1.4,2.2,1,on);
+            S.player(PX,PY,0,{kick:k>0.2&&k<0.85?(Math.floor(k*60)%2)*0.5:0});
+            S.stream(PX+0.9,PY,12,PY,k,0.2,0.82,0.025,0.1);
+            S.target('eraserMonster',12.4,PY,k,0.85,{flash:k>0.25&&k<0.85?(Math.floor(k*40)%2):0});
+            S.text('MAX',PX,PY-1.4,14,PALETTE.red,on);
+        }
+    },
+    firstAid:{
+        period:3.6,
+        draw(S,k) {
+            const on=seg(k,0.06,0.14)*(1-seg(k,0.9,0.96));
+            S.circle(6,PY,2.2,PALETTE.red,0.12*on);
+            S.ring(6,PY,2.2,PALETTE.red,0.08,on,[0.3,0.2]);
+            S.rect(5.8,PY-0.7,0.4,1.4,PALETTE.red,on*0.6);
+            S.rect(5.3,PY-0.2,1.4,0.4,PALETTE.red,on*0.6);
+            const x=lerp(2,6,seg(k,0.15,0.3));
+            S.player(x,PY+0.4,0);
+            for (let i=0;i<3;i++) {
+                S.num('+1',x,PY,seg(k,0.35+i*0.18,0.5+i*0.18),PALETTE.red);
+            }
+        }
+    },
+    planeDash:{
+        period:3.4,
+        draw(S,k) {
+            const on=seg(k,0.08,0.14)*(1-seg(k,0.88,0.94));
+            const f=seg(k,0.12,0.8);
+            const x=lerp(2,14,f);
+            const y=PY+Math.sin(f*Math.PI*2)*1.6;
+            if (on>0) {
+                S.path([[x+0.9,y],[x-0.8,y-0.6],[x-0.3,y],[x-0.8,y+0.6],[x+0.9,y]],PALETTE.ink,0.08,on,false);
+                S.line(x-1.6,y,x-0.9,y,PALETTE.red,0.08,on*0.7);
+            }
+            else {
+                S.player(k<0.5?2:14,PY,0);
+            }
+            for (const [id,ex,ey,kh] of [['doodle',6,5.9,0.35],['blob',9.5,3.1,0.55],['bird',12.5,5.2,0.72]]) {
+                S.target(id,ex,ey,k,kh);
+            }
+        }
     }
 };
 
+function alarmMeter(S,x,y,k,a=1) {
+    S.rect(x-1.3,y-0.17,2.6,0.34,PALETTE.paper,a);
+    S.rect(x-1.3,y-0.17,2.6*clamp01(k),0.34,PALETTE.red,a);
+    S.line(x-1.3+2.6*0.6,y-0.17,x-1.3+2.6*0.6,y+0.17,PALETTE.ink,0.04,a);
+    const c=S.ctx;
+    c.globalAlpha=a;
+    c.strokeStyle=PALETTE.ink;
+    c.lineWidth=0.06;
+    c.strokeRect(x-1.3,y-0.17,2.6,0.34);
+    c.globalAlpha=1;
+}
+
+function alarmRay(S,cx,cy,a,r0,r1,color,w,al=1) {
+    S.line(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0,cx+Math.cos(a)*r1,cy+Math.sin(a)*r1,color,w,al);
+}
+
+function alarmPad(S,x,y,k,hold,done=0) {
+    if (k<=0) {
+        return;
+    }
+    const r=0.9*easeOut(Math.min(1,k));
+    S.circle(x,y,r,PALETTE.red,done>0?0.3:0.12+0.1*Math.sin(k*40));
+    S.ring(x,y,r,PALETTE.red,0.08,1,[0.25,0.18]);
+    if (hold>0) {
+        S.ring(x,y,r*1.25,PALETTE.red,0.1,1,null,-Math.PI/2,-Math.PI/2+Math.PI*2*clamp01(hold));
+    }
+}
+
+function calcKey(S,x,y,n,a=1,press=0) {
+    if (a<=0) {
+        return;
+    }
+    const h=0.75*(1-press*0.25);
+    S.rect(x-h+0.08,y-h+0.12,h*2,h*2,PALETTE.ink,0.15*a);
+    S.rect(x-h,y-h,h*2,h*2,press>0?PALETTE.farGray:PALETTE.paper,a);
+    S.path([[x-h,y-h],[x+h,y-h],[x+h,y+h],[x-h,y+h],[x-h,y-h]],PALETTE.ink,0.08,a);
+    S.text(String(n),x,y+0.04,17,PALETTE.ink,a);
+}
+
+function sPt(x0,y0,x1,y1,amp,s) {
+    const dx=x1-x0;
+    const dy=y1-y0;
+    const l=Math.hypot(dx,dy)||1;
+    const w=amp*Math.sin(s*Math.PI*2);
+    return [x0+dx*s-dy/l*w,y0+dy*s+dx/l*w];
+}
+
+function sDash(S,x0,y0,x1,y1,amp,a) {
+    if (a<=0) {
+        return;
+    }
+    const N=18;
+    for (let i=0;i<N;i++) {
+        const p=sPt(x0,y0,x1,y1,amp,i/N);
+        const q=sPt(x0,y0,x1,y1,amp,(i+0.55)/N);
+        S.line(p[0],p[1],q[0],q[1],PALETTE.red,0.09,a*0.6);
+    }
+}
+
+function paperDart(S,x,y,ang,a=1,spin=0) {
+    const c=Math.cos(ang+spin);
+    const s=Math.sin(ang+spin);
+    const P=(px,py)=>[x+px*c-py*s,y+px*s+py*c];
+    const pts=[P(0.55,0),P(-0.45,-0.42),P(-0.25,0),P(-0.45,0.42)];
+    S.path(pts,PALETTE.paper,0.08,a,true);
+    S.path(pts.concat([pts[0]]),PALETTE.ink,0.06,a);
+    S.line(pts[0][0],pts[0][1],pts[2][0],pts[2][1],PALETTE.midGray,0.04,a);
+}
+
+function stickyNote(S,x,y,a=1,sc=1) {
+    const h=0.32*sc;
+    S.rect(x-h,y-h,h*2,h*2,PALETTE.marker,a);
+    S.path([[x-h,y-h],[x+h,y-h],[x+h,y+h],[x-h,y+h],[x-h,y-h]],PALETTE.ink,0.05,a);
+}
+
 export const ENEMY_ATTACKS={
+    paperPlane:[
+        {
+            key:'throw',
+            dmg:{kind:'hit',n:1},
+            period:3.8,
+            draw(S,k) {
+                const ex=12.6;
+                const ey=PY;
+                const tx=PX-0.6;
+                const hx=PX+1.2;
+                S.player(hx,PY,0,{flash:seg(k,0.36,0.4)*(1-seg(k,0.4,0.55))});
+                const hold=k>0.24&&k<0.86;
+                S.enemy('paperPlane',ex,ey,{size:1.7,sx:hold?1:1+Math.sin(k*30)*0.02});
+                sDash(S,ex-0.6,ey,tx,PY,1.6,seg(k,0.06,0.16)*(1-seg(k,0.45,0.5)));
+                sDash(S,tx,PY,ex-0.6,ey,-1.6,seg(k,0.5,0.56)*(1-seg(k,0.84,0.88)));
+                let px=null;
+                let py=0;
+                let ang=Math.PI;
+                let spin=0;
+                if (k>=0.22&&k<0.5) {
+                    const f=seg(k,0.22,0.5);
+                    [px,py]=sPt(ex-0.6,ey,tx,PY,1.6,f);
+                    const q=sPt(ex-0.6,ey,tx,PY,1.6,Math.min(1,f+0.03));
+                    ang=Math.atan2(q[1]-py,q[0]-px);
+                }
+                else if (k>=0.5&&k<0.58) {
+                    px=tx;
+                    py=PY;
+                    spin=seg(k,0.5,0.58)*Math.PI*4;
+                }
+                else if (k>=0.58&&k<0.86) {
+                    const f=seg(k,0.58,0.86);
+                    [px,py]=sPt(tx,PY,ex-0.6,ey,-1.6,f);
+                    const q=sPt(tx,PY,ex-0.6,ey,-1.6,Math.min(1,f+0.03));
+                    ang=Math.atan2(q[1]-py,q[0]-px);
+                }
+                if (px!==null) {
+                    paperDart(S,px,py,ang,1,spin);
+                }
+                S.num('-1',hx,PY-0.5,seg(k,0.38,0.7),PALETTE.red,16);
+            }
+        },
+        {
+            key:'elite',
+            dmg:{kind:'hit',n:1},
+            period:3.8,
+            draw(S,k) {
+                const ex=12.6;
+                const ey=PY;
+                const tx=PX-0.2;
+                S.player(PX+1.4,PY+2.4,0);
+                S.enemy('paperPlane',ex,ey,{size:1.8});
+                S.ring(ex,ey+0.2,1.2,PALETTE.darkRed,0.12,1);
+                for (const sg of [1,-1]) {
+                    const amp=1.8*sg;
+                    sDash(S,ex-0.6,ey,tx,PY,amp,seg(k,0.04,0.14)*(1-seg(k,0.45,0.5)));
+                    sDash(S,tx,PY,ex-0.6,ey,-amp,seg(k,0.5,0.56)*(1-seg(k,0.84,0.88)));
+                    let pt=null;
+                    let ang=Math.PI;
+                    let spin=0;
+                    if (k>=0.2&&k<0.5) {
+                        const f=seg(k,0.2,0.5);
+                        pt=sPt(ex-0.6,ey,tx,PY,amp,f);
+                        const q=sPt(ex-0.6,ey,tx,PY,amp,Math.min(1,f+0.03));
+                        ang=Math.atan2(q[1]-pt[1],q[0]-pt[0]);
+                    }
+                    else if (k>=0.5&&k<0.58) {
+                        pt=[tx,PY];
+                        spin=seg(k,0.5,0.58)*Math.PI*4*sg;
+                    }
+                    else if (k>=0.58&&k<0.86) {
+                        const f=seg(k,0.58,0.86);
+                        pt=sPt(tx,PY,ex-0.6,ey,-amp,f);
+                        const q=sPt(tx,PY,ex-0.6,ey,-amp,Math.min(1,f+0.03));
+                        ang=Math.atan2(q[1]-pt[1],q[0]-pt[0]);
+                    }
+                    if (pt) {
+                        paperDart(S,pt[0],pt[1],ang,1,spin);
+                    }
+                }
+            }
+        }
+    ],
+    stickyHelper:[
+        {
+            key:'stick',
+            dmg:{kind:'none',n:0},
+            period:3.6,
+            draw(S,k) {
+                const dx=9;
+                const dy=PY+0.6;
+                const hx=13.4;
+                const hy=PY-1.6;
+                S.player(PX,PY+0.6,0);
+                const hit2=seg(k,0.8,0.84);
+                S.enemy('doodle',dx,dy,{flash:hit2*(1-seg(k,0.84,0.95))});
+                S.enemy('stickyHelper',hx,hy,{size:1.4,rot:Math.sin(seg(k,0.1,0.3)*Math.PI)*0.3});
+                const f=seg(k,0.12,0.3);
+                if (f>0&&f<1) {
+                    stickyNote(S,lerp(hx,dx,f),lerp(hy,dy-1.4,f)-Math.sin(f*Math.PI)*1.2,1,0.8);
+                }
+                const on=f>=1&&k<0.56;
+                if (on) {
+                    stickyNote(S,dx,dy-1.4,1,1+Math.max(0,0.3-(k-0.3)*3));
+                }
+                S.fly(PX+0.5,PY+0.6,dx-0.5,dy,k,0.42,0.56,'ink');
+                S.burst(dx,dy-1.2,1.2,seg(k,0.56,0.76),PALETTE.marker);
+                S.num(t('enemy.stickyBlock'),dx,dy-1.2,seg(k,0.56,0.86),PALETTE.ink,14);
+                S.fly(PX+0.5,PY+0.6,dx-0.5,dy,k,0.68,0.82,'ink');
+                S.num('-12',dx,dy-0.6,seg(k,0.82,1),PALETTE.red,15);
+            }
+        },
+        {
+            key:'rush',
+            dmg:{kind:'hit',n:1},
+            period:2.8,
+            draw(S,k) {
+                S.player(PX+0.4,PY,0,{flash:seg(k,0.6,0.64)*(1-seg(k,0.64,0.8))});
+                const f=inOut(seg(k,0.15,0.6));
+                const x=lerp(13.5,PX+1.3,f)-(k>0.6?Math.sin(seg(k,0.6,0.8)*Math.PI)*0.6:0);
+                S.enemy('stickyHelper',x,PY,{size:1.4,rot:-0.25*seg(k,0.1,0.2)});
+                for (let i=1;i<4;i++) {
+                    S.line(x+0.8+i*0.5,PY-0.4+i*0.2,x+1.4+i*0.5,PY-0.4+i*0.2,PALETTE.midGray,0.06,(1-seg(k,0.55,0.62))*seg(k,0.15,0.2));
+                }
+                S.num('-1',PX+0.4,PY-0.5,seg(k,0.62,0.95),PALETTE.red,16);
+            }
+        }
+    ],
     stampSoldier:[
         {
             key:'stamp',
@@ -1659,6 +2253,382 @@ export const ENEMY_ATTACKS={
                 const e=pts[Math.min(20,n)];
                 S.enemy('exam',e[0],e[1]-0.6,{size:1.8});
                 S.player(lerp(10,2.2,f),lerp(7.6,7.8,f),0);
+            }
+        }
+    ],
+    alarm:[
+        {
+            key:'second',
+            dmg:{kind:'hit',n:1},
+            period:4.2,
+            draw(S,k) {
+                const cx=11;
+                const a0=Math.PI*0.6;
+                const dash=seg(k,0.34,0.4);
+                S.player(5,lerp(PY+1.3,PY-1.3,easeOut(dash)),-Math.PI/2,{flash:dash>0&&dash<1?0.5:0});
+                if (dash>0&&dash<1) {
+                    S.line(5,PY+1.3,5,lerp(PY+1.3,PY-1.3,easeOut(dash)),PALETTE.midGray,0.3,0.5);
+                }
+                S.enemy('alarm',cx,PY,{size:2.6});
+                S.tele(cx+Math.cos(a0)*1.4,PY+Math.sin(a0)*1.4,cx+Math.cos(a0)*10,PY+Math.sin(a0)*10,seg(k,0.02,0.15),1-seg(k,0.2,0.22));
+                const f=seg(k,0.22,0.9);
+                if (f>0&&f<1) {
+                    alarmRay(S,cx,PY,a0+Math.PI*2*f,1.4,11,PALETTE.ink,0.14);
+                }
+            }
+        },
+        {
+            key:'hands',
+            dmg:{kind:'hit',n:1},
+            period:4.4,
+            draw(S,k) {
+                const cx=11;
+                const g0=4.4;
+                const g1=5.9;
+                const near=seg(k,0.05,0.2);
+                S.player(lerp(PX,cx-5.15,near),PY,0);
+                S.enemy('alarm',cx,PY,{size:2.6});
+                const f=seg(k,0.25,0.92);
+                const a1=Math.PI*0.75+f*2.2;
+                const a2=Math.PI*0.25+f*4.2;
+                S.ring(cx,PY,(g0+g1)/2,PALETTE.red,0.04,0.5*(1-seg(k,0.92,1)),[0.2,0.2]);
+                for (const a of [a1,a2]) {
+                    if (k<0.25) {
+                        S.tele(cx+Math.cos(a)*1.4,PY+Math.sin(a)*1.4,cx+Math.cos(a)*g0,PY+Math.sin(a)*g0,seg(k,0.05,0.2));
+                        S.tele(cx+Math.cos(a)*g1,PY+Math.sin(a)*g1,cx+Math.cos(a)*11,PY+Math.sin(a)*11,seg(k,0.05,0.2));
+                    }
+                    else if (f<1) {
+                        alarmRay(S,cx,PY,a,1.4,g0,PALETTE.ink,0.4);
+                        alarmRay(S,cx,PY,a,g1,12,PALETTE.ink,0.4);
+                    }
+                }
+            }
+        },
+        {
+            key:'chime',
+            dmg:{kind:'hit',n:1},
+            period:3.6,
+            draw(S,k) {
+                const cx=11;
+                const step=easeOut(seg(k,0.22,0.36));
+                S.player(5,PY+step*2,0);
+                S.enemy('alarm',cx,PY,{size:2.6});
+                S.text('9:00',cx,PY-2.2,18,PALETTE.red,seg(k,0.03,0.08)*(1-seg(k,0.7,0.75)));
+                const live=seg(k,0.48,0.5)*(1-seg(k,0.66,0.72));
+                for (const a of [Math.PI,-Math.PI/2]) {
+                    if (live<=0) {
+                        S.tele(cx+Math.cos(a)*1.4,PY+Math.sin(a)*1.4,cx+Math.cos(a)*10,PY+Math.sin(a)*10,seg(k,0.08,0.3),k<0.5?1:0);
+                    }
+                    else {
+                        alarmRay(S,cx,PY,a,1.4,11,PALETTE.ink,0.4,live);
+                    }
+                }
+            }
+        },
+        {
+            key:'bells',
+            dmg:{kind:'hit',n:1},
+            period:3.6,
+            draw(S,k) {
+                const cx=11;
+                const dash=seg(k,0.62,0.7);
+                const x=lerp(4,7,easeOut(dash));
+                S.player(x,PY,0,{flash:dash>0&&dash<1?0.5:0});
+                if (dash>0&&dash<1) {
+                    S.line(4,PY,x,PY,PALETTE.midGray,0.3,0.5);
+                }
+                const tele=k<0.22;
+                S.enemy('alarm',cx,PY,{size:2.6,shake:tele?k:0});
+                if (tele) {
+                    for (let j=0;j<3;j++) {
+                        const f=(k/0.1+j/3)%1;
+                        S.ring(cx,PY,0.8+f*5,PALETTE.red,0.12,(1-f)*0.8*seg(k,0,0.04));
+                    }
+                }
+                const f=seg(k,0.22,0.85);
+                if (f>0&&f<1) {
+                    S.ring(cx,PY,0.6+f*9,PALETTE.ink,0.24,1-f*0.6);
+                }
+            }
+        },
+        {
+            key:'hop',
+            dmg:{kind:'hit',n:1},
+            period:4.4,
+            draw(S,k) {
+                const home=[12,PY];
+                const pts=[[5,3],[6.5,6.6]];
+                const legs=[[home,pts[0],0.08],[pts[0],pts[1],0.4],[pts[1],home,0.72]];
+                const px=lerp(5,8,inOut(seg(k,0.2,0.32)));
+                const py=lerp(3,3.4,seg(k,0.2,0.32))+lerp(0,3.4,inOut(seg(k,0.5,0.62)));
+                S.player(k<0.4?px:lerp(8,9.5,seg(k,0.5,0.62)),k<0.4?py:lerp(3.4,PY,seg(k,0.5,0.62)),0);
+                let x=home[0];
+                let y=home[1];
+                let lift=0;
+                for (const [a,b,t0] of legs) {
+                    const tele=seg(k,t0,t0+0.14);
+                    const air=seg(k,t0+0.14,t0+0.24);
+                    if (tele>0&&air<1) {
+                        S.ring(b[0],b[1],1.3,PALETTE.red,0.08,0.9,[0.25,0.18]);
+                        S.circle(b[0],b[1],1.3*tele,PALETTE.red,0.15);
+                    }
+                    if (air>0) {
+                        x=lerp(a[0],b[0],air);
+                        y=lerp(a[1],b[1],air);
+                        lift=Math.sin(air*Math.PI)*2;
+                    }
+                    const w=seg(k,t0+0.24,t0+0.34);
+                    if (w>0&&w<1) {
+                        S.ring(b[0],b[1],1.3+w*2.5,PALETTE.ink,0.18,1-w);
+                    }
+                }
+                S.circle(x,y+0.9,0.9*(1-lift*0.15),PALETTE.ink,0.12);
+                S.enemy('alarm',x,y-lift,{size:2.2});
+            }
+        },
+        {
+            key:'burst',
+            dmg:{kind:'hit',n:2},
+            period:5,
+            draw(S,k) {
+                const cx=11;
+                S.player(4.2,PY+1.6,0);
+                const fill=seg(k,0,0.15);
+                const on=k>=0.15&&k<0.92;
+                S.enemy('alarm',cx,PY,{size:2.6,shake:on?k:0});
+                alarmMeter(S,cx,PY-2,lerp(0.7,1,fill),1);
+                S.text('!',cx+1.7,PY-2,18,PALETTE.red,on?0.6+0.4*Math.sin(k*60):0);
+                const w=seg(k,0.18,0.45);
+                if (w>0&&w<1) {
+                    S.ring(cx,PY,1.4+w*12,PALETTE.red,0.35,1-w*0.5);
+                }
+                const f=seg(k,0.62,0.92);
+                const n=6;
+                for (let i=0;i<n;i++) {
+                    const a=i/n*Math.PI*2+f*1.2;
+                    if (k<0.62) {
+                        S.tele(cx+Math.cos(a)*1.4,PY+Math.sin(a)*1.4,cx+Math.cos(a)*10,PY+Math.sin(a)*10,seg(k,0.5,0.6));
+                    }
+                    else if (f<1) {
+                        alarmRay(S,cx,PY,a,1.4,11,PALETTE.ink,0.3);
+                    }
+                }
+                S.text('×3',cx,PY+2.2,18,PALETTE.red,seg(k,0.62,0.66)*(1-seg(k,0.88,0.92)));
+            }
+        },
+        {
+            key:'press',
+            dmg:{kind:'none',n:0},
+            period:4.6,
+            draw(S,k) {
+                const cx=11;
+                const pad=[3,7.2];
+                const bar=lerp(0.45,0.75,seg(k,0,0.2));
+                const hit=seg(k,0.45,0.5);
+                const walk=inOut(seg(k,0.15,0.35));
+                const px=lerp(6,pad[0],walk);
+                const py=lerp(3,pad[1],walk);
+                S.player(px,py,Math.PI/2);
+                alarmPad(S,pad[0],pad[1],seg(k,0.12,0.2)*(1-seg(k,0.55,0.6)),seg(k,0.35,0.5),hit);
+                const z=k>=0.5;
+                S.enemy('alarm',cx,PY,{size:2.6,rot:z?0.25:0,flash:hit>0&&hit<1?1-hit:0});
+                alarmMeter(S,cx,PY-2,z?0:bar);
+                S.text('Zzz',cx+1.4,PY-2.6-seg(k,0.5,1)*0.4,16,PALETTE.ink,z?1-seg(k,0.9,1):0);
+                S.text('×2',cx,PY+2.2,18,PALETTE.red,z?1-seg(k,0.9,1):0);
+                S.num('+1',px,py,seg(k,0.5,0.75),PALETTE.ink,15);
+                if (z) {
+                    S.stream(px+0.9,py-0.4,cx-0.8,PY+0.4,k,0.55,0.85,0.06,0.12);
+                }
+            }
+        },
+        {
+            key:'double',
+            dmg:{kind:'hit',n:1},
+            period:4.6,
+            draw(S,k) {
+                const cx=11;
+                const g0=4.4;
+                const g1=5.9;
+                const near=seg(k,0.05,0.2);
+                S.player(lerp(PX,cx-5.15,near),PY,0);
+                const flip=0.58;
+                const ding=seg(k,flip-0.08,flip)*(1-seg(k,flip,flip+0.04));
+                S.enemy('alarm',cx,PY,{size:2.6,shake:ding>0?k:0});
+                S.text('!',cx+1.6,PY-2,18,PALETTE.red,ding);
+                S.ring(cx,PY,(g0+g1)/2,PALETTE.red,0.04,0.5*(1-seg(k,0.92,1)),[0.2,0.2]);
+                const f=seg(k,0.25,0.92);
+                const fwd=Math.min(f,flip-0.25>0?(flip-0.25)/0.67:0);
+                const u=fwd-Math.max(0,f-fwd);
+                for (let i=0;i<3;i++) {
+                    const a=Math.PI*0.75+i*Math.PI*2/3+u*[3,5,-4][i];
+                    if (k<0.25) {
+                        S.tele(cx+Math.cos(a)*1.4,PY+Math.sin(a)*1.4,cx+Math.cos(a)*g0,PY+Math.sin(a)*g0,seg(k,0.05,0.2));
+                        S.tele(cx+Math.cos(a)*g1,PY+Math.sin(a)*g1,cx+Math.cos(a)*11,PY+Math.sin(a)*11,seg(k,0.05,0.2));
+                    }
+                    else if (f<1) {
+                        alarmRay(S,cx,PY,a,1.4,g0,PALETTE.ink,0.4);
+                        alarmRay(S,cx,PY,a,g1,12,PALETTE.ink,0.4);
+                    }
+                }
+                S.text('×1.4',cx,PY+2.3,15,PALETTE.red,seg(k,0.25,0.3)*(1-seg(k,0.9,0.95)));
+            }
+        }
+    ],
+    calculator:[
+        {
+            key:'answer',
+            dmg:{kind:'bullet',n:1},
+            period:5,
+            draw(S,k) {
+                const cx=12.5;
+                const hit=0.46;
+                const solved=k>=hit;
+                const ks=[[6,2.3,13],[8.4,6.6,9],[4.4,7,4],[8.2,3.9,17]];
+                S.text(solved?'6+7=13':'6+7=?',cx,PY-2.4,18,solved?PALETTE.red:PALETTE.ink,seg(k,0.02,0.08));
+                S.enemy('calculator',cx,PY,{size:2.6,rot:solved?Math.sin(k*30)*0.12:0,flash:seg(k,hit,hit+0.05)*(1-seg(k,hit+0.05,hit+0.12))});
+                if (solved) {
+                    S.stars(cx,PY-0.6,k);
+                    S.text('×2',cx,PY+2.3,18,PALETTE.red,1-seg(k,0.9,1));
+                }
+                else {
+                    S.ring(cx,PY,1.9,PALETTE.midGray,0.08,seg(k,0.04,0.12)*0.7,[0.3,0.2]);
+                    S.text('−60%',cx,PY+2.3,16,PALETTE.midGray,seg(k,0.04,0.12));
+                }
+                ks.forEach(([x,y,n],i)=>{
+                    const up=seg(k,0.04+i*0.02,0.12+i*0.02);
+                    const gone=solved?seg(k,hit,hit+0.1):0;
+                    calcKey(S,x,y,n,up*(i===0?1-seg(k,hit+0.2,hit+0.3):1-gone),i===0&&solved?1:0);
+                });
+                S.burst(6,2.3,1.6,seg(k,hit,hit+0.15),PALETTE.red);
+                const walk=inOut(seg(k,hit-0.26,hit-0.06));
+                const px=lerp(2.6,6,walk);
+                const py=lerp(5.2,2.3,walk);
+                S.player(px,py,Math.atan2(2.3-5.2,6-2.6));
+                S.text(t('ui.interact'),6,1.1,14,PALETTE.red,seg(k,hit-0.06,hit-0.02)*(1-seg(k,hit+0.04,hit+0.08)));
+                for (let j=0;j<3;j++) {
+                    const a=Math.PI+(j-1)*0.28;
+                    S.fly(cx-1.6,PY,cx-1.6+Math.cos(a)*7,PY+Math.sin(a)*7*0.5,k,0.12,0.32);
+                }
+            }
+        },
+        {
+            key:'rain',
+            dmg:{kind:'hit',n:1},
+            period:4.2,
+            draw(S,k) {
+                const cx=13;
+                S.enemy('calculator',cx,PY,{size:2.4});
+                const rows=[[2.6,0.05],[6.6,0.2],[4.6,0.35]];
+                const move=inOut(seg(k,0.12,0.24));
+                S.player(lerp(5,5,move),lerp(4.6,5.6,move),0);
+                for (const [y,t0] of rows) {
+                    const tele=seg(k,t0,t0+0.18);
+                    const land=seg(k,t0+0.18,t0+0.24);
+                    const out=seg(k,t0+0.32,t0+0.4);
+                    if (land<=0) {
+                        S.tele(0.6,y,10.5,y,tele);
+                        S.rect(0.6,y-0.45,9.9,0.9,PALETTE.red,0.12*tele);
+                    }
+                    if (tele>=0.7&&out<1) {
+                        for (let i=0;i<7;i++) {
+                            const x=1.2+i*1.4;
+                            const yy=y-3*(1-land*land)-(i%2)*0.4*(1-land);
+                            S.text(String((i*7+Math.round(y))%10),x,yy,17,PALETTE.ink,1-out);
+                        }
+                    }
+                }
+            }
+        },
+        {
+            key:'plus',
+            dmg:{kind:'hit',n:1},
+            period:4.4,
+            draw(S,k) {
+                const cx=11;
+                const a0=Math.PI*0.15;
+                const f=seg(k,0.28,0.88);
+                const dash=seg(k,0.5,0.58);
+                S.player(lerp(5.6,4.2,easeOut(dash)),lerp(5.6,3.6,easeOut(dash)),-Math.PI/2,{flash:dash>0&&dash<1?0.5:0});
+                S.enemy('calculator',cx,PY,{size:2.6});
+                S.text('+',cx+1.6,PY-2,22,PALETTE.red,seg(k,0.02,0.08)*(1-seg(k,0.88,0.92)));
+                for (let i=0;i<4;i++) {
+                    const a=a0+i*Math.PI/2+f*Math.PI*1.25;
+                    if (k<0.28) {
+                        S.tele(cx+Math.cos(a)*1.4,PY+Math.sin(a)*1.4,cx+Math.cos(a)*10,PY+Math.sin(a)*10,seg(k,0.04,0.24));
+                    }
+                    else if (f<1) {
+                        alarmRay(S,cx,PY,a,1.4,11,PALETTE.ink,0.4);
+                    }
+                }
+            }
+        },
+        {
+            key:'minus',
+            dmg:{kind:'hit',n:1},
+            period:4,
+            draw(S,k) {
+                const cx=13;
+                S.enemy('calculator',cx,PY,{size:2.4});
+                S.text('−',cx+1.5,PY-2,24,PALETTE.red,seg(k,0.02,0.08)*(1-seg(k,0.88,0.92)));
+                const warn=seg(k,0.05,0.3);
+                if (k<0.3) {
+                    S.tele(0.8,0.6,0.8,8.4,warn);
+                    S.rect(0.8,0.6,3*warn,7.8,PALETTE.red,0.12*warn);
+                }
+                for (const d of [0,0.16]) {
+                    const f=seg(k,0.3+d,0.75+d);
+                    if (f>0&&f<1) {
+                        S.line(lerp(0.8,10.5,f),0.6,lerp(0.8,10.5,f),8.4,PALETTE.ink,0.4);
+                    }
+                }
+                const dash=seg(k,0.44,0.52);
+                S.player(lerp(5.4,3,easeOut(dash)),PY+0.6,Math.PI,{flash:dash>0&&dash<1?0.5:0});
+                if (dash>0&&dash<1) {
+                    S.line(5.4,PY+0.6,lerp(5.4,3,easeOut(dash)),PY+0.6,PALETTE.midGray,0.3,0.5);
+                }
+            }
+        },
+        {
+            key:'zero',
+            dmg:{kind:'none',n:0},
+            period:3.8,
+            draw(S,k) {
+                const cx=11;
+                const hit=0.3;
+                const cleared=k>=hit;
+                S.player(3.4,PY,0);
+                for (let i=0;i<9;i++) {
+                    const a=i/9*Math.PI*2;
+                    const r=1.6+((k*3+hash(i))%1)*4;
+                    S.bullet(cx+Math.cos(a)*r,PY+Math.sin(a)*r*0.8,'enemy',cleared?1-seg(k,hit,hit+0.06):1);
+                }
+                calcKey(S,6.4,2.4,8,cleared?1-seg(k,hit,hit+0.06):1);
+                calcKey(S,6,6.8,3,cleared?1-seg(k,hit,hit+0.06):1);
+                S.enemy('calculator',cx,PY,{size:2.6,shake:cleared&&k<hit+0.05?k:0});
+                S.text('AC',cx,PY-2.3,20,PALETTE.red,seg(k,hit-0.05,hit)*(1-seg(k,0.6,0.65)));
+                const sh=cleared&&k<0.7;
+                S.ring(cx,PY,1.9,PALETTE.ink,0.1,sh?0.8:0,[0.3,0.2]);
+                S.burst(cx,PY,4,seg(k,hit,hit+0.2),PALETTE.midGray);
+                S.text('3+4=?',cx,PY-2.3,18,PALETTE.ink,seg(k,0.72,0.78));
+            }
+        },
+        {
+            key:'double',
+            dmg:{kind:'bullet',n:1},
+            period:4.8,
+            draw(S,k) {
+                const cx=13;
+                S.text('8−3=?',cx,PY-2.4,18,PALETTE.ink);
+                S.enemy('calculator',cx,PY,{size:2.4});
+                const from=[[7,1.8],[9.6,7],[4.6,7.4],[8.8,3.8],[4.4,2.4]];
+                const to=[[4.6,7.4],[7,1.8],[8.8,3.8],[4.4,2.4],[9.6,7]];
+                const nums=[5,4,6,9,12];
+                const f=inOut(seg(k,0.4,0.6));
+                const hop=Math.sin(seg(k,0.4,0.6)*Math.PI)*0.8;
+                from.forEach((p,i)=>calcKey(S,lerp(p[0],to[i][0],f),lerp(p[1],to[i][1],f)-hop,nums[i]));
+                S.text('⇄',7,PY,22,PALETTE.red,seg(k,0.36,0.4)*(1-seg(k,0.6,0.64)));
+                S.player(2.2,PY,0);
+                S.text('8s',cx-1.6,PY+2.3,16,PALETTE.red);
             }
         }
     ],
@@ -2280,6 +3250,16 @@ export const ENEMY_ATTACKS={
                 const gap=5.8;
                 S.player(PX,lerp(PY,gap,seg(k,0.1,0.35)),0);
                 S.enemy('book',13.8,PY,{size:2.6});
+                const tw=seg(k,0,0.12)*(1-seg(k,0.15,0.17));
+                if (tw>0) {
+                    const c=S.ctx;
+                    const gr=c.createLinearGradient(12,0,6,0);
+                    gr.addColorStop(0,rgba('red',0.45*tw));
+                    gr.addColorStop(1,rgba('red',0));
+                    c.fillStyle=gr;
+                    c.fillRect(6,0,6,SH);
+                    S.line(12,PY-SH/2*tw,12,PY+SH/2*tw,PALETTE.red,0.12,tw);
+                }
                 for (let v=0;v<2;v++) {
                     const f=seg(k,0.15+v*0.3,0.75+v*0.3);
                     if (f<=0||f>=1) {
@@ -2410,7 +3390,76 @@ export const ENEMY_ATTACKS={
     ]
 };
 
+function bossCall(id) {
+    return {
+        key:'call',
+        nameKey:'atk.call',
+        descKey:'atk.call.desc',
+        dmg:{kind:'none',n:0},
+        period:3.2,
+        draw(S,k) {
+            S.player(PX,PY,0);
+            const cx=12.5;
+            const raise=seg(k,0.08,0.2)*(1-seg(k,0.5,0.6));
+            S.enemy(id,cx,PY-raise*0.4,{size:2.6});
+            S.ring(cx,PY,1.6+raise*0.6,PALETTE.red,0.08,raise);
+            const minions=[['doodle',-0.9],['bird',0],['sprayer',0.9]];
+            for (const [mid,a] of minions) {
+                const an=Math.PI+a;
+                const f=seg(k,0.22,0.42);
+                if (f>0) {
+                    const x=cx+Math.cos(an)*3.4-seg(k,0.5,1)*2.2;
+                    const y=PY+Math.sin(an)*3.4;
+                    S.ring(x,y,0.3+(1-f),PALETTE.midGray,0.06,1-f);
+                    S.enemy(mid,x,y,{alpha:f});
+                }
+            }
+        }
+    };
+}
+
+for (const id of ['inkBottle','scissors','book','exam','bookFinal','alarm','calculator']) {
+    ENEMY_ATTACKS[id].push(bossCall(id));
+}
+
 export const TUTOR_ANIMS={
+    warn:{
+        period:4.4,
+        draw(S,k) {
+            const ex=13.4;
+            const bx=7.6;
+            const by=6.6;
+            const br=1.7;
+            S.enemy('sprayer',ex,PY);
+            const tele=seg(k,0.04,0.3)*(1-seg(k,0.44,0.48));
+            S.tele(ex-0.9,PY,-0.5,PY,tele);
+            const grow=seg(k,0.06,0.3);
+            const boom=seg(k,0.52,0.72);
+            if (grow>0&&boom<=0) {
+                S.circle(bx,by,br*grow,PALETTE.red,0.12+0.1*Math.sin(k*60)*grow);
+                S.ring(bx,by,br,PALETTE.red,0.08,grow,[0.25,0.18]);
+            }
+            if (boom>0&&boom<1) {
+                S.circle(bx,by,br*(1+boom*0.3),PALETTE.red,0.35*(1-boom));
+                S.burst(bx,by,br*1.5,boom,PALETTE.red);
+            }
+            S.stream(ex-0.9,PY,-1,PY,k,0.46,0.62,0.05,0.26,'enemy');
+            const y0=PY;
+            const y1=PY-2.8;
+            const d0=0.34;
+            const d1=0.42;
+            const f=easeOut(seg(k,d0,d1));
+            const fade=1-seg(k,d1,d1+0.2);
+            if (f>0) {
+                for (let g=1;g<=3;g++) {
+                    S.player(PX,lerp(y0,y1,Math.max(0,f-g*0.22)),-Math.PI/2,{ghost:true,alpha:0.55*(1-g/4)*fade});
+                }
+            }
+            const back=seg(k,0.86,0.98);
+            S.player(PX,lerp(lerp(y0,y1,f),y0,back),0,{flash:f>0&&f<1?1:0});
+            S.text('!',ex,PY-1.5+Math.sin(k*30)*0.1,Math.max(10,S.s*0.9),PALETTE.red,tele);
+        }
+    },
     move:{
         period:4.2,
         draw(S,k) {
@@ -2623,6 +3672,47 @@ export const WEAPON_ANIMS={
             S.rect(PX-0.8,PY+1.1,1.6*heat,0.25,heat>0.8?PALETTE.red:PALETTE.ink,1);
             S.player(PX,PY,0,{kick:on*0.3});
             S.target('compass',11.6,PY,k,0.55);
+        }
+    },
+    slingshot:{
+        period:4.5,
+        draw(S,k) {
+            const tap=seg(k,0.04,0.2);
+            const c0=0.24;
+            const full=0.48;
+            const rel=0.74;
+            const ch=seg(k,c0,full);
+            const pull=k>=c0&&k<rel?ch:0;
+            const hit=0.62;
+            S.rect(PX-0.8,PY+1.1,1.6,0.25,PALETTE.farGray,1);
+            S.rect(PX-0.8,PY+1.1,1.6*pull,0.25,pull>=1?PALETTE.red:PALETTE.ink,1);
+            if (k>=full&&k<hit) {
+                S.circle(PX,PY,1,PALETTE.gold,0.22+0.1*Math.sin(k*90));
+                S.ring(PX,PY,1,PALETTE.gold,0.1,0.8);
+            }
+            if (k>=hit) {
+                S.burst(PX,PY,1.3,seg(k,hit,hit+0.1),PALETTE.gold);
+            }
+            const kick=Math.max(seg(k,0.04,0.06)*(1-seg(k,0.06,0.1))*0.4,seg(k,rel,rel+0.03)*(1-seg(k,rel+0.03,rel+0.12)));
+            S.player(PX-pull*0.3,PY,0,{kick});
+            if (tap>0&&tap<1) {
+                S.circle(lerp(PX+0.9,15,tap),PY,0.16,PALETTE.ink,1);
+            }
+            S.num('8',7.5,PY-0.6,seg(k,0.08,0.24),PALETTE.ink);
+            const eb=seg(k,0.5,hit);
+            if (eb>0&&eb<1) {
+                S.bullet(lerp(PX+3,PX+0.7,eb),lerp(PY-3,PY-0.7,eb));
+            }
+            const f=seg(k,rel,rel+0.22);
+            if (f>0&&f<1) {
+                const x=lerp(PX+0.9,15,f);
+                S.line(x-1.2,PY,x,PY,PALETTE.midGray,0.16,0.6);
+                S.circle(x,PY,0.28,PALETTE.ink,1);
+            }
+            for (const [id,x] of [['doodle',7.5],['blob',10],['eraserMonster',12.6]]) {
+                S.target(id,x,PY,k,rel+0.22*(x-PX-0.9)/(15-PX-0.9));
+            }
+            S.num('65',10,PY-0.6,seg(k,rel+0.09,rel+0.25),PALETTE.slingNum);
         }
     },
     crayon:{

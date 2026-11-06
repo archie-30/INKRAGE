@@ -1,5 +1,5 @@
 import*as THREE from 'three';
-import {dashMaterial,ringMaterial,pal} from './materials.js';
+import {dashMaterial,ringMaterial,fadeMaterial,pal} from './materials.js';
 import {cardParams,cardRange,bouncePath} from '../game/card.js';
 import {TUNING} from '../data/tuning.js';
 
@@ -68,13 +68,17 @@ export class Preview {
         this.path.frustumCulled=false;
         this.path.material.uniforms.uDash.value=0.35;
         parent.add(this.path);
+        this.band=new THREE.Mesh(lg,fadeMaterial('red'));
+        this.band.visible=false;
+        this.band.frustumCulled=false;
+        parent.add(this.band);
         this.time=0;
         this.warmN=0;
     }
 
     warm() {
         this.warmN=2;
-        for (const m of [...this.lines,this.arc,this.ring,this.path]) {
+        for (const m of [...this.lines,this.arc,this.ring,this.path,this.band]) {
             m.visible=true;
             m.scale.set(1e-4,1e-4,1e-4);
         }
@@ -130,6 +134,7 @@ export class Preview {
         }
         this.arc.visible=false;
         this.ring.visible=false;
+        this.band.visible=false;
         if (this.path) {
             this.path.visible=false;
         }
@@ -142,6 +147,27 @@ export class Preview {
         m.scale.set(len,1,0.14);
         const u=m.material.uniforms;
         u.uLength.value=len;
+        u.uColor.value.copy(pal(color));
+    }
+
+    showWave(x,z,dx,dz,w,len,color) {
+        const T=TUNING.effects.wavePreview;
+        const px=-dz;
+        const pz=dx;
+        const fx=x+dx*T.front;
+        const fz=z+dz*T.front;
+        this.setLine(this.lines[0],fx-px*w/2,fz-pz*w/2,px,pz,w,color);
+        this.lines[0].scale.z=T.width;
+        const b=this.band;
+        b.visible=true;
+        b.position.set(fx,0.04,fz);
+        b.rotation.y=Math.atan2(-dz,dx);
+        b.scale.set(len,1,w);
+        const u=b.material.uniforms;
+        u.uLength.value=len;
+        u.uAxis.value=0;
+        u.uFlip.value=1;
+        u.uAlpha.value=T.alpha;
         u.uColor.value.copy(pal(color));
     }
 
@@ -188,8 +214,19 @@ export class Preview {
                 }
                 return;
             }
+            if (card.id==='tsunami') {
+                this.showWave(p.x,p.z,target.dx,target.dz,params.width,params.length,color);
+                return;
+            }
             if (card.id==='eraser') {
                 this.showSector(p.x,p.z,base,params.angle,params.range,color);
+                return;
+            }
+            if (card.id==='crossCut') {
+                for (let i=0;i<params.count&&i<this.lines.length;i++) {
+                    const a=base+i*Math.PI*2/params.count;
+                    this.setLine(this.lines[i],p.x+Math.cos(a)*0.6,p.z+Math.sin(a)*0.6,Math.cos(a),Math.sin(a),len,i===0?'red':color);
+                }
                 return;
             }
             const lead=card.def.mode==='dash'?TUNING.effects.dashLead:0;
@@ -199,7 +236,7 @@ export class Preview {
             }
             return;
         }
-        if (card.id==='ruler') {
+        if (card.id==='ruler'||card.id==='mirror') {
             let dx=target.x-p.x;
             let dz=target.z-p.z;
             const l=Math.hypot(dx,dz)||1;

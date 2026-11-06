@@ -1,6 +1,6 @@
 import*as THREE from 'three';
 import {TUNING} from '../data/tuning.js';
-import {toonMaterial,unlitMaterial,registerShadow,hullMaterial,pal} from '../render/materials.js';
+import {toonMaterial,unlitMaterial,glowMaterial,registerShadow,hullMaterial,pal} from '../render/materials.js';
 import {resolveCircle,clampToBounds} from '../core/collision.js';
 import {time} from '../core/loop.js';
 import {EASE} from '../core/easing.js';
@@ -8,7 +8,7 @@ import {SKIN_TONES,ACCENTS} from '../data/palette.js';
 import {WEAPONS,WEAPON_LIMITS} from '../data/weapons.js';
 import {DEFAULT_SKIN} from '../data/skins.js';
 import {ACC_DEFAULT} from '../data/cosmetics.js';
-import {magBonus,reloadMult,takeGuard} from './relic.js';
+import {magBonus,reloadMult,chargeMult,takeGuard,maxHpBonus,hurtInvulnBonus,dashIframeBonus,speedMult,fireMult,flashRelic} from './relic.js';
 
 const _mv={x:0,z:0};
 
@@ -76,9 +76,13 @@ export class Player {
         this.ammo=this.W.magazine;
         this.cdT=0;
         this.reloadT=0;
-        this.hp=TUNING.player.maxHp;
+        this.hp=this.maxHp;
         this.invuln=0;
+        this.safeT=0;
+        this.bulletProofT=0;
         this.shield=0;
+        this.keepShield=0;
+        this.shieldT=0;
         this.fortT=0;
         this.fortAge=0;
         this.events={onDash:null,onFire:null,onHurt:null,onDown:null,onShield:null};
@@ -269,20 +273,30 @@ export class Player {
             return m;
         };
         const penG=new THREE.Group();
-        penG.add(mk(new THREE.CylinderGeometry(0.048,0.048,0.46,10),wM,0,0,0));
-        penG.add(mk(new THREE.ConeGeometry(0.048,0.18,10),wD,0,0,0.32,Math.PI/2,false));
-        penG.add(mk(new THREE.ConeGeometry(0.014,0.05,6),ink,0,0,0.43,Math.PI/2,false));
-        penG.add(mk(new THREE.CylinderGeometry(0.054,0.054,0.06,10),wL,0,0,0.19,Math.PI/2,false));
-        penG.add(mk(new THREE.CylinderGeometry(0.052,0.046,0.08,10),wD,0,0,-0.25,Math.PI/2,false));
-        penG.add(mk(new THREE.BoxGeometry(0.016,0.022,0.22),wL,0,0.06,-0.08,0,false));
+        penG.add(mk(new THREE.CylinderGeometry(0.06,0.056,0.42,12),wD,0,0,-0.02));
+        penG.add(mk(new THREE.CylinderGeometry(0.064,0.064,0.05,12),wL,0,0,0.18,Math.PI/2,false));
+        penG.add(mk(new THREE.CylinderGeometry(0.05,0.06,0.07,12),wM,0,0,0.24,Math.PI/2,false));
+        const nib=mk(new THREE.ConeGeometry(0.05,0.17,4),wL,0,0,0.355,Math.PI/2,false);
+        nib.scale.set(1,1,0.35);
+        penG.add(nib);
+        penG.add(mk(new THREE.BoxGeometry(0.006,0.012,0.12),ink,0,0.012,0.36,0,false));
+        penG.add(mk(new THREE.SphereGeometry(0.058,10,6),wD,0,0,-0.23,0,false));
+        penG.add(mk(new THREE.CylinderGeometry(0.066,0.066,0.035,12),wL,0,0,-0.13,Math.PI/2,false));
+        penG.add(mk(new THREE.BoxGeometry(0.018,0.024,0.24),wL,0,0.07,-0.07,0,false));
         this.gun.add(penG);
         const looks={pen:penG};
         const pencil=new THREE.Group();
-        pencil.add(mk(new THREE.CylinderGeometry(0.045,0.045,0.5,6),wL,0,0,-0.02));
-        pencil.add(mk(new THREE.ConeGeometry(0.045,0.16,6),wM,0,0,0.31,Math.PI/2,false));
-        pencil.add(mk(new THREE.ConeGeometry(0.016,0.06,6),ink,0,0,0.41,Math.PI/2,false));
-        pencil.add(mk(new THREE.CylinderGeometry(0.05,0.05,0.06,6),wD,0,0,-0.29,Math.PI/2,false));
-        pencil.add(mk(new THREE.CylinderGeometry(0.044,0.044,0.07,6),wM,0,0,-0.35,Math.PI/2,false));
+        pencil.add(mk(new THREE.CylinderGeometry(0.034,0.034,0.4,6),wL,0,0,-0.1));
+        for (let k=0;k<4;k++) {
+            pencil.add(mk(new THREE.CylinderGeometry(0.04,0.04,0.022,8),wD,0,0,0.13+k*0.04,Math.PI/2,false));
+        }
+        pencil.add(mk(new THREE.CylinderGeometry(0.03,0.03,0.17,8),wM,0,0,0.19,Math.PI/2,false));
+        pencil.add(mk(new THREE.ConeGeometry(0.03,0.09,8),wM,0,0,0.32,Math.PI/2,false));
+        pencil.add(mk(new THREE.CylinderGeometry(0.008,0.008,0.1,5),wD,0,0,0.41,Math.PI/2,false));
+        pencil.add(mk(new THREE.CylinderGeometry(0.005,0.005,0.04,4),ink,0,0,0.47,Math.PI/2,false));
+        pencil.add(mk(new THREE.CylinderGeometry(0.038,0.038,0.03,8),wD,0,0,-0.31,Math.PI/2,false));
+        pencil.add(mk(new THREE.CylinderGeometry(0.026,0.03,0.08,8),g?coat:unlitMaterial({color:'red'}),0,0,-0.36,Math.PI/2,false));
+        pencil.add(mk(new THREE.BoxGeometry(0.012,0.02,0.2),wM,0,0.045,-0.18,0,false));
         looks.pencil=pencil;
         const brush=new THREE.Group();
         brush.add(mk(new THREE.CylinderGeometry(0.032,0.04,0.5,8),wL,0,0,-0.08));
@@ -315,6 +329,26 @@ export class Player {
         cray.add(mk(new THREE.CylinderGeometry(0.03,0.03,0.05,6),g?coat:unlitMaterial({color:'crayonBlue'}),0.075,0,-0.18,Math.PI/2,false));
         cray.add(mk(new THREE.CylinderGeometry(0.03,0.03,0.05,6),g?coat:unlitMaterial({color:'crayonGreen'}),-0.075,0,-0.18,Math.PI/2,false));
         looks.crayon=cray;
+        const sling=new THREE.Group();
+        sling.add(mk(new THREE.CylinderGeometry(0.03,0.034,0.24,6),wM,0,0,-0.14));
+        for (const sx of [-1,1]) {
+            const arm=mk(new THREE.CylinderGeometry(0.026,0.03,0.24,6),wM,sx*0.08,0,0.06);
+            arm.rotation.z=sx*0.6;
+            sling.add(arm);
+        }
+        const bandMat=g?coat:unlitMaterial({color:'red'});
+        const bandL=mk(new THREE.BoxGeometry(1,0.014,0.014),bandMat,0,0,0.17,0,false);
+        const bandR=mk(new THREE.BoxGeometry(1,0.014,0.014),bandMat,0,0,0.17,0,false);
+        const pouch=mk(new THREE.BoxGeometry(0.07,0.03,0.03),g?coat:unlitMaterial({color:'darkRed'}),0,0,0.17,0,false);
+        const pellet=mk(new THREE.SphereGeometry(0.04,8,6),ink,0,0,0.17,0,false);
+        sling.add(bandL,bandR,pouch,pellet);
+        bandL.userData.slingPart='bandL';
+        bandR.userData.slingPart='bandR';
+        pouch.userData.slingPart='pouch';
+        pellet.userData.slingPart='pellet';
+        this.slingRig={bandL,bandR,pouch,pellet};
+        this.setSlingPull(0);
+        looks.slingshot=sling;
         for (const k in looks) {
             if (k!=='pen') {
                 this.gun.add(looks[k]);
@@ -388,10 +422,12 @@ export class Player {
         }
         put(q,box(0.06,0.014,0.014),m.ink,0,0.06,0.31);
         q=grp('eyewear','mask',H);
-        put(q,box(0.3,0.15,0.04),m.paper,0,-0.1,0.27,0,0,0,true);
-        for (const sx of [-1,1]) {
-            put(q,box(0.012,0.012,0.22),m.ink,sx*0.19,-0.05,0.17,0,sx*0.35,0);
-        }
+        put(q,new THREE.SphereGeometry(0.33,12,5,Math.PI/2-0.62,1.24,1.62,0.56),m.paper,0,0,0,0,0,0,true);
+        const strap=new THREE.TorusGeometry(0.325,0.011,4,18,Math.PI*2-1.24);
+        strap.rotateZ(Math.PI/2+0.62);
+        strap.rotateX(Math.PI/2);
+        put(q,strap,m.ink,0,-0.07,0,0.18,0,0);
+        put(q,box(0.1,0.008,0.012),m.ink,0,-0.1,0.318);
         q=grp('eyewear','glasses',H);
         for (const sx of [-1,1]) {
             put(q,ring(0.072,0.013),m.ink,sx*0.1,0.03,0.3);
@@ -449,7 +485,13 @@ export class Player {
         put(q,ring(0.2,0.035),m.hat,0,1.18,0,Math.PI/2,0,0,true);
         put(q,cone(0.17,0.22,3),m.hat,0,1.06,0.22,Math.PI-0.2,0,0,true).scale.set(1,1,0.35);
         q=grp('backwear','balloon',B);
-        put(q,cyl(0.006,0.006,0.95,4),m.ink,0.22,1.55,-0.32,0,0,-0.12);
+        const tieA=new THREE.Vector3(0.1,1.0,-0.235);
+        const tieB=new THREE.Vector3(0.27,1.84,-0.32);
+        const tieD=tieB.clone().sub(tieA);
+        const tie=put(q,cyl(0.006,0.006,tieD.length(),4),m.ink,(tieA.x+tieB.x)/2,(tieA.y+tieB.y)/2,(tieA.z+tieB.z)/2);
+        tie.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tieD.normalize());
+        put(q,ball(0.022,6,4),m.ink,tieA.x,tieA.y,tieA.z);
+        put(q,box(0.09,0.05,0.012),m.paper,tieA.x,tieA.y-0.005,tieA.z-0.004,0,0,0.3,true);
         put(q,ball(0.21,10,8),m.hat,0.28,2.12,-0.32,0,0,0,true).scale.set(1,1.18,1);
         put(q,cone(0.04,0.06,6),m.hat,0.27,1.86,-0.32,Math.PI,0,0);
         q=grp('backwear','yardstick',B);
@@ -492,6 +534,76 @@ export class Player {
             put(q,cyl(0.09,0.09,0.04,8),m.gear,sx*0.25,1.04+sx*0.063,-0.33,0,0,Math.PI/2+0.25);
         }
         put(q,box(0.04,0.18,0.18),m.hat,0.0,1.04,-0.33,0,0,0.25);
+        q=grp('headwear','mortarboard',H);
+        put(q,cyl(0.25,0.27,0.12,12),m.hat,0,0.27,-0.02,-0.1,0,0,true);
+        put(q,box(0.6,0.035,0.6),m.hat,0,0.35,-0.03,-0.1,Math.PI/4,0,true);
+        put(q,ball(0.035,6,4),m.gear,0,0.38,-0.03);
+        const tA=new THREE.Vector3(0,0.38,-0.03);
+        const tB=new THREE.Vector3(0.3,0.2,0.02);
+        const tD=tB.clone().sub(tA);
+        const cord=put(q,cyl(0.008,0.008,tD.length(),4),m.gear,(tA.x+tB.x)/2,(tA.y+tB.y)/2,(tA.z+tB.z)/2);
+        cord.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tD.normalize());
+        put(q,cyl(0.02,0.035,0.1,6),m.gear,tB.x,tB.y-0.04,tB.z);
+        q=grp('eyewear','goggles',H);
+        put(q,ring(0.315,0.022,24),m.hat,0,0.04,0,Math.PI/2,0,0);
+        for (const sx of [-1,1]) {
+            put(q,cyl(0.085,0.085,0.06,12),m.gear,sx*0.11,0.04,0.29,Math.PI/2,0,0,true);
+            put(q,cyl(0.06,0.06,0.065,12),m.paper,sx*0.11,0.04,0.295,Math.PI/2,0,0);
+        }
+        put(q,box(0.06,0.025,0.03),m.gear,0,0.05,0.31);
+        const flat=shape=>new THREE.ExtrudeGeometry(shape,{depth:0.025,bevelEnabled:false});
+        const star=new THREE.Shape();
+        for (let i=0;i<10;i++) {
+            const a=Math.PI/2+i*Math.PI/5;
+            const r=i%2?0.045:0.1;
+            if (i===0) {
+                star.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+            }
+            else {
+                star.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+            }
+        }
+        const heart=new THREE.Shape();
+        heart.moveTo(0,-0.075);
+        heart.bezierCurveTo(-0.11,0,-0.08,0.085,0,0.04);
+        heart.bezierCurveTo(0.08,0.085,0.11,0,0,-0.075);
+        q=grp('eyewear','starGlasses',H);
+        const starGeo=flat(star);
+        for (const sx of [-1,1]) {
+            put(q,starGeo,m.gear,sx*0.11,0.04,0.29,0,0,0,true);
+            put(q,box(0.012,0.012,0.2),m.ink,sx*0.21,0.06,0.2,0,sx*0.25,0);
+        }
+        put(q,box(0.05,0.012,0.012),m.ink,0,0.05,0.315);
+        q=grp('eyewear','heartGlasses',H);
+        const heartGeo=flat(heart);
+        for (const sx of [-1,1]) {
+            put(q,heartGeo,m.hat,sx*0.11,0.04,0.29,0,0,0,true);
+            put(q,box(0.012,0.012,0.2),m.ink,sx*0.21,0.06,0.2,0,sx*0.25,0);
+        }
+        put(q,box(0.05,0.012,0.012),m.ink,0,0.06,0.315);
+        q=grp('neckwear','lanyard',B);
+        for (const sx of [-1,1]) {
+            put(q,box(0.035,0.3,0.012),m.hat,sx*0.09,1.08,0.25,-0.15,0,sx*0.32);
+        }
+        put(q,box(0.2,0.13,0.015),m.paper,0,0.92,0.285,-0.12,0,0,true);
+        put(q,box(0.12,0.02,0.005),m.ink,0,0.94,0.295,-0.12,0,0);
+        put(q,box(0.08,0.015,0.005),m.ink,0,0.905,0.298,-0.12,0,0);
+        q=grp('neckwear','whistle',B);
+        put(q,ring(0.2,0.012),m.hat,0,1.19,0,Math.PI/2,0,0);
+        put(q,box(0.012,0.14,0.012),m.hat,0,1.09,0.235,-0.15,0,0);
+        put(q,cyl(0.04,0.04,0.12,10),m.gear,0.02,1.0,0.27,0,0,Math.PI/2,true);
+        put(q,box(0.05,0.035,0.05),m.gear,-0.06,1.0,0.27);
+        q=grp('backwear','bookStack',B);
+        const bk=[[m.hat,0.36,0.08,0.82,0.05],[m.gear,0.32,0.07,0.9,-0.08],[m.paper,0.34,0.075,0.975,0.1]];
+        for (const [mat,w,h,y,r] of bk) {
+            put(q,box(w,h,0.22),mat,0,y,-0.36,0,r,0,true);
+        }
+        put(q,box(0.03,0.26,0.24),m.ink,0,0.9,-0.36);
+        q=grp('backwear','giantPencil',B);
+        put(q,cyl(0.06,0.06,0.72,6),m.gear,0,1.02,-0.32,0,0,-0.55,true);
+        put(q,cone(0.06,0.14,6),m.paper,-Math.sin(-0.55)*0.43,1.02+Math.cos(-0.55)*0.43,-0.32,0,0,-0.55);
+        put(q,cone(0.022,0.05,6),m.ink,-Math.sin(-0.55)*0.51,1.02+Math.cos(-0.55)*0.51,-0.32,0,0,-0.55);
+        put(q,cyl(0.062,0.062,0.08,6),m.hat,Math.sin(-0.55)*0.4,1.02-Math.cos(-0.55)*0.4,-0.32,0,0,-0.55);
         this.applyAcc(ACC_DEFAULT);
     }
 
@@ -585,6 +697,17 @@ export class Player {
             this.panels.push(holder);
         }
         this.root.add(this.shieldGroup);
+        const S=TUNING.player.sling;
+        const aura=new THREE.Group();
+        const shell=new THREE.Mesh(new THREE.CylinderGeometry(S.auraR,S.auraR*1.1,S.auraH,20,1,true),glowMaterial('gold'));
+        shell.position.y=S.auraH/2;
+        const base=new THREE.Mesh(new THREE.RingGeometry(S.auraR*0.9,S.auraR*1.15,28),glowMaterial('gold'));
+        base.rotation.x=-Math.PI/2;
+        base.position.y=0.05;
+        aura.add(shell,base);
+        aura.visible=false;
+        this.root.add(aura);
+        this.slingAura={group:aura,shell,base};
     }
 
     buildFort() {
@@ -624,11 +747,36 @@ export class Player {
         }
     }
 
-    setShield(n) {
-        this.shield=n;
+    setShield(n,dur=0) {
+        this.shield=Math.max(0,Math.min(n,TUNING.effects.shieldPanels-(this.keepShield||0)));
+        if (dur>0) {
+            this.shieldT=dur;
+        }
+        if (this.shield<=0) {
+            this.shieldT=0;
+        }
+        this.showShields();
+    }
+
+    setKeep(n) {
+        const cap=TUNING.effects.shieldPanels;
+        this.keepShield=Math.max(0,Math.min(n,cap));
+        this.shield=Math.min(this.shield,cap-this.keepShield);
+        if (this.shield<=0) {
+            this.shieldT=0;
+        }
+        this.showShields();
+    }
+
+    shieldTotal() {
+        return this.shield+(this.keepShield||0);
+    }
+
+    showShields() {
         if (!this.panels) {
             return;
         }
+        const n=this.shieldTotal();
         for (let i=0;i<this.panels.length;i++) {
             this.panels[i].visible=i<n;
             this.panels[i].rotation.y=i*Math.PI*2/Math.max(1,n);
@@ -697,6 +845,7 @@ export class Player {
         this.burstLeft=0;
         this.reloadT=0;
         this.invuln=1.0;
+        this.keepShield=0;
         this.setShield(0);
         this.setFort(0);
     }
@@ -707,14 +856,39 @@ export class Player {
         this.renderPos.copy(p);
         this.vel.set(0,0,0);
         this.root.position.copy(p);
-        this.hp=TUNING.player.maxHp;
+        this.hp=this.maxHp;
         this.invuln=0;
+        this.keepShield=0;
         this.setShield(0);
         this.setFort(0);
     }
 
     recoil() {
         this.kick=1;
+    }
+
+    clearBuffs() {
+        for (const k of ['dualT','rapidT','hasteT','reflectT','plantT','fullInkT','umbrellaT','spongeT','planeT','fortT','safeT','slingSnapT','chargeT','chargeFrac','cdT','burstLeft','beamT','reloadT','invuln','morphSpin']) {
+            this[k]=0;
+        }
+        this.hasteMult=1;
+        this.charging=false;
+        this.slingFull=false;
+        this.slingGuard=false;
+        this.guardSpent=false;
+        this.spongeArmed=false;
+        if (this.gunL) {
+            this.dropDual(true);
+        }
+        this.moveFrame.scale.setScalar(TUNING.player.visualScale);
+        this.moveFrame.visible=true;
+        this.keepShield=0;
+        this.setShield(0);
+        this.setFort(0);
+        this.ammo=this.W.magazine;
+        if (this.slingRig) {
+            this.setSlingPull(0);
+        }
     }
 
     resetPose() {
@@ -736,6 +910,7 @@ export class Player {
         this.moveYaw=0;
         this.poseMoveYaw=0;
         this.invuln=0;
+        this.safeT=0;
         this.moveFrame.visible=true;
         this.poseStep=-1;
         this.applyPose();
@@ -745,7 +920,10 @@ export class Player {
         const def=WEAPONS[id]||WEAPONS.pen;
         this.weaponId=WEAPONS[id]?id:'pen';
         this.W={...TUNING.weapon,...def};
-        if (!this.ghost&&!def.cooldown) {
+        this.chargeT=0;
+        this.charging=false;
+        this.chargeFrac=0;
+        if (!this.ghost&&!def.cooldown&&!def.charge) {
             this.W.magazine+=magBonus(this.weaponId);
             this.W.reloadTime*=reloadMult();
         }
@@ -792,11 +970,18 @@ export class Player {
     }
 
     isInvulnerable() {
-        return this.invuln>0||this.fortT>0||(TUNING.player.dashInvuln&&(this.dashT>0||this.dashIT>0));
+        return this.invuln>0||this.safeT>0||this.fortT>0||this.planeT>0||(TUNING.player.dashInvuln&&(this.dashT>0||this.dashIT>0));
+    }
+
+    get maxHp() {
+        return TUNING.player.maxHp+(this.ghost?0:maxHpBonus()+(this.hpMod||0));
     }
 
     hurt(dmg,dx,dz) {
         const P=TUNING.player;
+        if (!this.ghost&&this.hp>0&&(this.fortT>0||!this.isInvulnerable())&&this.events.onAttacked) {
+            this.events.onAttacked(this);
+        }
         if (this.fortT>0) {
             if (this.events.onFortHit) {
                 this.events.onFortHit(this,dx,dz);
@@ -804,6 +989,25 @@ export class Player {
             return false;
         }
         if (this.isInvulnerable()||this.hp<=0) {
+            return false;
+        }
+        if (this.slingGuard&&this.charging) {
+            this.slingGuard=false;
+            this.guardSpent=true;
+            this.invuln=TUNING.player.sling.guardInvuln;
+            this.sqv+=1.5;
+            if (this.events.onSlingGuard) {
+                this.events.onSlingGuard(this,dx,dz);
+            }
+            return false;
+        }
+        if (this.spongeT>0) {
+            this.spongeN=(this.spongeN||0)+dmg;
+            this.invuln=TUNING.effects.kit.spongeInvuln;
+            this.sqv+=1.2;
+            if (this.events.onSponge) {
+                this.events.onSponge(this,dx,dz);
+            }
             return false;
         }
         if (!this.ghost&&takeGuard()) {
@@ -814,9 +1018,14 @@ export class Player {
             }
             return false;
         }
-        if (this.shield>0) {
-            const idx=this.shield-1;
-            this.setShield(this.shield-1);
+        if (this.shieldTotal()>0) {
+            const idx=this.shieldTotal()-1;
+            if (this.shield>0) {
+                this.setShield(this.shield-1);
+            }
+            else {
+                this.setKeep(this.keepShield-1);
+            }
             this.invuln=0.35;
             this.sqv+=1.5;
             if (this.events.onShield) {
@@ -825,7 +1034,11 @@ export class Player {
             return false;
         }
         this.hp=Math.max(0,this.hp-dmg);
-        this.invuln=P.invulnTime;
+        this.pageHits=(this.pageHits||0)+1;
+        this.invuln=P.invulnTime+(this.ghost?0:hurtInvulnBonus());
+        if (!this.ghost) {
+            flashRelic('styptic',this.invuln);
+        }
         this.vel.x+=dx*P.hurtKnockback;
         this.vel.z+=dz*P.hurtKnockback;
         this.sqv+=TUNING.feel.hurtSquash;
@@ -857,6 +1070,12 @@ export class Player {
         if (this.fortT>0) {
             if (this.events.onFortHit) {
                 this.events.onFortHit(this,-ex/(Math.hypot(ex,ez)||1),-ez/(Math.hypot(ex,ez)||1));
+            }
+            return true;
+        }
+        if (this.bulletProofT>0) {
+            if (this.events.onBulletProof) {
+                this.events.onBulletProof(this,x,z);
             }
             return true;
         }
@@ -905,21 +1124,93 @@ export class Player {
     shoot(ctx,aim) {
         this.fire(ctx,aim);
         if (this.W.cooldown) {
-            this.cdT=this.W.cooldown/(this.rapidT>0?this.rapidMult:1);
+            this.cdT=this.W.cooldown/((this.rapidT>0?this.rapidMult:1)*fireMult(this.hp));
             return;
         }
-        if (this.rapidT<=0) {
-            this.ammo--;
-            if (this.ammo<=0) {
-                if (this.W.refund) {
-                    this.pendReload=true;
-                    this.pendT=this.W.bulletLife+this.W.refund.wait;
-                }
-                else {
-                    this.startReload();
-                }
+        if (this.fullInkT>0) {
+            return;
+        }
+        this.ammo--;
+        if (this.ammo<=0) {
+            if (this.W.refund) {
+                this.pendReload=true;
+                this.pendT=this.W.bulletLife+this.W.refund.wait;
+            }
+            else {
+                this.startReload();
             }
         }
+    }
+
+    chargeFull() {
+        return this.W.charge?this.W.charge.full*(this.ghost?1:chargeMult()):1;
+    }
+
+    updateCharge(input,ctx,aim,dt) {
+        const C=this.W.charge;
+        const full=this.chargeFull();
+        const can=this.armed&&this.armK>TUNING.player.arm.ready&&this.hp>0&&this.cdT<=0&&!(this.planeT>0);
+        const hold=input.isFiring();
+        if (!can) {
+            this.charging=false;
+            this.chargeT=0;
+            this.chargeFrac=0;
+            this.slingGuard=false;
+            this.guardSpent=false;
+            return;
+        }
+        if (hold) {
+            this.chargeDirX=this.aimDirX;
+            this.chargeDirZ=this.aimDirZ;
+            const was=this.chargeT>=full;
+            this.chargeT=Math.min(full,(this.chargeT||0)+dt);
+            this.chargeFrac=this.chargeT/full;
+            this.charging=true;
+            if (!this.slingGuard&&!this.guardSpent&&!this.ghost&&this.chargeT>=full*TUNING.player.sling.guardAt) {
+                this.slingGuard=true;
+                if (this.events.onGuardUp) {
+                    this.events.onGuardUp(this);
+                }
+            }
+            if (!was&&this.chargeT>=full) {
+                if (this.events.onChargeFull) {
+                    this.events.onChargeFull(this);
+                }
+            }
+            return;
+        }
+        if (!this.charging) {
+            return;
+        }
+        const t=this.chargeT;
+        const isFull=t>=full||!!this.slingFull;
+        if (this.chargeDirX!==undefined) {
+            this.faceDir(this.chargeDirX,this.chargeDirZ);
+        }
+        this.charging=false;
+        this.chargeT=0;
+        this.chargeFrac=0;
+        this.slingGuard=false;
+        this.guardSpent=false;
+        if (t<C.min&&!this.slingFull) {
+            this.shotDmg=C.tap;
+            this.fire(ctx,aim);
+            this.shotDmg=null;
+            this.cdT=C.tapCool;
+            this.slingSnapT=TUNING.player.sling.snapTime;
+            return;
+        }
+        const lo=Math.min(C.min,full*0.9);
+        const f=this.slingFull?1:Math.max(0,Math.min(1,(t-lo)/(full-lo)));
+        this.slingFull=false;
+        this.shotDmg=Math.round(C.dmg[0]+(C.dmg[1]-C.dmg[0])*f);
+        this.shotFull=isFull;
+        this.fire(ctx,aim);
+        this.shotFull=false;
+        this.shotDmg=null;
+        this.cdT=C.cool;
+        this.slingSnapT=TUNING.player.sling.snapTime;
+        this.kick=Math.max(this.kick||0,f);
     }
 
     swingResult(dealt) {
@@ -998,12 +1289,15 @@ export class Player {
                     }
                 }
             }
-            const sys=ctx.weaponSys[pick?pick.sys:W.sys]||ctx.playerBullets;
-            const dmg=pick?pick.damage:W.damage;
+            const sys=ctx.weaponSys[pick?pick.sys:(this.shotFull&&W.fullSys?W.fullSys:W.sys)]||ctx.playerBullets;
+            const dmg=pick?pick.damage:(this.shotDmg??W.damage);
             const n=W.pellets||1;
             for (let p=0;p<n;p++) {
-                const a=base+(n>1?(p/(n-1)-0.5)*W.fan:0)+(Math.random()*2-1)*W.spread;
-                sys.spawn(mx,mz,Math.cos(a),Math.sin(a),W.bulletSpeed,dmg,W.bulletLife);
+                const a=base+(n>1?(p/(n-1)-0.5)*W.fan:0)+(this.plantT>0&&this.still?0:(Math.random()*2-1)*W.spread);
+                const bi=sys.spawn(mx,mz,Math.cos(a),Math.sin(a),W.bulletSpeed,dmg,W.bulletLife);
+                if (bi>=0) {
+                    sys.tag[bi]|=TUNING.relics.weaponTag;
+                }
             }
         }
         dx=Math.cos(base);
@@ -1021,6 +1315,8 @@ export class Player {
         const room=ctx.room;
         this.prev.copy(this.pos);
         this.invuln=Math.max(0,this.invuln-dt);
+        this.bulletProofT=Math.max(0,(this.bulletProofT||0)-dt);
+        this.safeT=Math.max(0,(this.safeT||0)-dt);
         if (this.fortT>0) {
             this.fortT-=dt;
             this.fortAge+=dt;
@@ -1034,6 +1330,10 @@ export class Player {
         this.dashIT=Math.max(0,(this.dashIT||0)-dt);
         input.getMove(_mv);
         const moveLen=Math.hypot(_mv.x,_mv.z);
+        this.still=moveLen<0.05;
+        for (const k of ['plantT','fullInkT','umbrellaT','spongeT','planeT']) {
+            this[k]=Math.max(0,(this[k]||0)-dt);
+        }
         if (aim.mode==='point') {
             const dx=aim.point.x-this.pos.x;
             const dz=aim.point.z-this.pos.z;
@@ -1047,12 +1347,18 @@ export class Player {
             this.aimDirX=aim.dx;
             this.aimDirZ=aim.dz;
         }
-        else if (moveLen>0.1) {
+        else if (moveLen>0.1&&!this.charging) {
             this.aimDirX=_mv.x/moveLen;
             this.aimDirZ=_mv.z/moveLen;
         }
         this.dashCd=Math.max(0,this.dashCd-dt*(this.hasteT>0?this.hasteMult:1)*this.courseDash);
         this.hasteT=Math.max(0,this.hasteT-dt);
+        if (this.shieldT>0) {
+            this.shieldT-=dt;
+            if (this.shieldT<=0) {
+                this.setShield(0);
+            }
+        }
         if (input.consumeDash()&&this.dashCd<=0&&!(this.leapT>0)) {
             let dx=this.aimDirX;
             let dz=this.aimDirZ;
@@ -1062,7 +1368,10 @@ export class Player {
             }
             this.vel.set(dx*P.dashSpeed,0,dz*P.dashSpeed);
             this.dashT=P.dashTime;
-            this.dashIT=P.dashIframe;
+            this.dashIT=P.dashIframe+(this.ghost?0:dashIframeBonus());
+            if (!this.ghost) {
+                flashRelic('sneakers',P.dashIframe+dashIframeBonus());
+            }
             this.dodged=false;
             this.dashCd=P.dashCooldown;
             this.moveYaw=Math.atan2(dx,dz);
@@ -1074,7 +1383,7 @@ export class Player {
         if (this.leapT>0) {
             this.leapT-=dt;
             const f=1-Math.max(0,this.leapT)/this.leapDur;
-            const e=f*f*(3-2*f);
+            const e=(1-Math.cos(f*Math.PI))/2;
             this.vel.set(0,0,0);
             this.pos.x=this.leapX0+(this.leapX1-this.leapX0)*e;
             this.pos.z=this.leapZ0+(this.leapZ1-this.leapZ0)*e;
@@ -1094,9 +1403,11 @@ export class Player {
         }
         else {
             const slow=room.zones.playerSlowAt(this.pos.x,this.pos.z);
-            const hm=this.hasteT>0?this.hasteMult:1;
-            const tx=_mv.x*P.speed*slow*hm*this.courseSpeed;
-            const tz=_mv.z*P.speed*slow*hm*this.courseSpeed;
+            const cm=this.W.charge&&this.chargeFrac>0?1-(1-this.W.charge.slow)*this.chargeFrac:1;
+            const hm=(this.hasteT>0?this.hasteMult:1)*(this.umbrellaT>0?this.umbrellaSlow:1)*(this.planeT>0?this.planeMult:1)*cm;
+            const rm=this.ghost?1:speedMult(this.hp);
+            const tx=_mv.x*P.speed*slow*hm*this.courseSpeed*rm;
+            const tz=_mv.z*P.speed*slow*hm*this.courseSpeed*rm;
             const rate=(moveLen>0.05?P.accel:P.friction)*dt;
             const ex=tx-this.vel.x;
             const ez=tz-this.vel.z;
@@ -1187,8 +1498,11 @@ export class Player {
             }
         }
         this.cdT=Math.max(0,(this.cdT||0)-dt);
-        if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0) {
-            this.fireCd+=Math.max(Math.min(W.fireInterval,WEAPON_LIMITS.minInterval),W.fireInterval/(this.rapidT>0?this.rapidMult:1));
+        if (W.charge) {
+            this.updateCharge(input,ctx,aim,dt);
+        }
+        else if (this.armed&&this.armK>TUNING.player.arm.ready&&input.isFiring()&&this.fireCd<=0&&this.hp>0&&this.reloadT<=0&&this.ammo>0&&this.burstLeft<=0&&this.cdT<=0&&!(this.planeT>0)) {
+            this.fireCd+=Math.max(Math.min(W.fireInterval,WEAPON_LIMITS.minInterval),W.fireInterval/((this.rapidT>0?this.rapidMult:1)*fireMult(this.hp)));
             if (this.fireCd<0) {
                 this.fireCd=0;
             }
@@ -1208,7 +1522,7 @@ export class Player {
         const s=this.speedFrac;
         const ph=this.phase;
         this.poseMoveYaw=this.moveYaw;
-        this.moveFrame.rotation.y=this.poseMoveYaw;
+        this.moveFrame.rotation.y=this.poseMoveYaw+(this.morphSpin||0);
         this.leanGroup.rotation.x=P.lean*s+(this.dashT>0?0.2:0)-this.kick*0.08;
         const ks=1-this.sq;
         const kt=1+this.st;
@@ -1257,6 +1571,13 @@ export class Player {
         }
         this.gunL=this.gun.clone();
         this.gunL.userData.at=time.real;
+        const rig={};
+        this.gunL.traverse(o=>{
+            if (o.userData.slingPart) {
+                rig[o.userData.slingPart]=o;
+            }
+        });
+        this.slingRigL=rig.pellet?rig:null;
         this.body.add(this.gunL);
     }
 
@@ -1268,6 +1589,7 @@ export class Player {
         if (now) {
             this.body.remove(g);
             this.gunL=null;
+            this.slingRigL=null;
             return;
         }
         if (g.userData.drop===undefined) {
@@ -1353,7 +1675,65 @@ export class Player {
         this.bottle.rotation.x=-R.pourTilt*pour;
     }
 
+    setSlingPull(k) {
+        this.pullRig(this.slingRig,k);
+        if (this.slingRigL) {
+            this.pullRig(this.slingRigL,k);
+        }
+    }
+
+    pullRig(S,k) {
+        const C=TUNING.player.sling;
+        const pz=C.restZ-C.pull*k;
+        for (const [m,sx] of [[S.bandL,-1],[S.bandR,1]]) {
+            const dx=-sx*C.tipX;
+            const dz=pz-C.tipZ;
+            m.scale.x=Math.max(0.001,Math.hypot(dx,dz));
+            m.position.set(sx*C.tipX+dx/2,0,C.tipZ+dz/2);
+            m.rotation.set(0,-Math.atan2(dz,dx),0);
+        }
+        S.pouch.position.set(0,0,pz);
+        S.pellet.position.set(0,0,pz-0.01);
+        S.pellet.visible=k>-0.01;
+    }
+
+    syncSling() {
+        const dt=Math.min(0.1,Math.max(0,time.real-(this.slingClock??time.real)));
+        this.slingClock=time.real;
+        if (this.slingAura) {
+            const A=this.slingAura;
+            const on=!!this.slingGuard&&this.charging;
+            A.group.visible=on;
+            if (on) {
+                const S=TUNING.player.sling;
+                const pu=0.5+0.5*Math.sin(time.real*S.auraPulse);
+                A.shell.material.opacity=S.auraAlpha*(0.7+0.5*pu);
+                A.base.material.opacity=S.auraAlpha*2.4*(0.7+0.5*pu);
+                A.group.scale.set(1+pu*0.05,1,1+pu*0.05);
+                A.group.rotation.y=time.real*0.8;
+            }
+        }
+        if (!this.slingRig||this.weaponId!=='slingshot') {
+            return;
+        }
+        const C=TUNING.player.sling;
+        if (this.slingSnapT>0) {
+            this.slingSnapT=Math.max(0,this.slingSnapT-dt);
+            const q=1-this.slingSnapT/C.snapTime;
+            this.setSlingPull(-Math.sin(q*Math.PI)*C.overshoot*(1-q));
+            this.slingRig.pellet.visible=false;
+            if (this.slingRigL) {
+                this.slingRigL.pellet.visible=false;
+            }
+            return;
+        }
+        const k=this.slingFull?1:(this.chargeFrac||0);
+        const shake=k>=1?Math.sin(time.real*60)*C.shake:0;
+        this.setSlingPull(k+shake);
+    }
+
     sync(alpha) {
+        this.syncSling();
         this.renderPos.lerpVectors(this.prev,this.pos,alpha);
         this.root.position.copy(this.renderPos);
         if (this.leapT>0||this.leapF>0) {
@@ -1366,7 +1746,7 @@ export class Player {
             this.applyPose();
         }
         this.aimFrame.rotation.y=this.aimYaw-this.poseMoveYaw;
-        if (this.invuln>0&&this.shield===0&&time.timeScale>0) {
+        if (this.invuln>0&&this.shieldTotal()===0&&time.timeScale>0) {
             this.moveFrame.visible=Math.floor(time.real*TUNING.player.flickerFps)%2===0;
         }
         else {
@@ -1475,6 +1855,11 @@ export class Clone {
     sync(alpha) {
         if (this.active) {
             this.fig.sync(alpha);
+            const P=TUNING.effects.puppet;
+            if (this.decoy&&this.t<P.drop) {
+                const k=this.t/P.drop;
+                this.fig.root.position.y+=P.dropH*(1-k*k);
+            }
         }
     }
 }

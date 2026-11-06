@@ -3,7 +3,7 @@ export const WEAPONS={
         unlock:1,
         sys:'player',
         sound:'shoot',
-        fireInterval:0.12,
+        fireInterval:0.15,
         magazine:12,
         reloadTime:1.1,
         damage:10,
@@ -20,7 +20,7 @@ export const WEAPONS={
         fireInterval:0.09,
         magazine:26,
         reloadTime:1.4,
-        damage:5,
+        damage:6,
         bulletSpeed:34,
         bulletLife:0.7,
         spread:0.06,
@@ -47,10 +47,10 @@ export const WEAPONS={
         swing:true,
         kick:1.6,
         flashMul:1.2,
-        stats:{dmg:5,rate:1,range:2,mag:1}
+        stats:{dmg:4.5,rate:1,range:2,mag:1}
     },
     stapler:{
-        unlock:5,
+        unlock:7,
         sys:'staple',
         sound:'wStaple',
         fireInterval:0.5,
@@ -68,7 +68,7 @@ export const WEAPONS={
         stats:{dmg:3,rate:2,range:3,mag:3}
     },
     highlighter:{
-        unlock:8,
+        unlock:9,
         sys:'beam',
         sound:'wMarker',
         fireInterval:0.1,
@@ -87,11 +87,11 @@ export const WEAPONS={
         stats:{dmg:3,rate:5,range:3,mag:3}
     },
     compass:{
-        unlock:10,
+        unlock:12,
         sys:'compass',
         sound:'wCompass',
         fireInterval:0.55,
-        cooldown:1.8,
+        cooldown:1.2,
         missCut:0.7,
         magazine:1,
         reloadTime:1.0,
@@ -105,28 +105,46 @@ export const WEAPONS={
         stats:{dmg:4,rate:1,range:4,mag:1}
     },
     crayon:{
-        unlock:13,
+        unlock:15,
         sys:'crayonG',
         sound:'shoot',
         fireInterval:0.15,
         magazine:16,
         reloadTime:1.2,
-        damage:5,
+        damage:6,
         bulletSpeed:27,
         bulletLife:0.8,
         spread:0.04,
         pellets:1,
         colors:[
-            {sys:'crayonR',chance:20,damage:28},
+            {sys:'crayonR',chance:20,damage:30},
             {sys:'crayonB',chance:40,damage:10},
-            {sys:'crayonG',chance:40,damage:5}
+            {sys:'crayonG',chance:40,damage:6}
         ],
         flashColor:'red',
         stats:{dmg:3,rate:3,range:3,mag:3}
+    },
+    slingshot:{
+        unlock:18,
+        sys:'sling',
+        fullSys:'slingFull',
+        sound:'wSling',
+        fireInterval:0.1,
+        magazine:1,
+        reloadTime:0.5,
+        damage:15,
+        bulletSpeed:30,
+        bulletLife:1.1,
+        spread:0,
+        pellets:1,
+        charge:{min:0.6,full:1.5,dmg:[15,65],cool:0.2,slow:0.5,tap:8,tapCool:0.3,pierceBonus:5,fullInk:2},
+        kick:1.4,
+        flashMul:1.3,
+        stats:{dmg:5,rate:1,range:4,mag:1}
     }
 };
 
-export const WEAPON_ORDER=['pen','pencil','brush','stapler','highlighter','compass','crayon'];
+export const WEAPON_ORDER=['pen','pencil','brush','stapler','highlighter','compass','crayon','slingshot'];
 
 export const WEAPON_LIMITS={
     minInterval:0.06

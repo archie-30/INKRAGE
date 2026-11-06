@@ -8,6 +8,7 @@ import {CARD_W,CARD_H,drawCost,rareBorderPath} from './cardView.js';
 import {sketchPath,sketchRect,drawShape} from './sketch.js';
 import {cardCost,cardRange,cardParams} from '../game/card.js';
 import {isUlt} from '../data/cards.js';
+import {textScale} from '../core/settings.js';
 
 const C=TUNING.cards;
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
@@ -156,6 +157,37 @@ export class Hand {
         const right=this.slotX(2)+W*0.5;
         this.drawRect={x:left-W*0.55-pw,y:py-ph/2,w:pw,h:ph};
         this.discardRect={x:right+W*0.55,y:py-ph/2,w:pw,h:ph};
+        const bw=Math.round(72*this.s);
+        const bh=Math.round(34*this.s);
+        this.redrawRect={x:Math.max(6,this.drawRect.x-bw-14*this.s),y:this.drawRect.y+this.drawRect.h/2-bh/2,w:bw,h:bh};
+    }
+
+    redrawShown() {
+        const R=this.api.redrawInfo?this.api.redrawInfo():null;
+        return !!R&&R.show&&(!this.api.showKeys||this.api.showKeys())?R:null;
+    }
+
+    drawRedraw(ctx,variant) {
+        const R=this.redrawShown();
+        if (!R) {
+            return;
+        }
+        const b=this.redrawRect;
+        const s=this.s;
+        const hv=R.can&&this.inRect(b,this.pointer.x,this.pointer.y,0);
+        const fl=Math.max(0,this.redrawFlash||0);
+        ctx.save();
+        ctx.translate(b.x+b.w/2,b.y+b.h/2);
+        ctx.scale(1+fl*0.12,1+fl*0.12);
+        ctx.fillStyle=R.can?(hv?rgba('farGray',0.95):rgba('paper',0.92)):rgba('farGray',0.6);
+        ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+        drawShape(ctx,sketchRect(-b.w/2,-b.h/2,b.w,b.h,{width:hv?2.4:1.6,seed:905}),R.can?PALETTE.ink:rgba('ink',0.35),variant);
+        ctx.fillStyle=R.can?PALETTE.ink:PALETTE.midGray;
+        ctx.font='bold '+Math.round(12*s)+'px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('hand.redraw',{n:R.unlimited?'∞':R.left}),0,1);
+        ctx.restore();
     }
 
     pileCenter(r) {
@@ -248,7 +280,7 @@ export class Hand {
         }
     }
 
-    onBurn(card) {
+    onBurn(card,why=null) {
         const v=new CardView(card);
         const [px,py]=this.pileCenter(this.drawRect);
         v.x=v.fromX=px;
@@ -259,6 +291,7 @@ export class Hand {
         v.face=false;
         this.flying.push(v);
         this.burnMsgT=1.4;
+        this.burnKey=why==='locked'?'deck.burnLocked':(why==='compass'?'deck.burnCompass':'deck.burn');
     }
 
     hitCard(x,y) {
@@ -392,7 +425,7 @@ export class Hand {
     tryPlay(v,target) {
         const api=this.api;
         const card=v.card;
-        if (!api.deck.canPlay()) {
+        if (!api.deck.canPlay()||(api.canCast&&!api.canCast())) {
             this.shake(v,false);
             this.lockMsgT=1.2;
             v.state='idle';
@@ -423,14 +456,20 @@ export class Hand {
         if (api.onPlayStart) {
             api.onPlayStart(card,target);
         }
+        if (this.press&&this.press.v===v) {
+            this.press=null;
+        }
+        api.execute(card,target);
         return true;
     }
 
-    discardView(v) {
-        this.api.deck.discard(v.card);
+    discardView(v,quick=-1) {
+        this.api.deck.discard(v.card,quick>=0?quick:undefined);
         this.removeView(v);
-        v.state='crumple';
+        v.state=quick>=0?'slide':'crumple';
         v.t=0;
+        v.fromX=v.x;
+        v.fromY=v.y;
         this.flying.push(v);
         this.lastDiscard=v.card;
     }
@@ -579,6 +618,10 @@ export class Hand {
             this.cancelTargeting();
             return true;
         }
+        if (this.redrawShown()&&this.inRect(this.redrawRect,x,y,4)) {
+            this.api.redraw();
+            return true;
+        }
         if (type==='mouse') {
             return false;
         }
@@ -587,6 +630,11 @@ export class Hand {
             return true;
         }
         return false;
+    }
+
+    canQuick(slot) {
+        const v=this.views.find(o=>o.slot===slot);
+        return !!v&&v.state==='idle'&&v.card.def.targeting==='none';
     }
 
     quickCast(slot) {
@@ -872,6 +920,7 @@ export class Hand {
         this.slotTargets();
         this.lockMsgT=Math.max(0,this.lockMsgT-dt);
         this.burnMsgT=Math.max(0,this.burnMsgT-dt);
+        this.redrawFlash=Math.max(0,(this.redrawFlash||0)-dt*4);
         this.riffleT=Math.max(0,this.riffleT-dt);
         if (this.reshuffling) {
             this.reshuffleT+=dt;
@@ -917,7 +966,7 @@ export class Hand {
         }
         for (let i=this.flying.length-1;i>=0;i--) {
             const v=this.flying[i];
-            if (frozen&&v.state!=='ball'&&v.state!=='crumple') {
+            if (frozen&&v.state!=='ball'&&v.state!=='crumple'&&v.state!=='slide') {
                 continue;
             }
             v.t+=dt;
@@ -960,6 +1009,17 @@ export class Hand {
                 v.rot+=dt*4*(v.fromX<this._tmp.x?1:-1);
                 if (p>=1) {
                     this.dissolve(v);
+                    this.flying.splice(i,1);
+                }
+            }
+            else if (v.state==='slide') {
+                const p=Math.min(1,v.t/TUNING.redraw.slideTime);
+                const e=EASE.easeInCubic(p);
+                const [dx,dy]=this.pileCenter(this.discardRect);
+                v.x=v.fromX+(dx-v.fromX)*e;
+                v.y=v.fromY+(dy-v.fromY)*e;
+                v.scale=1-0.38*e;
+                if (p>=1) {
                     this.flying.splice(i,1);
                 }
             }
@@ -1041,7 +1101,6 @@ export class Hand {
                 scale:rng.range(0.8,1.4)*this.s
             });
         }
-        this.api.execute(v.card,v.target);
     }
 
     drawCardView(ctx,v,art,variant) {
@@ -1132,9 +1191,23 @@ export class Hand {
         const sc=0.62*s;
         const riffle=this.riffleT>0?Math.sin(this.riffleT*40)*0.08:0;
         const layers=Math.min(3,drawN);
+        const H=TUNING.tutorial.pileHint;
+        const now=performance.now()/1000;
+        const ph=now%H.every;
+        const shake=this.pileHint&&ph<H.shake?Math.sin(ph*H.rate)*H.amp*(1-ph/H.shake):0;
+        if (this.pileHint) {
+            const g=0.5+0.5*Math.sin(now*H.glowRate);
+            ctx.save();
+            ctx.shadowColor=PALETTE.red;
+            ctx.shadowBlur=H.blur*(0.6+0.4*g);
+            ctx.strokeStyle=rgba('red',0.55+0.45*g);
+            ctx.lineWidth=3;
+            ctx.strokeRect(d.x-H.pad,d.y-H.pad,d.w+H.pad*2,d.h+H.pad*2);
+            ctx.restore();
+        }
         for (let i=0;i<layers;i++) {
             ctx.save();
-            ctx.translate(dx-i*2.5,dy-i*2.5);
+            ctx.translate(dx-i*2.5+shake,dy-i*2.5);
             ctx.rotate(-0.05+i*0.03+riffle*(i%2?1:-1));
             ctx.scale(sc,sc);
             ctx.drawImage(art.back(variant),-CARD_W/2,-CARD_H/2,CARD_W,CARD_H);
@@ -1187,7 +1260,8 @@ export class Hand {
     drawLabels(ctx) {
         const s=this.s;
         const y=this.height-CARD_H*s*C.restShow-18*s;
-        ctx.font='bold '+Math.round(16*s)+'px '+FONT;
+        const k=s*textScale();
+        ctx.font='bold '+Math.round(16*k)+'px '+FONT;
         ctx.textAlign='center';
         ctx.textBaseline='bottom';
         if (this.reshuffling) {
@@ -1201,16 +1275,16 @@ export class Hand {
         }
         else if (this.burnMsgT>0) {
             ctx.fillStyle=rgba('ink',Math.min(1,this.burnMsgT));
-            ctx.fillText(t('deck.burn'),this.width/2,y);
+            ctx.fillText(t(this.burnKey||'deck.burn'),this.width/2,y);
         }
         else if (this.targetView&&!(this.api.showKeys&&this.api.showKeys())) {
             const tgt=this.targetView.card.def.targeting;
             const txt=t(tgt==='drawPath'?'hand.touchHintPath':(tgt==='aura'?'hand.touchHintAura':'hand.touchHint'));
-            ctx.font='bold '+Math.round(14*s)+'px '+FONT;
+            ctx.font='bold '+Math.round(14*k)+'px '+FONT;
             const hy=y-C.targetLift*s-8*s;
-            const w=ctx.measureText(txt).width+24*s;
+            const w=ctx.measureText(txt).width+24*k;
             ctx.fillStyle=rgba('paper',0.85);
-            ctx.fillRect(this.width/2-w/2,hy-22*s,w,26*s);
+            ctx.fillRect(this.width/2-w/2,hy-22*k,w,26*k);
             ctx.fillStyle=PALETTE.ink;
             ctx.fillText(txt,this.width/2,hy);
         }
@@ -1218,11 +1292,11 @@ export class Hand {
             const v=this.targetView;
             const hy=y-C.targetLift*s-(C.keycap.size+C.keycap.gap)*s-8*s;
             const key=v.card.def.targeting==='drawPath'?'hand.hintPath':(v.card.def.targeting==='aura'?'hand.hintAura':'hand.hint');
-            ctx.font='bold '+Math.round(15*s)+'px '+FONT;
+            ctx.font='bold '+Math.round(15*k)+'px '+FONT;
             const txt=t(key,{key:v.slot+1});
-            const w=ctx.measureText(txt).width+24*s;
+            const w=ctx.measureText(txt).width+24*k;
             ctx.fillStyle=rgba('paper',0.85);
-            ctx.fillRect(this.width/2-w/2,hy-24*s,w,28*s);
+            ctx.fillRect(this.width/2-w/2,hy-24*k,w,28*k);
             ctx.fillStyle=PALETTE.ink;
             ctx.fillText(txt,this.width/2,hy);
         }
@@ -1298,6 +1372,7 @@ export class Hand {
 
     drawContent(ctx,art,variant) {
         this.drawPiles(ctx,art,variant);
+        this.drawRedraw(ctx,variant);
         this.drawSlots(ctx,variant);
         for (const v of this.drawOrder()) {
             this.drawCardView(ctx,v,art,variant);

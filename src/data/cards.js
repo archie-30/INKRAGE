@@ -106,9 +106,9 @@ export const CARDS={
         mode:'sweep',
         targeting:'direction',
         range:7,
-        params:{range:7,angle:1.4,damage:5,push:14},
-        upgraded:{cost:2,params:{range:9,angle:1.8}},
-        effect:(g,t,p)=>g.eraseCone(t.dx,t.dz,p.range,p.angle,p.damage,p.push)
+        params:{range:7.5,angle:1.6,damage:8,push:16,slowTime:2,slowMult:0.5},
+        upgraded:{cost:2,params:{range:9.5,angle:2.0,damage:10,slowTime:2.5}},
+        effect:(g,t,p)=>g.eraseCone(t.dx,t.dz,p.range,p.angle,p.damage,p.push,p.slowTime,p.slowMult)
     },
     trap:{
         id:'trap',
@@ -133,9 +133,9 @@ export const CARDS={
         type:'defense',
         mode:'self',
         targeting:'none',
-        params:{hits:3},
-        upgraded:{cost:3,params:{hits:4}},
-        effect:(g,t,p)=>g.paperShield(p.hits)
+        params:{hits:2,duration:7},
+        upgraded:{cost:3,params:{hits:3,duration:7}},
+        effect:(g,t,p)=>g.paperShield(p.hits,p.duration)
     },
     inkDash:{
         id:'inkDash',
@@ -200,8 +200,8 @@ export const CARDS={
         type:'defense',
         mode:'self',
         targeting:'none',
-        params:{heal:2},
-        upgraded:{cost:3,params:{heal:3}},
+        params:{heal:1},
+        upgraded:{cost:3,params:{heal:2}},
         effect:(g,t,p)=>g.heal(p.heal)
     },
     shockwave:{
@@ -213,7 +213,7 @@ export const CARDS={
         type:'defense',
         mode:'around',
         targeting:'none',
-        params:{radius:5.5,damage:15,push:14},
+        params:{radius:5.5,damage:22,push:14},
         upgraded:{cost:2,params:{radius:7,damage:22,push:16}},
         effect:(g,t,p)=>g.shockwave(p.radius,p.damage,p.push)
     },
@@ -484,7 +484,7 @@ export const CARDS={
         type:'defense',
         mode:'self',
         targeting:'none',
-        params:{duration:4},
+        params:{duration:5},
         upgraded:{cost:2},
         effect:(g,t,p)=>g.inkBarrier(p.duration)
     },
@@ -511,6 +511,7 @@ export const CARDS={
         mode:'throw',
         targeting:'point',
         range:8,
+        fromSelf:true,
         params:{count:8,damage:15},
         upgraded:{cost:3,params:{count:12,damage:18}},
         effect:(g,t,p)=>g.sketchLeap(t.x,t.z,p.count,p.damage)
@@ -525,9 +526,9 @@ export const CARDS={
         mode:'summon',
         targeting:'point',
         range:8,
-        params:{duration:5,shields:3},
+        params:{duration:5},
         upgraded:{cost:3},
-        effect:(g,t,p)=>g.puppet(t.x,t.z,p.duration,p.shields)
+        effect:(g,t,p)=>g.puppet(t.x,t.z,p.duration)
     },
     bounceBall:{
         id:'bounceBall',
@@ -539,8 +540,8 @@ export const CARDS={
         mode:'shoot',
         targeting:'direction',
         range:14,
-        params:{damage:12,bounces:3},
-        upgraded:{cost:2,params:{damage:12,bounces:4}},
+        params:{damage:15,bounces:3},
+        upgraded:{cost:2,params:{damage:15,bounces:4}},
         effect:(g,t,p)=>g.bounceBall(t.dx,t.dz,p.damage,p.bounces)
     },
     stamp:{
@@ -571,25 +572,300 @@ export const CARDS={
         params:{length:6,duration:8,bonus:30},
         upgraded:{cost:2,params:{length:8,duration:10,bonus:40}},
         effect:(g,t,p)=>g.ruler(t.x,t.z,p.length,p.duration,p.bonus)
+    },
+    miniShield:{
+        id:'miniShield',
+        nameKey:'card.miniShield.name',
+        descKey:'card.miniShield.desc',
+        cost:1,
+        rarity:'common',
+        type:'defense',
+        mode:'self',
+        targeting:'none',
+        params:{hits:1,duration:8},
+        upgraded:{cost:1,params:{duration:12}},
+        effect:(g,t,p)=>g.miniShield(p.hits,p.duration)
+    },
+    boxFort:{
+        id:'boxFort',
+        nameKey:'card.boxFort.name',
+        descKey:'card.boxFort.desc',
+        cost:1,
+        rarity:'common',
+        type:'terrain',
+        mode:'place',
+        targeting:'point',
+        range:9,
+        params:{count:3,hits:1},
+        upgraded:{cost:1,params:{count:4}},
+        effect:(g,t,p)=>g.boxFort(t.x,t.z,p.count,p.hits)
+    },
+    spareMag:{
+        id:'spareMag',
+        nameKey:'card.spareMag.name',
+        descKey:'card.spareMag.desc',
+        cost:1,
+        rarity:'common',
+        type:'utility',
+        mode:'self',
+        targeting:'none',
+        params:{redraw:1},
+        upgraded:{cost:0},
+        effect:(g,t,p)=>g.spareMag(p.redraw)
+    },
+    recopy:{
+        id:'recopy',
+        nameKey:'card.recopy.name',
+        descKey:'card.recopy.desc',
+        cost:1,
+        rarity:'common',
+        type:'utility',
+        mode:'self',
+        targeting:'none',
+        params:{count:3},
+        upgraded:{cost:0},
+        effect:(g,t,p)=>g.recopy()
+    },
+    reserve:{
+        id:'reserve',
+        nameKey:'card.reserve.name',
+        descKey:'card.reserve.desc',
+        cost:1,
+        rarity:'common',
+        type:'utility',
+        mode:'self',
+        targeting:'none',
+        params:{delay:3},
+        upgraded:{cost:1,params:{delay:2}},
+        effect:(g,t,p)=>g.reserve(p.delay)
+    },
+    crossCut:{
+        id:'crossCut',
+        nameKey:'card.crossCut.name',
+        descKey:'card.crossCut.desc',
+        cost:2,
+        rarity:'common',
+        type:'attack',
+        mode:'shoot',
+        targeting:'direction',
+        range:12,
+        params:{damage:22,count:4,speed:30},
+        upgraded:{cost:2,params:{damage:30}},
+        effect:(g,t,p)=>g.crossCut(p.damage,p.count,p.speed,t.dx,t.dz)
+    },
+    bearTrap:{
+        id:'bearTrap',
+        nameKey:'card.bearTrap.name',
+        descKey:'card.bearTrap.desc',
+        cost:2,
+        rarity:'common',
+        type:'terrain',
+        mode:'place',
+        targeting:'point',
+        range:10,
+        params:{duration:10,damage:50,stun:2,bossStun:0.5},
+        upgraded:{cost:2,params:{damage:70}},
+        effect:(g,t,p)=>g.bearTrap(t.x,t.z,p.duration,p.damage,p.stun,p.bossStun)
+    },
+    umbrella:{
+        id:'umbrella',
+        nameKey:'card.umbrella.name',
+        descKey:'card.umbrella.desc',
+        cost:2,
+        rarity:'common',
+        type:'defense',
+        mode:'self',
+        targeting:'none',
+        params:{duration:5,angle:120,pct:30},
+        upgraded:{cost:2,params:{duration:6}},
+        effect:(g,t,p)=>g.umbrella(p.duration,p.angle,p.pct)
+    },
+    plant:{
+        id:'plant',
+        nameKey:'card.plant.name',
+        descKey:'card.plant.desc',
+        cost:2,
+        rarity:'common',
+        type:'utility',
+        mode:'self',
+        targeting:'none',
+        params:{duration:4,bonus:40},
+        upgraded:{cost:2,params:{duration:6}},
+        effect:(g,t,p)=>g.plant(p.duration,p.bonus)
+    },
+    alarmClock:{
+        id:'alarmClock',
+        nameKey:'card.alarmClock.name',
+        descKey:'card.alarmClock.desc',
+        cost:2,
+        rarity:'common',
+        type:'attack',
+        mode:'place',
+        targeting:'point',
+        range:10,
+        params:{delay:3,radius:3,damage:40,stun:1},
+        upgraded:{cost:2,params:{damage:55}},
+        effect:(g,t,p)=>g.alarmClock(t.x,t.z,p.delay,p.radius,p.damage,p.stun)
+    },
+    slowShot:{
+        id:'slowShot',
+        nameKey:'card.slowShot.name',
+        descKey:'card.slowShot.desc',
+        cost:2,
+        rarity:'common',
+        type:'attack',
+        mode:'shoot',
+        targeting:'direction',
+        range:14,
+        params:{damage:10,step:15,every:0.5,max:70},
+        upgraded:{cost:2,params:{max:90}},
+        effect:(g,t,p)=>g.slowShot(t.dx,t.dz,p.damage,p.step,p.every,p.max)
+    },
+    mirror:{
+        id:'mirror',
+        nameKey:'card.mirror.name',
+        descKey:'card.mirror.desc',
+        cost:2,
+        rarity:'common',
+        type:'defense',
+        mode:'place',
+        targeting:'point',
+        range:9,
+        params:{length:4,duration:6},
+        upgraded:{cost:2,params:{duration:9}},
+        effect:(g,t,p)=>g.mirror(t.x,t.z,p.length,p.duration)
+    },
+    sponge:{
+        id:'sponge',
+        nameKey:'card.sponge.name',
+        descKey:'card.sponge.desc',
+        cost:2,
+        rarity:'common',
+        type:'defense',
+        mode:'self',
+        targeting:'none',
+        params:{duration:4.5,per:40,max:100,radius:3.6},
+        upgraded:{cost:2,params:{max:140}},
+        effect:(g,t,p)=>g.sponge(p.duration,p.per,p.max,p.radius)
+    },
+    grudge:{
+        id:'grudge',
+        nameKey:'card.grudge.name',
+        descKey:'card.grudge.desc',
+        cost:2,
+        rarity:'common',
+        type:'attack',
+        mode:'target',
+        targeting:'point',
+        range:12,
+        radius:4,
+        params:{damage:15,per:10,max:60,radius:4},
+        upgraded:{cost:2,params:{per:15,max:80}},
+        effect:(g,t,p)=>g.grudge(t.x,t.z,p.damage,p.per,p.max,p.radius)
+    },
+    slowMo:{
+        id:'slowMo',
+        nameKey:'card.slowMo.name',
+        descKey:'card.slowMo.desc',
+        cost:3,
+        rarity:'rare',
+        type:'utility',
+        mode:'global',
+        targeting:'none',
+        params:{duration:6,pct:40,boss:70},
+        upgraded:{cost:2},
+        effect:(g,t,p)=>g.slowMo(p.duration,p.pct,p.boss)
+    },
+    luckyDice:{
+        id:'luckyDice',
+        nameKey:'card.luckyDice.name',
+        descKey:'card.luckyDice.desc',
+        cost:3,
+        rarity:'rare',
+        type:'attack',
+        mode:'target',
+        targeting:'point',
+        range:12,
+        radius:4,
+        params:{per:30,radius:4},
+        upgraded:{cost:2},
+        effect:(g,t,p)=>g.luckyDice(t.x,t.z,p.per,p.radius,t.roll)
+    },
+    rewind:{
+        id:'rewind',
+        nameKey:'card.rewind.name',
+        descKey:'card.rewind.desc',
+        cost:4,
+        rarity:'rare',
+        type:'attack',
+        mode:'global',
+        targeting:'none',
+        params:{damage:12,max:20},
+        upgraded:{cost:3},
+        effect:(g,t,p)=>g.rewind(p.damage,p.max)
+    },
+    fullInk:{
+        id:'fullInk',
+        nameKey:'card.fullInk.name',
+        descKey:'card.fullInk.desc',
+        cost:4,
+        rarity:'rare',
+        type:'utility',
+        mode:'self',
+        targeting:'none',
+        params:{duration:8,bonus:20},
+        upgraded:{cost:3},
+        effect:(g,t,p)=>g.fullInk(p.duration,p.bonus)
+    },
+    firstAid:{
+        id:'firstAid',
+        nameKey:'card.firstAid.name',
+        descKey:'card.firstAid.desc',
+        cost:4,
+        rarity:'rare',
+        type:'defense',
+        mode:'around',
+        targeting:'none',
+        params:{radius:2.5,duration:8,heal:1,every:2},
+        upgraded:{cost:3},
+        effect:(g,t,p)=>g.firstAid(p.radius,p.duration,p.heal,p.every)
+    },
+    planeDash:{
+        id:'planeDash',
+        nameKey:'card.planeDash.name',
+        descKey:'card.planeDash.desc',
+        cost:5,
+        rarity:'rare',
+        type:'attack',
+        mode:'self',
+        targeting:'none',
+        params:{duration:4,mult:2,damage:40,every:0.5},
+        upgraded:{cost:4},
+        effect:(g,t,p)=>g.planeDash(p.duration,p.mult,p.damage,p.every)
     }
 };
 
 export const UNLOCKS={
     1:['scatter','pierce','homing','bomb','rapid','pencilWall','eraser','trap','paperShield','execute','tsunami'],
-    2:['inkDash','whiteout','dualWield'],
-    3:['shockwave','bounceBall'],
-    4:['haste','mark'],
+    2:['whiteout','inkDash','dualWield'],
+    3:['shockwave','bounceBall','miniShield'],
+    4:['haste','mark','spareMag'],
     5:['clone','stamp','inkBarrier'],
     6:['inkMine','blot'],
     7:['timeStop','pin'],
     8:['sketchLeap','redraw'],
-    9:['paperBlade','echo'],
+    9:['paperBlade','boxFort','echo'],
     10:['chain','ruler','blackHole'],
-    11:['inkRain','inkField'],
-    12:['reflect','puppet'],
-    13:['inkWell','barrage'],
+    11:['inkRain','inkField','slowMo'],
+    12:['reflect','crossCut','puppet'],
+    13:['inkWell','recopy','barrage'],
     14:['clusterBomb','giantPen'],
-    15:['freezeAll','inkStorm']
+    15:['bearTrap','freezeAll'],
+    16:['umbrella','plant','firstAid'],
+    17:['alarmClock','slowShot','luckyDice'],
+    18:['mirror','sponge','inkStorm','rewind'],
+    19:['grudge','fullInk'],
+    20:['reserve','planeDash']
 };
 
 export const LEGACY_UNLOCKS={
@@ -608,7 +884,7 @@ export const LEGACY_UNLOCKS={
 export const KEPT_CARDS=[];
 
 export function cardUnlocked(id,level) {
-    return unlockLevel(id)<=level||KEPT_CARDS.includes(id);
+    return unlockLevel(id)<=level;
 }
 
 export function unlockLevel(id) {
@@ -627,12 +903,7 @@ export function unlockedCards(level) {
             out.push(...UNLOCKS[lv]);
         }
     }
-    for (const id of KEPT_CARDS) {
-        if (!out.includes(id)&&CARDS[id]) {
-            out.push(id);
-        }
-    }
-    return out;
+    return out.filter(id=>CARDS[id]);
 }
 
 export function isUlt(id) {

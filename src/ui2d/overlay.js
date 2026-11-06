@@ -13,6 +13,8 @@ import {cardCost} from '../game/card.js';
 
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
+const BODY_FONT='"'+TUNING.ui.bodyFont+'",'+FONT;
+
 const FONT_CACHE=new Map();
 
 function scaledFont(v,k) {
@@ -20,10 +22,13 @@ function scaledFont(v,k) {
     let out=FONT_CACHE.get(key);
     if (out===undefined) {
         const T=TUNING.ui.text;
-        out=v.replace(/(\d+(?:\.\d+)?)px/,(m,n)=>{
+        out=k===1?v:v.replace(/(\d+(?:\.\d+)?)px/,(m,n)=>{
             const px=Number(n);
             return px>=T.minPx&&px<=T.maxPx?Math.round(px*k)+'px':m;
         });
+        if (!/bold|\b[6-9]00\b/.test(out)&&out.includes(FONT)) {
+            out=out.replace(FONT,BODY_FONT);
+        }
         FONT_CACHE.set(key,out);
     }
     return out;
@@ -40,7 +45,7 @@ function installFontScale(ctx) {
             return d.get.call(this);
         },
         set(v) {
-            d.set.call(this,this.fontK===1?v:scaledFont(v,this.fontK));
+            d.set.call(this,scaledFont(v,this.fontK));
         },
         configurable:true
     });
@@ -54,7 +59,6 @@ export class Overlay {
         this.width=1;
         this.height=1;
         this.dpr=1;
-        this.showDebug=false;
         this.hud=new Hud();
     }
 
@@ -68,7 +72,7 @@ export class Overlay {
         this.us=us;
         this.width=w/us;
         this.height=h/us;
-        this.dpr=Math.min(window.devicePixelRatio||1,TUNING.pixelRatioCap.ui);
+        this.dpr=Math.min(window.devicePixelRatio||1,device.mobile?TUNING.pixelRatioCap.uiMobile:TUNING.pixelRatioCap.ui);
         this.canvas.width=Math.floor(w*this.dpr);
         this.canvas.height=Math.floor(h*this.dpr);
     }
@@ -90,7 +94,7 @@ export class Overlay {
         ctx.restore();
     }
 
-    draw(input,player,debug,game) {
+    draw(input,player,game) {
         const ctx=this.ctx;
         ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
         ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -113,7 +117,7 @@ export class Overlay {
             }
             game.dmgNums.draw(ctx,game.project);
             const training=game.run.mode==='training';
-            if (!training||!settings.training.ammo) {
+            if (!training||!settings.training.ammo||player.W.charge) {
                 this.hud.drawAmmo(ctx,player,game.project,this.tmp||(this.tmp={x:0,y:0}));
             }
             this.hud.drawTimers(ctx,player,game.effects.timers,game.project,this.tmp||(this.tmp={x:0,y:0}));
@@ -126,6 +130,7 @@ export class Overlay {
                 this.hud.drawHp(ctx,player);
                 this.hud.drawInk(ctx,game.ink);
             }
+            this.hud.drawActive(ctx,game.effects.active,training&&!(game.run.plan&&game.run.plan.trainGame));
             this.hud.drawFacing(ctx,player,game.project,input.lastDevice==='touch'&&settings.aimGuide);
             game.marks.draw(ctx,game,input.lastDevice==='touch',this.height,this.width);
             game.hand.draw(ctx,game.art);
@@ -135,12 +140,19 @@ export class Overlay {
                 this.screenSpace(false);
                 this.screenSpace(true);
                 this.drawDash(input,player);
+                this.drawReload(input,player);
+                this.drawRedraw(input,game.hand);
                 if (game.hand.visible()) {
                     this.drawSkills(input,game.hand,game.ink,game.art);
                 }
                 this.screenSpace(false);
             }
-            this.hud.drawRunInfo(ctx,this.width,game.run,game.enemies);
+            this.hud.drawRunInfo(ctx,this.width,game.run,game.enemies,this.height);
+            const rr=game.run;
+            this.hud.relicOn=!!rr.stats&&!rr.training()&&!rr.tutorial()&&rr.state!=='summary';
+            if (this.hud.relicOn&&!game.pause.open) {
+                this.hud.drawRelics(ctx,this.width);
+            }
             game.coach.touch=input.lastDevice==='touch';
             ctx.fontK=K;
             game.coach.drawStrip(ctx,game.art);
@@ -157,10 +169,16 @@ export class Overlay {
             game.upgradeView.draw(ctx,game.art);
             game.summary.draw(ctx);
             game.pause.draw(ctx);
+            if (this.hud.relicOn&&game.pause.open) {
+                this.hud.drawRelics(ctx,this.width);
+            }
             if (game.pause.open) {
                 const rn=game.run;
                 if (rn.plan&&rn.notebook()&&!rn.plan.overtime&&!rn.plan.training) {
                     this.hud.drawProgress(ctx,this.width,rn,true,TUNING.hud.progress.pauseY);
+                }
+                else if (rn.mode==='bossrush'&&rn.rush) {
+                    this.hud.drawRushProgress(ctx,this.width,rn,true,TUNING.hud.progress.pauseY);
                 }
                 game.hand.draw(ctx,game.art);
                 const hv=game.hand.hover;
@@ -182,9 +200,12 @@ export class Overlay {
         }
         if (!(game.codex.open&&game.codex.t>TUNING.codex.open.fade)&&!game.settingsMenu.open) {
             game.mainMenu.draw(ctx);
+            game.modeSelect.draw(ctx);
+            game.deckDraft.draw(ctx,game.art);
         }
         game.levelView.draw(ctx);
-        game.weaponView.draw(ctx);
+        game.relicView.draw(ctx);
+        game.armsView.draw(ctx);
         game.achView.draw(ctx);
         game.levelUp.draw(ctx,game.art);
         game.skinEditor.draw(ctx);
@@ -193,6 +214,7 @@ export class Overlay {
             this.screenSpace(true);
             this.drawSticks(input,false);
             this.drawDash(input,player);
+            this.drawReload(input,player);
             this.drawSkills(input,null,null,game.art);
             this.screenSpace(false);
         }
@@ -209,15 +231,15 @@ export class Overlay {
         this.hud.drawToast(ctx,this.width,game.dt);
         game.achToast.draw(ctx,this.width,game.dt,time.boilIndex);
         this.hud.drawResult(ctx,this.width,this.height,game.dt);
+        if (game.mode==='play') {
+            this.hud.drawRelicInfo(ctx,this.width,this.height,game.dt);
+        }
         game.transition.drawTop(ctx,this.width,this.height);
         if (input.lastDevice==='mouse'&&input.mouse.inside) {
             const play=game.mode==='play'&&game.run.state!=='dead';
             const lock=play&&!game.frozen&&!!game.aimTarget&&game.aimTarget.alive;
             const reload=play&&!game.frozen&&player.reloadT>0?1-player.reloadT/player.W.reloadTime:0;
             this.drawCrosshair(input.mouse.x/this.us,input.mouse.y/this.us,input.mouse.down,lock,reload);
-        }
-        if (this.showDebug&&debug) {
-            this.drawDebug(debug);
         }
     }
 
@@ -514,6 +536,58 @@ export class Overlay {
         ctx.fillText(t('ui.dash'),d.x,d.y+1);
     }
 
+    drawRedraw(input,hand) {
+        const D=input.redrawBtn;
+        const R=hand.api.redrawInfo?hand.api.redrawInfo():null;
+        D.show=!!R&&R.show;
+        if (!D.show) {
+            return;
+        }
+        const ctx=this.ctx;
+        const r=D.r*(D.id>=0?0.92:1);
+        ctx.fillStyle=rgba('paper',R.can?0.6:0.35);
+        ctx.beginPath();
+        ctx.arc(D.x,D.y,r,0,Math.PI*2);
+        ctx.fill();
+        this.ring(D.x,D.y,r,R.can?3:2,R.can?PALETTE.ink:rgba('ink',0.35),75);
+        ctx.fillStyle=R.can?PALETTE.ink:PALETTE.midGray;
+        ctx.font='bold 13px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('ui.redraw'),D.x,D.y-5);
+        ctx.font='bold 11px '+FONT;
+        ctx.fillStyle=R.can?PALETTE.red:PALETTE.midGray;
+        ctx.fillText(R.unlimited?'∞':'×'+R.left,D.x,D.y+10);
+    }
+
+    drawReload(input,player) {
+        const R=input.reloadBtn;
+        const ctx=this.ctx;
+        const W=player.W;
+        const can=W&&!W.heat&&!W.cooldown&&!W.charge;
+        const busy=player.reloadT>0;
+        const full=!can||player.ammo>=W.magazine;
+        const r=R.r*(R.id>=0?0.92:1);
+        ctx.fillStyle=rgba('paper',0.55);
+        ctx.beginPath();
+        ctx.arc(R.x,R.y,r,0,Math.PI*2);
+        ctx.fill();
+        this.ring(R.x,R.y,r,full&&!busy?2:3,full&&!busy?rgba('ink',0.4):PALETTE.ink,74);
+        if (busy&&W.reloadTime) {
+            const f=1-player.reloadT/W.reloadTime;
+            ctx.strokeStyle=PALETTE.red;
+            ctx.lineWidth=4;
+            ctx.beginPath();
+            ctx.arc(R.x,R.y,r+6,-Math.PI/2,-Math.PI/2+f*Math.PI*2);
+            ctx.stroke();
+        }
+        ctx.fillStyle=full&&!busy?PALETTE.midGray:PALETTE.ink;
+        ctx.font='bold 13px '+FONT;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('ui.reload'),R.x,R.y+1);
+    }
+
     drawCrosshair(x,y,down,locked=false,reload=0) {
         const ctx=this.ctx;
         const r=down?9:12;
@@ -555,33 +629,5 @@ export class Overlay {
         ctx.stroke();
         ctx.fillStyle=col;
         ctx.fillRect(x-1.5,y-1.5,3,3);
-    }
-
-    drawDebug(d) {
-        const ctx=this.ctx;
-        const lines=[
-            t('debug.fps')+' '+d.fps.toFixed(0)+' / '+(d.cap||'—'),
-            t('debug.scale')+' '+Math.round((d.scale??1)*100)+'%',
-            t('debug.calls')+' '+d.calls,
-            t('debug.tris')+' '+d.triangles,
-            t('debug.quality')+' '+t('quality.'+d.quality)+' ('+d.pixelRatio.toFixed(2)+'x)',
-            t('debug.resolution')+' '+d.resolution,
-            t('debug.hint')
-        ];
-        ctx.font='14px '+FONT;
-        ctx.textAlign='left';
-        ctx.textBaseline='top';
-        const w=230;
-        const h=lines.length*19+14;
-        const x=this.width-w-10;
-        ctx.fillStyle=rgba('paper',0.85);
-        ctx.fillRect(x,70,w,h);
-        ctx.strokeStyle=PALETTE.ink;
-        ctx.lineWidth=1.5;
-        ctx.strokeRect(x,70,w,h);
-        ctx.fillStyle=PALETTE.ink;
-        for (let i=0;i<lines.length;i++) {
-            ctx.fillText(lines[i],x+10,78+i*19);
-        }
     }
 }

@@ -256,6 +256,16 @@ void main() {
 }
 `;
 
+export const GLOW_FRAG=`
+${GBUF_OUT}
+uniform vec3 uColor;
+uniform float uOpacity;
+void main() {
+    gl_FragColor=vec4(uColor,uOpacity);
+    gBuf=vec4(0.0);
+}
+`;
+
 export const SHADOW_VERT=`
 varying vec2 vUv;
 varying vec3 vWorldPos;

@@ -1,9 +1,11 @@
 import*as THREE from 'three';
-import {toonMaterial,dissolveVariant,trapMaterial,inkMaterial,countdownMaterial,pal} from '../render/materials.js';
+import {toonMaterial,dissolveVariant,trapMaterial,inkMaterial,countdownMaterial,unlitMaterial,iconMaterial,pal,setArenaClip} from '../render/materials.js';
 import {makeBox,makeCircle,circleVs} from '../core/collision.js';
 import {RNG,hash1} from '../core/rng.js';
 import {EASE} from '../core/easing.js';
 import {TUNING} from '../data/tuning.js';
+import {t} from '../data/strings.js';
+import {rgba,PALETTE} from '../data/palette.js';
 
 const geoCache=new Map();
 
@@ -138,6 +140,10 @@ function buildProp(p,group,colliders) {
         g.position.set(p.x,p.y||0,p.z);
         g.rotation.y=rot;
         group.add(g);
+        if (p.solid) {
+            colliders.push(makeBox(p.x,p.z,p.solid[0]/2,p.solid[1]/2,rot));
+            return {object:g,radius:Math.hypot(p.solid[0],p.solid[1])/2};
+        }
     }
 }
 
@@ -268,6 +274,239 @@ const DECOR_BUILDERS={
         const blade=mesh(box(s*1.2,0.06,s*0.5),'dark');
         blade.position.set(0,s+0.03,-s*0.1);
         g.add(body,hole,blade);
+        return g;
+    },
+    shelf(p) {
+        const g=new THREE.Group();
+        const rng=new RNG(Math.round(p.x*19+p.z*23));
+        const w=p.w;
+        const h=p.h;
+        const d=p.d;
+        const t=0.22;
+        for (const sx of [-1,1]) {
+            const side=mesh(box(t,h,d),'dark');
+            side.position.set(sx*(w/2-t/2),h/2,0);
+            g.add(side);
+        }
+        const top=mesh(box(w+0.4,t*1.4,d+0.3),'dark');
+        top.position.y=h+t*0.7;
+        const back=mesh(box(w,h,0.1),'cover');
+        back.position.set(0,h/2,-d/2+0.05);
+        g.add(top,back);
+        const rows=Math.max(2,Math.floor(h/1.15));
+        const rh=h/rows;
+        const tones=['cover','light','dark','cover','light','dark'];
+        for (let r=0;r<rows;r++) {
+            const y=r*rh;
+            const plank=mesh(box(w-t*2,0.12,d),'dark');
+            plank.position.y=y+0.06;
+            g.add(plank);
+            let x=-w/2+t+0.05;
+            let lean=0;
+            while (x<w/2-t-0.3) {
+                const bw=+rng.range(0.16,0.34).toFixed(2);
+                const bh=+(rh*rng.range(0.58,0.88)).toFixed(2);
+                if (rng.next()<0.08) {
+                    x+=0.4;
+                    lean=0.35;
+                    continue;
+                }
+                const b=mesh(box(bw,bh,+(d*0.8).toFixed(2)),tones[Math.floor(rng.next()*tones.length)]);
+                b.position.set(x+bw/2,y+0.12+bh/2,0.04);
+                b.rotation.z=lean;
+                if (lean) {
+                    b.position.x+=0.12;
+                    b.position.y-=0.05;
+                }
+                lean=0;
+                g.add(b);
+                x+=bw+0.02;
+            }
+        }
+        return g;
+    },
+    tome(p) {
+        const g=new THREE.Group();
+        const s=p.s;
+        for (const sx of [-1,1]) {
+            const half=new THREE.Group();
+            const cover=mesh(box(s*1.6,s*0.12,s*2.2),'dark');
+            cover.position.set(sx*s*0.8,0,0);
+            const pages=mesh(box(s*1.5,s*0.22,s*2.05),'light');
+            pages.position.set(sx*s*0.78,s*0.15,0);
+            half.add(cover,pages);
+            for (let i=0;i<5;i++) {
+                const ln=mesh(box(s*1.05,0.02,s*0.05),'cover');
+                ln.position.set(sx*s*0.8,s*0.27,-s*0.7+i*s*0.32);
+                half.add(ln);
+            }
+            half.rotation.z=-sx*0.12;
+            half.position.y=s*0.12;
+            g.add(half);
+        }
+        const spine=mesh(cachedGeo('tomes|'+s,()=>new THREE.CylinderGeometry(s*0.14,s*0.14,s*2.2,8)),'dark');
+        spine.rotation.x=Math.PI/2;
+        spine.position.y=s*0.06;
+        const mark=new THREE.Mesh(box(s*0.16,0.03,s*1.2),unlitMaterial({color:'red'}));
+        mark.position.set(s*0.2,s*0.36,s*0.9);
+        mark.rotation.y=0.15;
+        g.add(spine,mark);
+        return g;
+    },
+    candle(p) {
+        const g=new THREE.Group();
+        const r=p.r||0.2;
+        const h=p.h||0.8;
+        const dish=mesh(cachedGeo('cdish|'+r,()=>new THREE.CylinderGeometry(r*2,r*2.2,r*0.4,10)),'dark');
+        dish.position.y=r*0.2;
+        const wax=mesh(cachedGeo('cwax|'+r+'|'+h,()=>new THREE.CylinderGeometry(r,r*1.05,h,8)),'light');
+        wax.position.y=r*0.4+h/2;
+        const drip=mesh(cachedGeo('cdrip|'+r,()=>new THREE.SphereGeometry(r*0.35,6,5)),'light');
+        drip.position.set(r*0.9,r*0.4+h*0.7,0);
+        drip.scale.set(0.7,1.6,0.7);
+        const flame=new THREE.Mesh(cachedGeo('cflame|'+r,()=>new THREE.ConeGeometry(r*0.55,r*1.8,8)),unlitMaterial({color:'red'}));
+        flame.position.y=r*0.4+h+r*0.95;
+        const wick=mesh(box(0.03,r*0.4,0.03),'dark');
+        wick.position.y=r*0.4+h+r*0.15;
+        g.add(dish,wax,drip,wick,flame);
+        return g;
+    },
+    medCabinet(p) {
+        const g=new THREE.Group();
+        const w=p.w||1.8;
+        const h=p.h||2.0;
+        const red=unlitMaterial({color:'red'});
+        const back=mesh(box(w,h,0.6),'dark');
+        back.position.y=h/2;
+        const door=mesh(box(w*0.9,h*0.82,0.04),'cover');
+        door.position.set(0,h*0.48,0.31);
+        const split=mesh(box(0.04,h*0.82,0.05),'dark');
+        split.position.set(0,h*0.48,0.33);
+        const cx=new THREE.Mesh(box(w*0.32,0.1,0.04),red);
+        cx.position.set(0,h*0.94,0.31);
+        const cy=new THREE.Mesh(box(0.1,w*0.32,0.04),red);
+        cy.position.set(0,h*0.94,0.31);
+        g.add(back,door,split,cx,cy);
+        for (let i=0;i<3;i++) {
+            const j=mesh(cachedGeo('mjar',()=>new THREE.CylinderGeometry(0.09,0.1,0.26,8)),i===1?'dark':'light');
+            j.position.set(-w*0.3+i*w*0.3,h+0.13,0);
+            g.add(j);
+        }
+        return g;
+    },
+    notice(p) {
+        const g=new THREE.Group();
+        const w=p.w||1.8;
+        const h=p.h||1.1;
+        for (const sx of [-1,1]) {
+            const post=mesh(box(0.1,1.6,0.1),'dark');
+            post.position.set(sx*w*0.4,0.8,0);
+            g.add(post);
+        }
+        const board=new THREE.Group();
+        board.position.y=1.25;
+        board.rotation.x=-TUNING.props.noticeTilt;
+        g.add(board);
+        const back=mesh(box(w+0.12,h+0.12,0.08),'dark');
+        back.position.z=-0.05;
+        board.add(back);
+        const c=document.createElement('canvas');
+        c.width=512;
+        c.height=Math.round(512*h/w);
+        const x=c.getContext('2d');
+        x.fillStyle=PALETTE.paper;
+        x.fillRect(0,0,c.width,c.height);
+        x.strokeStyle=PALETTE.red;
+        x.lineWidth=10;
+        x.strokeRect(14,14,c.width-28,c.height-28);
+        x.fillStyle=PALETTE.ink;
+        x.textAlign='center';
+        x.textBaseline='middle';
+        const parts=t(p.key).split('｜');
+        x.font='bold 62px sans-serif';
+        x.fillStyle=PALETTE.red;
+        x.fillText(parts.length>1?parts[0]:'!',c.width/2,c.height*0.27);
+        x.fillStyle=PALETTE.ink;
+        const body=parts[parts.length-1];
+        x.font='bold 50px sans-serif';
+        const words=body.length>10?[body.slice(0,Math.ceil(body.length/2)),body.slice(Math.ceil(body.length/2))]:[body];
+        words.forEach((l,i)=>x.fillText(l,c.width/2,c.height*(0.55+i*0.22),c.width-50));
+        x.fillStyle=rgba('red',0.8);
+        x.beginPath();
+        x.arc(c.width/2,30,9,0,Math.PI*2);
+        x.fill();
+        const tex=new THREE.CanvasTexture(c);
+        tex.colorSpace=THREE.NoColorSpace;
+        const face=new THREE.Mesh(new THREE.PlaneGeometry(w,h),iconMaterial(tex));
+        board.add(face);
+        return g;
+    },
+    medKit(p) {
+        const g=new THREE.Group();
+        const s=p.s||1;
+        const red=unlitMaterial({color:'red'});
+        const b=mesh(box(0.9*s,0.45*s,0.6*s),'light');
+        b.position.y=0.225*s;
+        const lid=mesh(box(0.92*s,0.06*s,0.62*s),'dark');
+        lid.position.y=0.46*s;
+        const h=mesh(box(0.3*s,0.08*s,0.06*s),'dark');
+        h.position.y=0.53*s;
+        const cx=new THREE.Mesh(box(0.3*s,0.08*s,0.02),red);
+        cx.position.set(0,0.25*s,0.31*s);
+        const cy=new THREE.Mesh(box(0.08*s,0.3*s,0.02),red);
+        cy.position.set(0,0.25*s,0.31*s);
+        g.add(b,lid,h,cx,cy);
+        return g;
+    },
+    floorCross(p) {
+        const g=new THREE.Group();
+        const s=p.s||1;
+        const red=unlitMaterial({color:'red'});
+        for (const [w,d] of [[1.6*s,0.5*s],[0.5*s,1.6*s]]) {
+            const m=new THREE.Mesh(box(w,0.02,d),red);
+            m.position.y=0.015;
+            g.add(m);
+        }
+        return g;
+    },
+    runes(p) {
+        const g=new THREE.Group();
+        const r=p.r;
+        const red=unlitMaterial({color:'red'});
+        for (const [k,w] of [[1,0.1],[0.82,0.06]]) {
+            const ring=new THREE.Mesh(cachedGeo('rring|'+r*k+'|'+w,()=>new THREE.RingGeometry(r*k-w,r*k,48)),k===1?red:toonMaterial({...TONES.dark,side:THREE.DoubleSide}));
+            ring.rotation.x=-Math.PI/2;
+            ring.position.y=0.03;
+            g.add(ring);
+        }
+        const n=p.count||9;
+        for (let i=0;i<n;i++) {
+            const a=i/n*Math.PI*2;
+            const m=mesh(box(0.34,0.03,0.08),'dark');
+            m.position.set(Math.cos(a)*r*0.91,0.04,Math.sin(a)*r*0.91);
+            m.rotation.y=-a+(i%2?0.8:-0.5);
+            const m2=mesh(box(0.08,0.03,0.24),'dark');
+            m2.position.set(Math.cos(a+0.12)*r*0.91,0.04,Math.sin(a+0.12)*r*0.91);
+            g.add(m,m2);
+        }
+        return g;
+    },
+    arch(p) {
+        const g=new THREE.Group();
+        const w=p.w;
+        const h=p.h;
+        for (const sx of [-1,1]) {
+            const col=mesh(cachedGeo('archc|'+h,()=>new THREE.CylinderGeometry(0.5,0.6,h,8)),'cover');
+            col.position.set(sx*w/2,h/2,0);
+            const base=mesh(box(1.5,0.5,1.5),'dark');
+            base.position.set(sx*w/2,0.25,0);
+            g.add(col,base);
+        }
+        const top=mesh(cachedGeo('archt|'+w,()=>new THREE.TorusGeometry(w/2,0.5,6,16,Math.PI)),'cover');
+        top.position.y=h;
+        const key=new THREE.Mesh(box(0.6,0.9,0.7),unlitMaterial({color:'red'}));
+        key.position.y=h+w/2;
+        g.add(top,key);
         return g;
     },
     shavings(p) {
@@ -679,6 +918,21 @@ function buildInteractive(type,x,z,group) {
         group.add(g);
         return {object:g,cols:[makeCircle(x,z,0.5)],radius:0.6,hp:1};
     }
+    if (type==='paperBox') {
+        const g=new THREE.Group();
+        const rot=hash1(Math.round(x*17+z*11))*1.5;
+        const b1=new THREE.Mesh(box(0.95,0.85,0.95),mat('light'));
+        b1.position.y=0.425;
+        const lid=new THREE.Mesh(box(1.0,0.08,1.0),mat('cover'));
+        lid.position.y=0.88;
+        const tape=new THREE.Mesh(box(0.2,0.9,0.99),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+        tape.position.y=0.45;
+        g.add(b1,lid,tape);
+        g.position.set(x,0,z);
+        g.rotation.y=rot;
+        group.add(g);
+        return {object:g,cols:[makeBox(x,z,0.48,0.48,rot)],radius:0.7,hp:3};
+    }
     if (type==='barrel') {
         const g=new THREE.Group();
         const body=new THREE.Mesh(cachedGeo('barrel',()=>new THREE.CylinderGeometry(0.55,0.6,1.3,10)),mat('dark'));
@@ -719,6 +973,7 @@ export class Room {
         const hw=def.size[0]/2;
         const hd=def.size[1]/2;
         this.bounds={minX:-hw,maxX:hw,minZ:-hd,maxZ:hd};
+        setArenaClip(this.bounds);
         this.spawn=new THREE.Vector3(def.spawn[0],0,def.spawn[1]);
         this.zones=new Zones(fxScene,this);
         const ground=new THREE.Mesh(cachedGeo('ground',()=>new THREE.PlaneGeometry(400,400)),toonMaterial({...TONES.ground,grid:[hw,hd]}));
@@ -806,6 +1061,13 @@ export class Room {
         }
     }
 
+    addPaperBox(x,z,hits) {
+        const res=buildInteractive('paperBox',x,z,this.group);
+        const piece=this.addPiece('paperBox',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:1,passPlayer:true});
+        piece.flash=0;
+        return piece;
+    }
+
     addTarget(x,z) {
         const res=buildInteractive('target',x,z,this.group);
         const piece=this.addPiece('target',res.object,res.cols,{x,z,radius:res.radius,erasable:false,hp:res.hp});
@@ -815,7 +1077,7 @@ export class Room {
 
     damageProps(x,z,r,dmg) {
         for (const p of this.pieces.slice()) {
-            if ((p.kind==='barrel'||p.kind==='crate'||p.kind==='target')&&p.state==='alive'&&Math.hypot(p.x-x,p.z-z)<r+p.radius) {
+            if ((p.kind==='barrel'||p.kind==='crate'||p.kind==='target'||p.kind==='paperBox')&&p.state==='alive'&&Math.hypot(p.x-x,p.z-z)<r+p.radius) {
                 this.damagePiece(p,dmg);
             }
         }
@@ -840,6 +1102,7 @@ export class Room {
         for (const c of colliders) {
             c.piece=piece;
             c.passPlayer=!!o.passPlayer;
+            c.shotHit=kind==='paperBox';
         }
         this.pieces.push(piece);
         this.rebuildColliders();
@@ -975,14 +1238,14 @@ export class Room {
     }
 
     damagePiece(piece,dmg) {
-        if ((piece.kind==='barrel'||piece.kind==='crate'||piece.kind==='target')&&piece.state==='alive') {
-            piece.hp-=dmg;
+        if ((piece.kind==='barrel'||piece.kind==='crate'||piece.kind==='target'||piece.kind==='paperBox')&&piece.state==='alive') {
+            piece.hp-=piece.kind==='paperBox'?1:dmg;
             piece.object.scale.set(1.12,0.9,1.12);
             piece.flash=0.12;
             if (piece.hp<=0) {
                 piece.state='broken';
                 if (this.shards) {
-                    this.shards.burst(piece.x,0.7,piece.z,piece.kind==='crate'?6:4,0,0,0.9);
+                    this.shards.burst(piece.x,0.7,piece.z,piece.kind==='crate'||piece.kind==='paperBox'?6:4,0,0,0.9);
                 }
                 if (this.onPropBreak) {
                     this.onPropBreak(piece);

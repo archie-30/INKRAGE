@@ -4,6 +4,8 @@ import {TUNING} from '../data/tuning.js';
 import {t} from '../data/strings.js';
 import {toonMaterial,lineMaterial,unlitMaterial,pal} from '../render/materials.js';
 import {circleVs,clampToBounds} from '../core/collision.js';
+import {relicFree} from './relic.js';
+import {EASE} from '../core/easing.js';
 
 let nextUid=1;
 
@@ -15,7 +17,7 @@ export function createCard(id,upgraded=false) {
 export const freeCards={left:0};
 
 export function cardCost(card) {
-    if (freeCards.left>0&&card.def.rarity!=='rare') {
+    if ((freeCards.left>0||relicFree())&&card.def.rarity!=='rare') {
         return 0;
     }
     if (!card.upgraded) {
@@ -35,9 +37,25 @@ export function cardName(card) {
     return t(card.def.nameKey)+(card.upgraded?'+':'');
 }
 
+const DIST_KEYS=['radius','range','width','length'];
+
+export function toMeters(v) {
+    return Math.round(v/TUNING.grid.size*10)/10;
+}
+
+export function shownParams(card) {
+    const p={...cardParams(card)};
+    for (const k of DIST_KEYS) {
+        if (typeof p[k]==='number') {
+            p[k]=toMeters(p[k]);
+        }
+    }
+    return p;
+}
+
 export function cardDesc(card) {
     const up=card.upgraded&&card.def.upgraded&&card.def.upgraded.descKey;
-    return t(up||card.def.descKey,cardParams(card));
+    return t(up||card.def.descKey,shownParams(card));
 }
 
 export function cardRange(card) {
@@ -120,6 +138,7 @@ export function bouncePath(room,x,z,dx,dz,bounces,maxLen,r) {
 export class CardEffects {
     constructor(g,tuning) {
         this.timers=[];
+        this.active=[];
         this.g=g;
         this.E=tuning.effects;
         this.T=tuning;
@@ -160,6 +179,7 @@ export class CardEffects {
         this.g.scene.add(this.bladeMesh);
         this.lastUlt=null;
         this.buildCardProps();
+        this.buildKit();
         this.mines=[];
         const mg=new THREE.SphereGeometry(0.42,10,6,0,Math.PI*2,0,Math.PI/2);
         const mm=unlitMaterial({color:'ink',jitter:0.02});
@@ -175,10 +195,67 @@ export class CardEffects {
         }
     }
 
+    noteActive(card,params) {
+        const id=card.def.id;
+        const span=params.duration||params.delay||(id==='reserve'?1:0);
+        if (!span&&this.activeLive(id)===null) {
+            return;
+        }
+        const q=this.active.find(o=>o.id===id);
+        if (q) {
+            q.left=Math.max(q.left,span);
+            q.full=Math.max(q.full,span);
+            q.pop=0;
+            return;
+        }
+        this.active.push({id,rare:card.def.rarity==='rare',left:span,full:span,t:0,timed:id!=='reserve'});
+    }
+
+    activeLive(id) {
+        const g=this.g;
+        const p=g.player;
+        if (id==='paperShield'||id==='miniShield') {
+            return p.shield>0;
+        }
+        if (id==='inkBarrier') {
+            return p.fortT>0;
+        }
+        if (id==='clone') {
+            return (g.clones||[]).some(c=>c.active);
+        }
+        if (id==='puppet') {
+            return !!g.puppet&&g.puppet.active;
+        }
+        if (id==='pencilWall') {
+            return !!g.room&&g.room.pieces.some(q=>q.kind==='pencilWall'&&q.state!=='erasing');
+        }
+        if (id==='mark') {
+            return !!this.markTarget&&this.markTarget.alive&&this.markTarget.vulnT>0;
+        }
+        if (id==='reserve') {
+            return this.reserveArm>0;
+        }
+        if (id==='bearTrap') {
+            return (this.traps||[]).some(q=>q.left>0);
+        }
+        if (id==='alarmClock') {
+            return (this.clocks||[]).some(q=>q.left>0);
+        }
+        if (id==='mirror') {
+            return (this.mirrors||[]).some(q=>q.left>0);
+        }
+        return null;
+    }
+
     clear() {
         this.timers.length=0;
+        this.active.length=0;
         this.sweeps.length=0;
-        this.puppetShield=null;
+        this.clearKit();
+        this.pupFx=null;
+        if (this.g.player) {
+            this.g.player.bulletProofT=0;
+        }
         if (this.g.puppet) {
             this.g.puppet.stop();
         }
@@ -263,11 +340,22 @@ export class CardEffects {
         const g=this.g;
         this.updateExtras(dt);
         this.updateCardProps(dt);
+        this.updateKit(dt);
+        this.tickLeap();
         freeCards.left=Math.max(0,freeCards.left-dt);
         for (let i=this.timers.length-1;i>=0;i--) {
             this.timers[i].left-=dt;
-            if (this.timers[i].left<=0) {
+            if (this.timers[i].left<=0||this.activeLive(this.timers[i].id)===false) {
                 this.timers.splice(i,1);
+            }
+        }
+        for (let i=this.active.length-1;i>=0;i--) {
+            const q=this.active[i];
+            q.left-=dt;
+            q.t+=dt;
+            const live=this.activeLive(q.id);
+            if (live===false||(live===null&&q.left<=0)) {
+                this.active.splice(i,1);
             }
         }
         for (let i=this.sweeps.length-1;i>=0;i--) {
@@ -309,7 +397,7 @@ export class CardEffects {
         g.particles.burst(target.x,1.0,target.z,8,{color:card.def.rarity==='rare'?'red':'ink',speed:[1,4],up:[1,4],size:[0.08,0.16],life:[0.25,0.5]});
         const params=cardParams(card);
         const p=g.player;
-        const keep=target.ox!==undefined;
+        const keep=target.ox!==undefined&&!card.def.fromSelf;
         const sx=p.pos.x;
         const sz=p.pos.z;
         if (keep) {
@@ -317,6 +405,7 @@ export class CardEffects {
             p.pos.z=target.oz;
         }
         card.def.effect(this,target,params);
+        this.noteActive(card,params);
         if (keep) {
             p.pos.x=sx;
             p.pos.z=sz;
@@ -415,7 +504,7 @@ export class CardEffects {
         const g=this.g;
         const E=this.E;
         const p=g.player;
-        const e=g.enemies.nearest(x,z,radius);
+        const e=g.enemies.priority(x,z,radius);
         if (e) {
             const dx=e.pos.x-p.pos.x;
             const dz=e.pos.z-p.pos.z;
@@ -453,7 +542,7 @@ export class CardEffects {
         }
     }
 
-    eraseCone(dx,dz,range,angle,damage,push) {
+    eraseCone(dx,dz,range,angle,damage,push,slowTime=0,slowMult=1) {
         const g=this.g;
         const p=g.player;
         p.faceDir(dx,dz);
@@ -484,10 +573,22 @@ export class CardEffects {
                 e.vel.x+=ex/d*push;
                 e.vel.z+=ez/d*push;
             }
+            if (e.alive&&slowTime>0) {
+                const prev=e.slowT>0?e.slowMult||1:1;
+                e.slowT=Math.max(e.slowT||0,slowTime);
+                e.slowMult=Math.min(prev,slowMult);
+                g.particles.burst(e.pos.x,0.9,e.pos.z,this.E.eraserCrumbs,{color:'farGray',speed:[1,4],up:[1,3],size:[0.08,0.16],life:[0.4,0.7]});
+            }
+        }
+        for (let i=0;i<this.E.eraserDust;i++) {
+            const a=base-angle/2+angle*(i+0.5)/this.E.eraserDust;
+            const rr=range*(0.4+0.55*((i*0.618)%1));
+            g.particles.burst(cx+Math.cos(a)*rr,0.4,cz+Math.sin(a)*rr,2,{color:i%3===0?'red':'farGray',speed:[0.5,2.5],up:[1.5,3.5],size:[0.07,0.14],life:[0.35,0.6]});
         }
         this.sweeps.push({type:'eraser',t:0,dur:this.E.eraserSweep,x:cx,z:cz,a0:base-angle/2,a1:base+angle/2,range});
-        g.fx.cameraShake(0.25);
-        g.fx.fovPunch(1.0);
+        g.fx.cameraShake(this.E.eraserShake);
+        g.fx.fovPunch(1.4);
+        g.fx.hitStop(this.E.eraserStop);
     }
 
     trapCircle(x,z,radius,duration,slow) {
@@ -496,10 +597,10 @@ export class CardEffects {
         g.particles.burst(x,0.3,z,10,{color:'ink',speed:[1,radius*1.5],up:[1,3],size:[0.06,0.12]});
     }
 
-    paperShield(hits) {
+    paperShield(hits,duration) {
         const g=this.g;
         const p=g.player;
-        p.setShield(hits);
+        p.setShield(hits,duration);
         p.sqv+=2;
         g.fx.fovPunch(0.8);
         g.particles.burst(p.pos.x,1.0,p.pos.z,12,{color:'farGray',speed:[2,4],up:[2,4],size:[0.08,0.14]});
@@ -920,6 +1021,7 @@ export class CardEffects {
         g.rings.spawn(g.player.pos.x,g.player.pos.z,2,'red',0.35);
         const params=cardParams(u);
         u.def.effect(this,target.echo||target,params);
+        this.noteActive(u,params);
         if (params.duration&&!this.T.hud.timerSkip.includes(u.def.id)) {
             this.timers.push({id:u.def.id,left:params.duration,full:params.duration});
         }
@@ -982,6 +1084,7 @@ export class CardEffects {
         }
         e.vulnT=duration;
         e.vulnMult=mult;
+        this.markTarget=e;
         g.rings.spawn(e.pos.x,e.pos.z,e.def.radius+0.8,'ink',0.3);
         g.particles.burst(e.pos.x,e.def.height,e.pos.z,8,{speed:[1,3],up:[2,4]});
     }
@@ -1214,15 +1317,7 @@ export class CardEffects {
 
     updateCardProps(dt) {
         const g=this.g;
-        const P=this.puppetShield;
-        if (P&&P.left>0) {
-            P.left-=dt;
-            if (P.left<=0) {
-                const p=g.player;
-                p.setShield(p.shield-Math.min(P.add,p.shield));
-                this.puppetShield=null;
-            }
-        }
+        this.tickPuppetFx(dt);
         const pup=g.puppet;
         if (pup&&pup.active) {
             this.pupRing=(this.pupRing||0)-dt;
@@ -1251,12 +1346,8 @@ export class CardEffects {
         const L=this.E.leap;
         const sx=p.pos.x;
         const sz=p.pos.z;
-        const gray=(g.weaponSys&&g.weaponSys.pencil)||g.playerBullets;
-        for (let i=0;i<count;i++) {
-            const a=i/count*Math.PI*2;
-            const sys=i%2?gray:g.playerBullets;
-            sys.spawn(sx+Math.cos(a)*0.5,sz+Math.sin(a)*0.5,Math.cos(a),Math.sin(a),L.speed,damage,L.life);
-        }
+        this.leapRing(sx,sz,count,damage,0);
+        this.leapLand={count,damage};
         const r=this.T.player.radius;
         const room=g.room;
         let tx=x;
@@ -1282,8 +1373,33 @@ export class CardEffects {
         g.rings.spawn(sx,sz,2,'ink',0.3);
         g.decals.spawn(sx,sz,1.2,'ink','midGray');
         g.particles.burst(sx,0.4,sz,16,{color:'nearGray',speed:[2,6],up:[2,5],size:[0.08,0.16]});
-        g.fx.cameraShake(0.2);
-        g.fx.fovPunch(1.2);
+        g.fx.cameraShake(L.shake);
+        g.fx.fovPunch(L.fov);
+    }
+
+    leapRing(x,z,count,damage,off) {
+        const g=this.g;
+        const L=this.E.leap;
+        const gray=(g.weaponSys&&g.weaponSys.pencil)||g.playerBullets;
+        for (let i=0;i<count;i++) {
+            const a=(i+off)/count*Math.PI*2;
+            const sys=i%2?gray:g.playerBullets;
+            sys.spawn(x+Math.cos(a)*0.5,z+Math.sin(a)*0.5,Math.cos(a),Math.sin(a),L.speed,damage,L.life);
+        }
+    }
+
+    tickLeap() {
+        const g=this.g;
+        const p=g.player;
+        if (!this.leapLand||p.leapT>0) {
+            return;
+        }
+        const q=this.leapLand;
+        this.leapLand=null;
+        this.leapRing(p.pos.x,p.pos.z,q.count,q.damage,0.5);
+        g.rings.spawn(p.pos.x,p.pos.z,2,'ink',0.3);
+        g.particles.burst(p.pos.x,0.3,p.pos.z,12,{color:'nearGray',speed:[2,5],up:[1,4],size:[0.08,0.16]});
+        g.fx.cameraShake(this.E.leap.shake);
     }
 
     tickBall(s,dt) {
@@ -1346,27 +1462,48 @@ export class CardEffects {
         g.fx.cameraShake(0.15);
     }
 
-    puppet(x,z,duration,shields) {
+    puppet(x,z,duration) {
         const g=this.g;
         const p=g.player;
+        const P=this.E.puppet;
         if (!g.puppet) {
             return;
         }
         g.puppet.start(x,z,duration,0,true);
         g.enemies.decoy=g.puppet;
-        this.pupRing=0;
-        const add=Math.max(0,shields-p.shield);
-        if (add>0) {
-            p.setShield(p.shield+add);
-        }
-        const prev=this.puppetShield&&this.puppetShield.left>0?this.puppetShield.add:0;
-        this.puppetShield={left:duration,add:prev+add};
+        this.pupRing=P.drop+P.ring;
+        this.pupFx={x,z,t:0,landed:false,waves:0};
+        p.bulletProofT=Math.max(p.bulletProofT||0,duration);
         p.sqv+=2;
-        g.fx.fovPunch(1.4);
-        g.fx.cameraShake(0.25);
-        g.rings.spawn(x,z,this.E.puppet.ringR*1.4,'red',0.5);
-        g.particles.burst(x,0.6,z,18,{color:'red',speed:[1,4],up:[2,5],size:[0.08,0.16]});
+        g.fx.fovPunch(1.2);
+        g.rings.spawn(x,z,P.ringR*1.6,'red',P.drop);
         g.particles.burst(p.pos.x,1.0,p.pos.z,12,{color:'farGray',speed:[2,4],up:[2,4],size:[0.08,0.14]});
+    }
+
+    tickPuppetFx(dt) {
+        const q=this.pupFx;
+        if (!q) {
+            return;
+        }
+        const g=this.g;
+        const P=this.E.puppet;
+        q.t+=dt;
+        if (!q.landed&&q.t>=P.drop) {
+            q.landed=true;
+            g.fx.cameraShake(P.shake);
+            g.fx.fovPunch(P.fov);
+            g.fx.hitStop(P.stop,true);
+            g.decals.spawn(q.x,q.z,P.splat,'red','darkRed');
+            g.particles.burst(q.x,0.4,q.z,30,{color:'red',speed:[4,10],up:[3,8],size:[0.1,0.22]});
+            g.particles.burst(q.x,0.4,q.z,20,{color:'ink',speed:[3,8],up:[1,4],size:[0.08,0.18]});
+        }
+        while (q.landed&&q.waves<P.waves&&q.t>=P.drop+q.waves*P.waveGap) {
+            g.rings.spawn(q.x,q.z,P.waveR*(1+q.waves*0.6),q.waves%2?'ink':'red',0.5);
+            q.waves++;
+        }
+        if (q.waves>=P.waves) {
+            this.pupFx=null;
+        }
     }
 
     bounceBall(dx,dz,damage,bounces) {
@@ -1446,6 +1583,824 @@ export class CardEffects {
                 if (Math.random()<0.5) {
                     this.g.particles.burst(ax+ex*u,this.T.weapon.height,az+ez*u,2,{color:'marker',speed:[0.5,2],up:[0.5,1.5],size:[0.05,0.1],life:[0.2,0.35]});
                 }
+            }
+        }
+    }
+
+    buildKit() {
+        const g=this.g;
+        const K=this.E.kit;
+        const mk=(geo,m,parent=g.scene)=>{
+            const mesh=new THREE.Mesh(geo,m);
+            mesh.visible=false;
+            parent.add(mesh);
+            return mesh;
+        };
+        this.traps=[];
+        for (let i=0;i<3;i++) {
+            const grp=new THREE.Group();
+            const B=K.trapModel;
+            const steel=toonMaterial({light:'farGray',mid:'midGray',dark:'nearGray'});
+            const dark=toonMaterial({light:'midGray',mid:'nearGray',dark:'ink'});
+            const R=K.trapR*B.jawR;
+            const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.35,R*0.4,0.06,12),dark);
+            base.position.y=0.03;
+            grp.add(base);
+            const bar=new THREE.Mesh(new THREE.BoxGeometry(R*2.3,0.06,0.12),dark);
+            bar.position.y=0.05;
+            grp.add(bar);
+            for (const sx of [-1,1]) {
+                const spring=new THREE.Mesh(new THREE.TorusGeometry(0.16,0.045,6,12),steel);
+                spring.rotation.y=Math.PI/2;
+                spring.position.set(sx*R*1.15,0.12,0);
+                grp.add(spring);
+            }
+            const pad=new THREE.Mesh(new THREE.CylinderGeometry(R*0.28,R*0.28,0.05,12),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+            pad.position.y=0.09;
+            grp.add(pad);
+            for (let k=0;k<3;k++) {
+                const link=new THREE.Mesh(new THREE.TorusGeometry(0.08,0.022,5,10),dark);
+                link.rotation.set(Math.PI/2,0,k%2?Math.PI/2:0);
+                link.position.set(R*1.4+k*0.13,0.03,R*0.35+k*0.1);
+                grp.add(link);
+            }
+            const stake=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.3,6),dark);
+            stake.position.set(R*1.4+0.42,0.12,R*0.35+0.32);
+            stake.rotation.x=Math.PI;
+            grp.add(stake);
+            const jaws=[];
+            for (const s of [-1,1]) {
+                const jaw=new THREE.Group();
+                const arc=new THREE.Mesh(new THREE.TorusGeometry(R,0.05,6,18,Math.PI),steel);
+                jaw.add(arc);
+                for (let k=0;k<B.teeth;k++) {
+                    const a=(k+0.5)/B.teeth*Math.PI;
+                    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.24,4),toonMaterial({light:'paper',mid:'farGray',dark:'midGray'}));
+                    tooth.position.set(Math.cos(a)*R,Math.sin(a)*R,-s*0.1);
+                    tooth.rotation.x=-s*Math.PI/2;
+                    jaw.add(tooth);
+                }
+                jaw.position.y=0.08;
+                jaw.userData.s=s;
+                grp.add(jaw);
+                jaws.push(jaw);
+            }
+            grp.visible=false;
+            g.scene.add(grp);
+            this.traps.push({mesh:grp,jaws,pad,left:0,x:0,z:0,dmg:0,stun:0,bossStun:0,t:0,snap:0});
+        }
+        this.clocks=[];
+        for (let i=0;i<3;i++) {
+            const grp=new THREE.Group();
+            const body=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.3,16),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+            body.rotation.x=Math.PI/2;
+            body.position.y=0.6;
+            const face=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.32,16),unlitMaterial({color:'paper'}));
+            face.rotation.x=Math.PI/2;
+            face.position.y=0.6;
+            const bells=[];
+            for (const s of [-1,1]) {
+                const b=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,6),toonMaterial({light:'midGray',mid:'nearGray',dark:'ink'}));
+                b.position.set(s*0.3,1.05,0);
+                grp.add(b);
+                bells.push(b);
+            }
+            const hand=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.3,0.36),unlitMaterial({color:'ink'}));
+            hand.position.y=0.6;
+            grp.add(body,face,hand);
+            grp.visible=false;
+            g.scene.add(grp);
+            this.clocks.push({mesh:grp,hand,left:0,x:0,z:0,r:0,dmg:0,stun:0,tick:0});
+        }
+        this.slowShots=[];
+        for (let i=0;i<3;i++) {
+            this.slowShots.push({mesh:mk(new THREE.SphereGeometry(K.shotR,12,8),toonMaterial({light:'midGray',mid:'nearGray',dark:'ink'})),active:false,x:0,z:0,vx:0,vz:0,t:0,dmg:0,step:0,every:0,max:0});
+        }
+        this.mirrors=[];
+        for (let i=0;i<2;i++) {
+            const m=new THREE.Mesh(new THREE.BoxGeometry(1,K.mirrorH,0.1),new THREE.MeshBasicMaterial({color:pal('farGray'),transparent:true,opacity:0.75,depthWrite:false}));
+            const edge=new THREE.Mesh(new THREE.BoxGeometry(1.02,0.08,0.14),unlitMaterial({color:'ink'}));
+            edge.position.y=K.mirrorH/2;
+            m.add(edge);
+            m.visible=false;
+            g.fxScene.add(m);
+            this.mirrors.push({mesh:m,left:0,x0:0,z0:0,x1:0,z1:0,t:0});
+        }
+        const um=new THREE.Group();
+        const canopy=new THREE.Mesh(new THREE.SphereGeometry(1.2,14,8,0,Math.PI*2,0,Math.PI/2.6),toonMaterial({light:'red',mid:'red',dark:'darkRed'}));
+        canopy.scale.set(1,0.55,1);
+        canopy.rotation.x=Math.PI/2;
+        canopy.position.set(0,1.1,0.9);
+        const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.3,6),unlitMaterial({color:'ink'}));
+        stick.rotation.x=Math.PI/2;
+        stick.position.set(0,1.1,0.4);
+        um.add(canopy,stick);
+        um.visible=false;
+        g.scene.add(um);
+        this.umbrellaMesh=um;
+        const pl=new THREE.Group();
+        const wingGeo=new THREE.BufferGeometry();
+        wingGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,1.4,-1.1,0,-0.8,0,0.15,-0.5,0,0,1.4,0,0.15,-0.5,1.1,0,-0.8,0,0,1.4,0,-0.45,-0.6,0,0.15,-0.5],3));
+        wingGeo.computeVertexNormals();
+        const wing=new THREE.Mesh(wingGeo,toonMaterial({light:'paper',mid:'farGray',dark:'midGray',side:THREE.DoubleSide}));
+        pl.add(wing);
+        pl.visible=false;
+        g.scene.add(pl);
+        this.planeMesh=pl;
+        this.reserveArm=0;
+        this.aids=[];
+    }
+
+    clearKit() {
+        for (const q of this.traps||[]) {
+            q.left=0;
+            q.mesh.visible=false;
+        }
+        for (const q of this.clocks||[]) {
+            q.left=0;
+            q.mesh.visible=false;
+        }
+        for (const q of this.slowShots||[]) {
+            q.active=false;
+            q.mesh.visible=false;
+        }
+        for (const q of this.mirrors||[]) {
+            q.left=0;
+            q.mesh.visible=false;
+        }
+        if (this.umbrellaMesh) {
+            this.umbrellaMesh.visible=false;
+            this.planeMesh.visible=false;
+        }
+        if (this.planeAnim) {
+            this.planeAnim=null;
+            this.g.player.moveFrame.scale.setScalar(TUNING.player.visualScale);
+            this.g.player.morphSpin=0;
+        }
+        this.reserveArm=0;
+        this.aids=[];
+        this.queue=[];
+        const g=this.g;
+        if (g.enemies) {
+            g.enemies.timeScale=1;
+            g.enemies.bossScale=1;
+        }
+        if (g.enemyBullets) {
+            g.enemyBullets.timeScale=1;
+        }
+        const p=g.player;
+        if (p) {
+            p.plantT=0;
+            p.fullInkT=0;
+            p.umbrellaT=0;
+            p.spongeT=0;
+            p.spongeN=0;
+            p.planeT=0;
+        }
+        this.slowT=0;
+    }
+
+    later(delay,fn) {
+        (this.queue||(this.queue=[])).push({t:delay,fn});
+    }
+
+    miniShield(hits,duration) {
+        const g=this.g;
+        const p=g.player;
+        p.setShield(p.shield+hits,Math.max(p.shieldT||0,duration));
+        p.sqv+=1.5;
+        g.fx.fovPunch(0.6);
+        g.particles.burst(p.pos.x,1.0,p.pos.z,8,{color:'farGray',speed:[2,4],up:[2,4],size:[0.06,0.12]});
+    }
+
+    boxFort(x,z,count,hits) {
+        const g=this.g;
+        const room=g.room;
+        if (!room) {
+            return;
+        }
+        const p=g.player;
+        const a0=Math.atan2(z-p.pos.z,x-p.pos.x);
+        const tmp={x:0,z:0,depth:0};
+        for (let i=0;i<count;i++) {
+            const a=a0+Math.PI/2+i/count*Math.PI*2;
+            const r=count>1?1.25:0;
+            const bx=Math.max(room.bounds.minX+1,Math.min(room.bounds.maxX-1,x+Math.cos(a)*r));
+            const bz=Math.max(room.bounds.minZ+1,Math.min(room.bounds.maxZ-1,z+Math.sin(a)*r));
+            if (Math.hypot(bx-p.pos.x,bz-p.pos.z)<1.3||room.colliders.some(c=>circleVs(bx,bz,0.55,c,tmp))) {
+                continue;
+            }
+            room.addPaperBox(bx,bz,hits);
+            g.particles.burst(bx,0.5,bz,8,{color:'farGray',speed:[1,3],up:[2,4],size:[0.06,0.12]});
+        }
+        g.fx.cameraShake(0.12);
+    }
+
+    spareMag(n) {
+        const g=this.g;
+        const p=g.player;
+        const W=p.W;
+        p.reloadT=0;
+        p.pendReload=false;
+        p.burstLeft=0;
+        p.ammo=W.magazine;
+        p.cdT=0;
+        if (W.charge) {
+            p.slingFull=true;
+        }
+        if (W.beam) {
+            p.beamT=0;
+        }
+        if (g.addRedraw) {
+            g.addRedraw(n);
+        }
+        p.sqv+=1.5;
+        g.particles.burst(p.pos.x,1.0,p.pos.z,10,{speed:[2,4],up:[2,5],size:[0.06,0.12]});
+        g.fx.fovPunch(0.6);
+    }
+
+    recopy() {
+        const g=this.g;
+        if (g.redrawFree) {
+            this.later(0.05,()=>g.redrawFree());
+        }
+        g.fx.fovPunch(0.6);
+    }
+
+    reserve(delay) {
+        const g=this.g;
+        this.reserveArm=delay;
+        g.rings.spawn(g.player.pos.x,g.player.pos.z,1.4,'red',0.35);
+        g.particles.burst(g.player.pos.x,1.2,g.player.pos.z,8,{color:'red',speed:[1,3],up:[2,4],size:[0.06,0.12]});
+    }
+
+    takeReserve(card,target) {
+        if (!this.reserveArm||card.def.rarity==='rare'||card.id==='reserve') {
+            return;
+        }
+        const delay=this.reserveArm;
+        this.reserveArm=0;
+        const g=this.g;
+        const tg={...target};
+        delete tg.ox;
+        delete tg.oz;
+        this.later(delay,()=>{
+            if (!g.player||g.player.hp<=0) {
+                return;
+            }
+            g.rings.spawn(g.player.pos.x,g.player.pos.z,1.6,'red',0.4);
+            this.run(card,tg);
+            if (g.onReserve) {
+                g.onReserve(card);
+            }
+        });
+    }
+
+    crossCut(damage,count,speed,dx=null,dz=null) {
+        const g=this.g;
+        const p=g.player;
+        g.pierceBullets.ramp=0;
+        for (let i=0;i<count;i++) {
+            const a=Math.atan2(dz??p.aimDirZ,dx??p.aimDirX)+i*Math.PI*2/count;
+            g.pierceBullets.spawn(p.pos.x+Math.cos(a)*0.6,p.pos.z+Math.sin(a)*0.6,Math.cos(a),Math.sin(a),speed,damage,this.E.kit.crossLife);
+        }
+        p.sqv+=2;
+        g.rings.spawn(p.pos.x,p.pos.z,1.5,'ink',0.25);
+        g.fx.cameraShake(0.15);
+        g.fx.fovPunch(1.0);
+    }
+
+    bearTrap(x,z,duration,damage,stun,bossStun) {
+        const g=this.g;
+        let q=this.traps.find(o=>o.left<=0);
+        if (!q) {
+            q=this.traps.reduce((a,o)=>o.left<a.left?o:a,this.traps[0]);
+        }
+        Object.assign(q,{left:duration,x,z,dmg:damage,stun,bossStun,t:0,snap:0,prey:null});
+        q.mesh.visible=true;
+        q.mesh.position.set(x,0,z);
+        q.mesh.scale.setScalar(1);
+        this.setJaws(q,1);
+        q.mesh.rotation.y=Math.random()*Math.PI;
+        g.particles.burst(x,0.3,z,8,{color:'nearGray',speed:[1,3],up:[1,3]});
+    }
+
+    setJaws(q,c) {
+        for (const j of q.jaws) {
+            j.rotation.x=j.userData.s*Math.PI/2*(1-c);
+        }
+    }
+
+    umbrella(duration,angle,pct) {
+        const p=this.g.player;
+        p.umbrellaT=duration;
+        p.umbrellaCos=Math.cos(angle/2*Math.PI/180);
+        p.umbrellaSlow=1-pct/100;
+        p.sqv+=1.5;
+    }
+
+    plant(duration,bonus) {
+        const g=this.g;
+        const p=g.player;
+        p.plantT=duration;
+        p.plantMult=1+bonus/100;
+        g.rings.spawn(p.pos.x,p.pos.z,1.2,'ink',0.35);
+        g.decals.spawn(p.pos.x,p.pos.z,1.4,'ink','midGray');
+        p.sqv-=2;
+    }
+
+    alarmClock(x,z,delay,radius,damage,stun) {
+        const g=this.g;
+        let q=this.clocks.find(o=>o.left<=0);
+        if (!q) {
+            q=this.clocks.reduce((a,o)=>o.left<a.left?o:a,this.clocks[0]);
+        }
+        Object.assign(q,{left:delay,full:delay,x,z,r:radius,dmg:damage,stun,tick:0});
+        q.mesh.visible=true;
+        q.mesh.position.set(x,0,z);
+        g.rings.spawn(x,z,radius,'red',0.4);
+    }
+
+    slowShot(dx,dz,damage,step,every,max) {
+        const g=this.g;
+        const K=this.E.kit;
+        const m=this.muzzle(dx,dz);
+        let q=this.slowShots.find(o=>!o.active)||this.slowShots[0];
+        Object.assign(q,{active:true,x:m.x,z:m.z,vx:dx*K.shotSpeed,vz:dz*K.shotSpeed,t:0,dmg:damage,step,every,max,hit:new Set()});
+        q.mesh.visible=true;
+        g.muzzle.show(m.x,this.T.weapon.height,m.z,'ink',1.2);
+        g.fx.fovPunch(0.6);
+    }
+
+    slowShotDamage(q) {
+        return Math.min(q.max,q.dmg+Math.floor(q.t/q.every)*q.step);
+    }
+
+    mirror(x,z,length,duration) {
+        const g=this.g;
+        const p=g.player;
+        let dx=x-p.pos.x;
+        let dz=z-p.pos.z;
+        const l=Math.hypot(dx,dz);
+        if (l<0.1) {
+            dx=p.aimDirX;
+            dz=p.aimDirZ;
+        }
+        else {
+            dx/=l;
+            dz/=l;
+        }
+        const px=-dz;
+        const pz=dx;
+        let q=this.mirrors.find(o=>o.left<=0);
+        if (!q) {
+            q=this.mirrors.reduce((a,o)=>o.left<a.left?o:a,this.mirrors[0]);
+        }
+        Object.assign(q,{left:duration,t:0,x0:x-px*length/2,z0:z-pz*length/2,x1:x+px*length/2,z1:z+pz*length/2,nx:dx,nz:dz});
+        q.mesh.visible=true;
+        q.mesh.position.set(x,this.E.kit.mirrorH/2,z);
+        q.mesh.rotation.y=Math.atan2(-pz,px);
+        q.mesh.scale.set(length,0.01,1);
+        g.particles.burst(x,1,z,12,{color:'farGray',speed:[1,3],up:[1,3],size:[0.06,0.12]});
+    }
+
+    sponge(duration,per,max,radius) {
+        const g=this.g;
+        const p=g.player;
+        p.spongeT=duration;
+        p.spongeN=0;
+        this.spongeCfg={per,max,radius};
+        g.rings.spawn(p.pos.x,p.pos.z,1.4,'ink',0.35);
+        p.sqv+=2;
+    }
+
+    grudge(x,z,damage,per,max,radius) {
+        const g=this.g;
+        const p=g.player;
+        const dmg=Math.min(max,damage+(p.pageHits||0)*per);
+        const e=g.enemies.priority(x,z,radius);
+        if (!e) {
+            g.rings.spawn(x,z,1.2,'red',0.3);
+            g.particles.burst(x,0.6,z,8,{color:'red',speed:[1,3],up:[1,3]});
+            return;
+        }
+        const dx=e.pos.x-p.pos.x;
+        const dz=e.pos.z-p.pos.z;
+        const l=Math.hypot(dx,dz)||1;
+        this.link(p.pos.x,p.pos.z,e.pos.x,e.pos.z);
+        g.enemies.damage(e,dmg,dx/l,dz/l);
+        g.rings.spawn(e.pos.x,e.pos.z,e.def.radius+1,'red',0.35);
+        g.particles.burst(e.pos.x,1,e.pos.z,6+Math.round(dmg/6),{color:'red',speed:[2,6],up:[2,5],size:[0.08,0.16]});
+        g.fx.cameraShake(0.1+dmg/300);
+        g.fx.hitStop(40+dmg,true);
+    }
+
+    slowMo(duration,pct,boss) {
+        const g=this.g;
+        this.slowT=duration;
+        this.slowMult=pct/100;
+        this.slowBoss=boss/100;
+        g.fx.flash('paper',0.2,0.4);
+        g.fx.fovPunch(-1.5);
+    }
+
+    luckyDice(x,z,per,radius,roll) {
+        const g=this.g;
+        const p=g.player;
+        const n=roll||1+Math.floor(Math.random()*6);
+        const dmg=n*per;
+        const e=g.enemies.priority(x,z,radius);
+        g.rings.spawn(x,z,radius,'red',0.4);
+        if (g.onDice) {
+            g.onDice(n,e?e.pos.x:x,e?e.pos.z:z);
+        }
+        if (!e) {
+            g.particles.burst(x,0.6,z,10,{color:'red',speed:[2,4],up:[2,4]});
+            return;
+        }
+        const dx=e.pos.x-p.pos.x;
+        const dz=e.pos.z-p.pos.z;
+        const l=Math.hypot(dx,dz)||1;
+        g.enemies.damage(e,dmg,dx/l,dz/l);
+        g.decals.spawn(e.pos.x,e.pos.z,1.2+n*0.3,'red','darkRed');
+        g.particles.burst(e.pos.x,1,e.pos.z,8+n*4,{color:n===6?'red':'ink',speed:[2,7],up:[2,6],size:[0.08,0.18]});
+        g.fx.cameraShake(0.15+n*0.08);
+        g.fx.hitStop(40+n*15,true);
+    }
+
+    rewind(damage,max) {
+        const g=this.g;
+        const B=g.enemyBullets;
+        let n=0;
+        for (let i=B.n-1;i>=0&&n<max;i--) {
+            const x=B.x[i];
+            const z=B.z[i];
+            const e=g.enemies.nearest(x,z,40);
+            let dx=-B.vx[i];
+            let dz=-B.vz[i];
+            if (e) {
+                dx=e.pos.x-x;
+                dz=e.pos.z-z;
+            }
+            const l=Math.hypot(dx,dz)||1;
+            B.kill(i);
+            g.homingBullets.spawn(x,z,dx/l,dz/l,this.E.kit.rewindSpeed,damage,this.E.homingLife);
+            g.particles.burst(x,1,z,3,{color:'red',speed:[1,3],up:[1,2],size:[0.05,0.1]});
+            n++;
+        }
+        g.fx.flash('paper',0.2,0.35);
+        g.fx.fovPunch(1.6);
+        g.rings.spawn(g.player.pos.x,g.player.pos.z,3,'red',0.4);
+    }
+
+    fullInk(duration,bonus) {
+        const g=this.g;
+        const p=g.player;
+        p.fullInkT=duration;
+        p.fullInkMult=1+bonus/100;
+        p.reloadT=0;
+        p.pendReload=false;
+        p.ammo=p.W.magazine;
+        p.sqv+=2;
+        g.rings.spawn(p.pos.x,p.pos.z,1.8,'ink',0.4);
+        g.particles.burst(p.pos.x,1.2,p.pos.z,18,{speed:[2,5],up:[3,6],size:[0.08,0.16]});
+    }
+
+    firstAid(radius,duration,heal,every) {
+        const g=this.g;
+        const p=g.player;
+        this.aids.push({x:p.pos.x,z:p.pos.z,r:radius,left:duration,heal,every,acc:0,ring:0});
+        g.decals.spawn(p.pos.x,p.pos.z,radius*2,'red','darkRed');
+        g.rings.spawn(p.pos.x,p.pos.z,radius,'red',0.5);
+    }
+
+    planeDash(duration,mult,damage,every) {
+        const g=this.g;
+        const p=g.player;
+        p.planeT=duration;
+        p.planeMult=mult;
+        this.planeCfg={damage,every,hit:new Map()};
+        this.planeAnim={phase:'in',t:0};
+        p.invuln=Math.max(p.invuln,0.2);
+        g.fx.fovPunch(2);
+        g.particles.burst(p.pos.x,1.0,p.pos.z,18,{color:'farGray',speed:[2,6],up:[2,5],size:[0.08,0.16]});
+    }
+
+    updateKit(dt) {
+        const g=this.g;
+        const p=g.player;
+        const K=this.E.kit;
+        if (this.queue&&this.queue.length) {
+            for (let i=this.queue.length-1;i>=0;i--) {
+                const q=this.queue[i];
+                q.t-=dt;
+                if (q.t<=0) {
+                    this.queue.splice(i,1);
+                    q.fn();
+                }
+            }
+        }
+        this.slowT=Math.max(0,(this.slowT||0)-dt);
+        const sl=this.slowT>0;
+        g.enemies.timeScale=sl?this.slowMult:1;
+        g.enemies.bossScale=sl?this.slowBoss:1;
+        g.enemyBullets.timeScale=sl?this.slowMult:1;
+        for (const q of this.traps) {
+            if (q.left<=0) {
+                continue;
+            }
+            q.t+=dt;
+            const TM=K.trapModel;
+            if (q.snap>0) {
+                q.snap-=dt;
+                const st=TM.hold-q.snap;
+                const c=Math.min(1,st/TM.shut);
+                const wob=st>TM.shut?Math.sin(st*70)*0.12*Math.max(0,1-(st-TM.shut)/0.25):0;
+                this.setJaws(q,EASE.easeInCubic(c)+wob*0.2);
+                q.mesh.position.x=q.x+(st<0.3?Math.sin(st*90)*0.05:0);
+                if (q.prey&&q.prey.alive) {
+                    q.prey.pos.x+=(q.x-q.prey.pos.x)*Math.min(1,dt*12);
+                    q.prey.pos.z+=(q.z-q.prey.pos.z)*Math.min(1,dt*12);
+                }
+                if (q.snap<TM.sink) {
+                    q.mesh.scale.setScalar(Math.max(0.01,q.snap/TM.sink));
+                }
+                if (q.snap<=0) {
+                    q.left=0;
+                    q.mesh.visible=false;
+                }
+                continue;
+            }
+            q.left-=dt;
+            if (q.left<=0) {
+                q.mesh.visible=false;
+                continue;
+            }
+            if (q.t<K.trapArm) {
+                const a=q.t/K.trapArm;
+                this.setJaws(q,1-EASE.easeOutBack(a));
+                continue;
+            }
+            this.setJaws(q,0);
+            q.pad.position.y=0.09+Math.max(0,Math.sin(q.t*4))*0.025;
+            const e=g.enemies.nearest(q.x,q.z,K.trapR,true);
+            if (e&&!e.def.flying) {
+                g.enemies.damage(e,q.dmg,0,0);
+                if (e.alive) {
+                    e.stun(e.def.boss?q.bossStun/(TUNING.bossTempo||1):q.stun,true);
+                    q.prey=e.def.boss?null:e;
+                }
+                q.snap=TM.hold;
+                q.pad.position.y=0.06;
+                g.particles.burst(q.x,0.5,q.z,10,{color:'paper',speed:[3,7],up:[3,6],size:[0.04,0.08]});
+                g.particles.burst(q.x,0.3,q.z,6,{color:'red',speed:[1,3],up:[1,3],size:[0.06,0.12]});
+                g.rings.spawn(q.x,q.z,K.trapR*1.3,'ink',0.3);
+                g.particles.burst(q.x,0.4,q.z,14,{color:'nearGray',speed:[2,5],up:[2,5],size:[0.08,0.14]});
+                g.fx.cameraShake(0.2);
+                g.fx.hitStop(50,true);
+            }
+        }
+        for (const q of this.clocks) {
+            if (q.left<=0) {
+                continue;
+            }
+            q.left-=dt;
+            q.tick-=dt;
+            const urg=1-Math.max(0,q.left)/q.full;
+            q.hand.rotation.z+=dt*(4+urg*20);
+            q.mesh.position.x=q.x+(urg>0.6?Math.sin(q.left*60)*0.06*urg:0);
+            if (q.tick<=0) {
+                q.tick=K.alarmTick*(1-urg*0.6);
+                g.rings.spawn(q.x,q.z,q.r*(0.4+urg*0.6),'red',0.25);
+            }
+            if (q.left<=0) {
+                q.mesh.visible=false;
+                for (const e of g.enemies.list.slice()) {
+                    if (e.state==='spawn'||!e.alive||Math.hypot(e.pos.x-q.x,e.pos.z-q.z)>q.r+e.def.radius) {
+                        continue;
+                    }
+                    g.enemies.damage(e,q.dmg,0,0);
+                    if (e.alive) {
+                        e.stun(q.stun,true);
+                    }
+                }
+                g.rings.spawn(q.x,q.z,q.r,'red',0.45);
+                g.decals.spawn(q.x,q.z,q.r*1.4,'red','darkRed');
+                g.particles.burst(q.x,0.6,q.z,26,{color:'red',speed:[3,q.r*3],up:[2,7],size:[0.08,0.2]});
+                g.fx.cameraShake(0.35);
+                g.fx.fovPunch(1.4);
+                g.fx.hitStop(60,true);
+                if (g.onAlarm) {
+                    g.onAlarm();
+                }
+            }
+        }
+        for (const q of this.slowShots) {
+            if (!q.active) {
+                continue;
+            }
+            q.t+=dt;
+            q.x+=q.vx*dt;
+            q.z+=q.vz*dt;
+            const dmg=this.slowShotDamage(q);
+            const sc=1+(dmg-q.dmg)/Math.max(1,q.max-q.dmg)*K.shotGrow*2;
+            q.mesh.scale.setScalar(sc);
+            q.mesh.position.set(q.x,this.T.weapon.height,q.z);
+            if (Math.random()<0.4) {
+                g.particles.burst(q.x,this.T.weapon.height,q.z,1,{color:dmg>=q.max?'red':'midGray',speed:[0.3,1],up:[0.3,1],size:[0.05,0.1],life:[0.2,0.4]});
+            }
+            const room=g.room;
+            let dead=q.t>K.shotLife;
+            if (room&&!dead) {
+                const b=room.bounds;
+                dead=q.x<b.minX||q.x>b.maxX||q.z<b.minZ||q.z>b.maxZ||room.colliders.some(c=>!c.passPlayer&&circleVs(q.x,q.z,K.shotR*0.6,c));
+            }
+            const e=dead?null:g.enemies.nearest(q.x,q.z,K.shotR*sc+0.4);
+            if (e&&Math.hypot(e.pos.x-q.x,e.pos.z-q.z)<=K.shotR*sc+e.def.radius) {
+                const l=Math.hypot(q.vx,q.vz)||1;
+                g.enemies.src='card';
+                g.enemies.damage(e,dmg,q.vx/l,q.vz/l);
+                g.enemies.src=null;
+                g.rings.spawn(q.x,q.z,1+sc*0.5,dmg>=q.max?'red':'ink',0.3);
+                g.particles.burst(q.x,1,q.z,6+Math.round(dmg/8),{color:dmg>=q.max?'red':'ink',speed:[2,6],up:[2,5],size:[0.08,0.16]});
+                g.fx.cameraShake(0.08+dmg/400);
+                dead=true;
+            }
+            if (dead) {
+                q.active=false;
+                q.mesh.visible=false;
+            }
+        }
+        for (const q of this.mirrors) {
+            if (q.left<=0) {
+                continue;
+            }
+            q.left-=dt;
+            q.t+=dt;
+            const a=Math.min(1,q.t/0.2,Math.max(0,q.left)/0.3);
+            q.mesh.scale.y=Math.max(0.01,a);
+            if (q.left<=0) {
+                q.mesh.visible=false;
+                continue;
+            }
+            const B=g.enemyBullets;
+            const fx=q.x1-q.x0;
+            const fz=q.z1-q.z0;
+            const L=Math.hypot(fx,fz)||1;
+            const nx=-fz/L;
+            const nz=fx/L;
+            for (let i=B.n-1;i>=0;i--) {
+                const rx=B.x[i]-q.x0;
+                const rz=B.z[i]-q.z0;
+                const along=(rx*fx+rz*fz)/L;
+                const d=rx*nx+rz*nz;
+                if (along<0||along>L||Math.abs(d)>0.35) {
+                    continue;
+                }
+                const vx=B.vx[i];
+                const vz=B.vz[i];
+                const vd=vx*nx+vz*nz;
+                if (vd*d>0) {
+                    continue;
+                }
+                const ox=vx-2*vd*nx;
+                const oz=vz-2*vd*nz;
+                const sp=Math.hypot(ox,oz)||1;
+                const x=B.x[i];
+                const z=B.z[i];
+                B.kill(i);
+                g.playerBullets.spawn(x+ox/sp*0.4,z+oz/sp*0.4,ox/sp,oz/sp,this.T.weapon.bulletSpeed,this.T.weapon.damage*K.mirrorDmg,1.2);
+                g.particles.burst(x,1,z,3,{color:'farGray',speed:[1,3],up:[1,2],size:[0.05,0.1]});
+            }
+        }
+        if (p) {
+            const um=this.umbrellaMesh;
+            um.visible=p.umbrellaT>0;
+            if (um.visible) {
+                um.position.set(p.renderPos?p.renderPos.x:p.pos.x,0,p.renderPos?p.renderPos.z:p.pos.z);
+                um.rotation.y=Math.atan2(p.aimDirX,p.aimDirZ);
+                const R=K.umbrellaR;
+                const cs=p.umbrellaCos;
+                g.enemyBullets.killWhere((x,z)=>{
+                    const dx=x-p.pos.x;
+                    const dz=z-p.pos.z;
+                    const d=Math.hypot(dx,dz);
+                    return d<R&&d>0.01&&(dx*p.aimDirX+dz*p.aimDirZ)/d>=cs;
+                },(x,z)=>g.particles.burst(x,1,z,2,{color:'red',speed:[1,3],up:[1,2],size:[0.05,0.1]}));
+            }
+            const pm=this.planeMesh;
+            const PM=K.planeMorph;
+            const A=this.planeAnim;
+            const vs=TUNING.player.visualScale;
+            const rp=p.renderPos||p.pos;
+            if (A) {
+                A.t+=dt;
+                if (A.phase==='in') {
+                    const k=Math.min(1,A.t/PM.inTime);
+                    p.moveFrame.scale.setScalar(vs*Math.max(0.001,1-k));
+                    p.morphSpin=k*Math.PI*PM.spin;
+                    pm.scale.setScalar(PM.scale*Math.max(0.001,k<1?k*(1.2-0.2*k):1));
+                    if (k>=1) {
+                        A.phase='fly';
+                        p.morphSpin=0;
+                        g.particles.burst(rp.x,1.0,rp.z,10,{color:'paper',speed:[1,3],up:[1,3],size:[0.08,0.14]});
+                    }
+                }
+                else if (A.phase==='fly') {
+                    p.moveFrame.scale.setScalar(0.001);
+                    pm.scale.setScalar(PM.scale);
+                    if (p.planeT<=0) {
+                        A.phase='out';
+                        A.t=0;
+                        g.particles.burst(rp.x,1.0,rp.z,22,{color:'farGray',speed:[2,6],up:[2,5],size:[0.08,0.16]});
+                        g.rings.spawn(rp.x,rp.z,1.4,'ink',0.3);
+                        g.fx.fovPunch(-1);
+                    }
+                }
+                else {
+                    const k=Math.min(1,A.t/PM.outTime);
+                    const pk=Math.min(1,k*2);
+                    pm.scale.setScalar(PM.scale*Math.max(0.001,1-pk));
+                    pm.position.set(rp.x,PM.y+pk*1.2,rp.z);
+                    pm.rotation.y+=dt*18;
+                    pm.rotation.x=pk*Math.PI*0.5;
+                    const bk=Math.max(0,(k-0.25)/0.75);
+                    p.moveFrame.scale.setScalar(vs*Math.max(0.001,bk<1?EASE.easeOutBack(bk):1));
+                    p.morphSpin=(1-bk)*Math.PI*PM.spin;
+                    if (k>=1) {
+                        this.planeAnim=null;
+                        p.moveFrame.scale.setScalar(vs);
+                        p.morphSpin=0;
+                        pm.rotation.x=0;
+                    }
+                }
+            }
+            pm.visible=p.planeT>0||!!this.planeAnim;
+            if (p.planeT>0) {
+                pm.position.set(rp.x,PM.y+Math.sin(p.planeT*8)*0.12,rp.z);
+                pm.rotation.y=p.moveYaw||0;
+                pm.rotation.z=Math.sin(p.planeT*5)*0.25;
+                const C=this.planeCfg;
+                for (const e of g.enemies.list.slice()) {
+                    if (e.state==='spawn'||!e.alive||Math.hypot(e.pos.x-p.pos.x,e.pos.z-p.pos.z)>K.planeR+e.def.radius) {
+                        continue;
+                    }
+                    const last=C.hit.get(e.uid)??-1;
+                    if (last>=0&&p.planeT>last-C.every) {
+                        continue;
+                    }
+                    C.hit.set(e.uid,p.planeT);
+                    const dx=e.pos.x-p.pos.x;
+                    const dz=e.pos.z-p.pos.z;
+                    const l=Math.hypot(dx,dz)||1;
+                    g.enemies.src='card';
+                    g.enemies.damage(e,C.damage,dx/l,dz/l);
+                    g.enemies.src=null;
+                    g.particles.burst(e.pos.x,1,e.pos.z,8,{color:'farGray',speed:[2,5],up:[2,4],size:[0.08,0.14]});
+                    g.fx.cameraShake(0.1);
+                }
+                if (Math.random()<0.5) {
+                    g.particles.burst(rp.x,1.1,rp.z,1,{color:'farGray',speed:[0.3,1],up:[0.2,0.8],size:[0.06,0.12],life:[0.3,0.5]});
+                }
+            }
+            if (this.spongeCfg&&p.spongeT<=0&&p.spongeArmed) {
+                p.spongeArmed=false;
+                const S=this.spongeCfg;
+                const dmg=Math.min(S.max,(p.spongeN||0)*S.per);
+                if (dmg>0) {
+                    g.enemies.damageRadius(p.pos.x,p.pos.z,S.radius,dmg);
+                    g.rings.spawn(p.pos.x,p.pos.z,S.radius,'ink',0.45);
+                    g.decals.spawn(p.pos.x,p.pos.z,S.radius*1.5,'ink','midGray');
+                    g.particles.burst(p.pos.x,0.6,p.pos.z,24,{speed:[3,S.radius*3],up:[3,8],size:[0.1,0.24]});
+                    g.fx.cameraShake(0.3);
+                    g.fx.hitStop(70,true);
+                }
+                else {
+                    g.particles.burst(p.pos.x,0.8,p.pos.z,8,{color:'farGray',speed:[1,3],up:[1,3]});
+                }
+                p.spongeN=0;
+            }
+            if (p.spongeT>0) {
+                p.spongeArmed=true;
+            }
+        }
+        for (let i=this.aids.length-1;i>=0;i--) {
+            const a=this.aids[i];
+            a.left-=dt;
+            a.acc+=dt;
+            a.ring-=dt;
+            if (a.ring<=0) {
+                a.ring=K.aidRing;
+                g.rings.spawn(a.x,a.z,a.r,'red',0.35);
+            }
+            if (a.acc>=a.every) {
+                a.acc-=a.every;
+                if (p&&p.hp>0&&Math.hypot(p.pos.x-a.x,p.pos.z-a.z)<=a.r) {
+                    this.heal(a.heal);
+                }
+            }
+            if (a.left<=0) {
+                this.aids.splice(i,1);
             }
         }
     }

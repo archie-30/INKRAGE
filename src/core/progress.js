@@ -35,6 +35,9 @@ export function loadProgress() {
     if (saved) {
         Object.assign(progress,saved);
     }
+    if (progress.welcome===undefined) {
+        progress.welcome=saved?'done':'pending';
+    }
     if (progress.unlockVer!==TUNING.levels.unlockVer) {
         const lv=Math.max(1,Math.floor(Number(progress.level)||1));
         const kc=[];
@@ -73,11 +76,16 @@ export function loadProgress() {
         progress.beaten=[];
     }
     if (!Array.isArray(progress.bossIntro)) {
-        progress.bossIntro=progress.seen.filter(id=>ENEMIES[id]&&ENEMIES[id].boss);
+        progress.bossIntro=[];
+    }
+    for (const id of progress.seen.concat(progress.beaten)) {
+        if (ENEMIES[id]&&ENEMIES[id].boss&&!progress.bossIntro.includes(id)) {
+            progress.bossIntro.push(id);
+        }
     }
     const q=new URLSearchParams(location.search);
     if (q.get('seen')==='all') {
-        progress.seen=['doodle','blob','sprayer','stampSoldier','inkCloud','bird','compass','eraserMonster','inkBottle','scissors','book','exam','bookFinal'];
+        progress.seen=['doodle','blob','sprayer','stampSoldier','inkCloud','paperPlane','bird','stickyHelper','compass','eraserMonster','inkBottle','scissors','book','exam','bookFinal','alarm','calculator'];
     }
     const lv=Number(q.get('level'));
     if (lv>0) {
@@ -168,7 +176,7 @@ export function addXp(amount) {
     const unlocked=[];
     for (let lv=before+1;lv<=progress.level;lv++) {
         if (UNLOCKS[lv]) {
-            unlocked.push(...UNLOCKS[lv].filter(id=>!KEPT_CARDS.includes(id)));
+            unlocked.push(...UNLOCKS[lv]);
         }
     }
     saveProgress();

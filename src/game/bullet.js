@@ -56,6 +56,8 @@ function chalkGeo() {
 
 const MODELS={compass:compassGeo,chalk:chalkGeo};
 
+const PROP_KINDS=['barrel','crate','target','paperBox'];
+
 export class BulletSystem {
     constructor(scene,fxScene,o) {
         const cap=o.capacity||TUNING.bullet.capacity;
@@ -99,11 +101,15 @@ export class BulletSystem {
         this.returnAccel=o.returnAccel||0;
         this.turnRate=o.turnRate||7;
         this.thruWalls=!!o.thruWalls;
+        this.wallPass=o.wallPass||0;
+        this.wp=new Uint8Array(cap);
+        this.passCol=new Array(cap).fill(null);
         this.ramp=0;
         this.target=null;
         this.onReturn=null;
         this.n=0;
         this.onWall=null;
+        this.onPass=null;
         this.onProp=null;
         this.onHit=null;
         this.onSeek=null;
@@ -176,6 +182,8 @@ export class BulletSystem {
         this.el[i]=0;
         this.spd[i]=speed;
         this.wt[i]=0;
+        this.wp[i]=this.wallPass;
+        this.passCol[i]=null;
         const K=this.K;
         for (let j=0;j<K;j++) {
             this.hist[(i*K+j)*2]=x;
@@ -210,6 +218,8 @@ export class BulletSystem {
         this.wt[i]=this.wt[j];
         this.lx[i]=this.lx[j];
         this.lz[i]=this.lz[j];
+        this.wp[i]=this.wp[j];
+        this.passCol[i]=this.passCol[j];
         this.hits.copyWithin(i*6,j*6,j*6+6);
         const K2=this.K*2;
         this.hist.copyWithin(i*K2,j*K2,j*K2+K2);
@@ -299,6 +309,7 @@ export class BulletSystem {
     }
 
     update(dt,room) {
+        dt*=this.timeScale??1;
         const K=this.K;
         const cols=room.colliders;
         const b=room.bounds;
@@ -381,12 +392,19 @@ export class BulletSystem {
                 continue;
             }
             let wall=null;
+            const pc=this.passCol[i];
+            if (pc&&!circleVs(x,z,wr,pc,hit)) {
+                this.passCol[i]=null;
+            }
             for (let c=0;c<cols.length&&!this.thruWalls;c++) {
                 const col=cols[c];
-                if (own&&col.passPlayer) {
+                if (col===this.passCol[i]) {
                     continue;
                 }
-                if (this.boomerang&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate')) {
+                if (own&&col.passPlayer&&!col.shotHit) {
+                    continue;
+                }
+                if (this.boomerang&&col.piece&&(col.piece.kind==='barrel'||col.piece.kind==='crate'||col.piece.kind==='paperBox')) {
                     if (this.onProp&&circleVs(x,z,r,col,hit)) {
                         this.onProp(col.piece,this.dmg[i]);
                     }
@@ -413,12 +431,22 @@ export class BulletSystem {
                 this.kill(i,true);
                 continue;
             }
-            if (wall) {
-                if (this.onWall) {
-                    this.onWall(x-this.vx[i]*dt*0.5,z-this.vz[i]*dt*0.5,this.vx[i],this.vz[i],wall);
+            if (wall&&this.wp[i]>0&&!(wall.piece&&PROP_KINDS.includes(wall.piece.kind))) {
+                this.wp[i]--;
+                this.passCol[i]=wall;
+                if (this.onPass) {
+                    this.onPass(x,z,this.vx[i],this.vz[i],wall);
                 }
-                this.kill(i);
-                continue;
+                wall=null;
+            }
+            if (wall) {
+                const keep=this.onWall?this.onWall(x-this.vx[i]*dt*0.5,z-this.vz[i]*dt*0.5,this.vx[i],this.vz[i],wall,this.dmg[i])||0:0;
+                if (keep<=0) {
+                    this.kill(i);
+                    continue;
+                }
+                this.dmg[i]=keep;
+                this.passCol[i]=wall;
             }
             if (this.onHit) {
                 const e=this.onHit(x,z,r,this.dmg[i],this.vx[i],this.vz[i],this,i);

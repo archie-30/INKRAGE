@@ -1,5 +1,5 @@
 export const MINIGAMES={
-    order:['bells','range','trace','push','pour','tiles','diff','pairs','rain','dice','plane','maze','rhythm','shadow','marble','cups'],
+    order:['bells','range','trace','push','pour','tiles','diff','pairs','rain','dice','plane','maze','rhythm','shadow','marble','cups','teacher','count'],
     host:[9.6,-5.4],
     area:{minX:-10.6,maxX:10.6,minZ:-6.6,maxZ:6.6},
     start:[0,4.6],
@@ -13,7 +13,8 @@ export const MINIGAMES={
         [3,[['reward','mixed']]],
         [1,[['reward','rare']]],
         [2,[['heal',2]]],
-        [2,[['ink',4]]],
+        [1,[['maxInk',1],['ink',2]]],
+        [1,[['maxHp',1],['heal',1]]],
         [2,[['upgradeRandom',1]]],
         [1,[['upgradeRandom',2]]],
         [2,[['card','common']]],
@@ -28,6 +29,7 @@ export const MINIGAMES={
         [2,[['removeRandom']]],
         [2,[['downgrade']]],
         [1,[['eliteNext']]],
+        [1,[['maxInk',-1]]],
         [1,[['ambush',false]]]
     ],
     games:{
@@ -39,13 +41,15 @@ export const MINIGAMES={
         tiles:{model:'sharpener',cols:[5,5,6],rows:[3,4,4],blocks:[1,2,3],size:2.0,time:[22,26,28]},
         diff:{model:'notebook',cell:2.2,diffs:[3,3,4],miss:1,time:[30,27,24],dwell:0.6,gapX:4.6},
         pairs:{model:'gacha',cols:4,rows:2,gap:2.6,miss:[3,3,2],dwell:0.45,show:0.9},
-        rain:{model:'cloud',time:[18,20,22],every:[1.0,0.85,0.7],warn:[1.1,1.0,0.9],radius:[1.3,1.4,1.5],double:[0.15,0.25,0.35],hits:[2,2,1],pool:16,area:[9,5.2],aim:0.55,near:1.6,height:9,firstDelay:0.8,speedUp:0.55,warnUp:0.45,doubleUp:0.3,splatFade:0.8},
+        rain:{model:'cloud',time:[18,20,22],every:[1.0,0.85,0.7],warn:[1.1,1.0,0.9],radius:[1.3,1.4,1.5],double:[0.15,0.25,0.35],hits:[2,2,1],pool:16,edge:0.4,aim:0.55,near:1.6,height:9,firstDelay:0.8,speedUp:0.55,warnUp:0.45,doubleUp:0.3,splatFade:0.8},
         dice:{model:'dice',pads:[-3.6,3.6],padZ:1.6,pad:1.25,dwell:0.8,roll:1.6,dieZ:-2.4,size:1.3},
         plane:{model:'plane',pad:[0,3.6],padR:1.1,bins:2,misses:4,binR:1.05,min:4,max:12,meterRate:[1.1,1.35,1.6],fly:0.9,binZ:[-4.6,-2.2],binX:6.5,binMinX:1.8},
         maze:{model:'ruler',cols:8,rows:5,cell:2.5,x0:-10,z0:-6.25,time:[26,23,20],wall:0.32,wallH:1.0,host:[-11,-6.9]},
         rhythm:{model:'metronome',lanes:[-3.6,0,3.6],z:1.4,pad:1.25,count:[10,12,14],gap:[1.0,0.85,0.72],fall:1.4,miss:[3,3,2],lead:1.2},
         shadow:{model:'ghost',marks:6,len:[3,4,5],speed:6,minGap:3.2,markR:0.9,pause:0.35,trail:90,trailR:0.4,trailGap:0.28,trailLife:2},
         marble:{model:'marble',r:0.45,time:[30,28,26],holes:[3,4,5],holeR:0.85,goalR:1.0,kick:6,fric:1.1,bounce:0.6},
-        cups:{model:'mug',counts:[[3,3,4],[3,4,5],[4,5,5]],spacing:3.0,z:-1.2,padZ:1.2,pad:1.0,swaps:[5,7,9],swapT:[0.55,0.45,0.38],peek:1.2,dwell:0.6,lift:1.4}
+        cups:{model:'mug',counts:[[3,3,4],[3,4,5],[4,5,5]],spacing:3.0,z:-1.2,padZ:1.2,pad:1.0,swaps:[5,7,9],swapT:[0.55,0.45,0.38],peek:1.2,dwell:0.6,lift:1.4},
+        teacher:{model:'teacher',cmds:[8,10,12],fake:[0.5,0.55,0.6],fakeMax:2,warm:1,miss:[3,3,2],win:[2.0,1.6,1.3],seqWin:[0,3.4,2.6],fakeHold:[1.2,1.2,1.0],gap:[1.0,0.9,0.8],gapJitter:0.6,seqChance:[0,0.30,0.35],handTrick:[0,0,0.5],nearMiss:[0.6,0.7,0.8],nearHard:[0,0.4,0.6],nearEasyKeys:[1,2,3,4],nearHardKeys:[5,6,7,8],timer:[50,56,60],center:[0,2.6],centerR:1.0,leaveR:1.3,stillSpeed:0.6,still:0.3,circles:{x:5.0,z:0.6,r:1.3},crossTime:1.0,markSize:3.4,flashTime:0.8,wrongShake:0.35,signY:3.1,talkTime:1.6},
+        count:{model:'hourglass',target:[6,11],count:3,fadeAt:[3,4],fadeTime:1.0,perfect:0.3,ok:0.6,depth:0.6,over:5,show:1.6,watch:[0,-1.2],front:3.0,r:1.75,tilt:0.6,pop:0.3,screen:1.7,bigY:0.72,frame:[-6,-7.5,6,5]}
     }
 };

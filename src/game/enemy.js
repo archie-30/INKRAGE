@@ -1,12 +1,14 @@
 import*as THREE from 'three';
 import {TUNING} from '../data/tuning.js';
 import {ENEMIES} from '../data/enemies.js';
-import {toonMaterial,hullMaterial,unlitMaterial,lineMaterial,trapMaterial,inkMaterial,registerShadow,pal,renderFlags} from '../render/materials.js';
+import {toonMaterial,hullMaterial,unlitMaterial,lineMaterial,trapMaterial,inkMaterial,ringMaterial,fadeMaterial,iconMaterial,registerShadow,pal,renderFlags} from '../render/materials.js';
+import {PALETTE} from '../data/palette.js';
 import {resolveCircle,clampToBounds,circleVs} from '../core/collision.js';
 import {EASE} from '../core/easing.js';
 import {RNG} from '../core/rng.js';
 import {time} from '../core/loop.js';
 import {t} from '../data/strings.js';
+import {teleSlow,flashRelic} from './relic.js';
 
 const rng=new RNG(1234);
 const hitTmp={x:0,z:0,depth:0};
@@ -56,6 +58,7 @@ export class Enemy {
         this.mats=[];
         this.hulls=[];
         this.lines=[];
+        this.fades=[];
         this.strips=[];
         this.ring=null;
         this.tele=null;
@@ -138,6 +141,46 @@ export class Enemy {
         return this.lines[i];
     }
 
+    fade(i) {
+        while (this.fades.length<=i) {
+            const g=geo('line',()=>{
+                const q=new THREE.PlaneGeometry(1,1);
+                q.rotateX(-Math.PI/2);
+                q.translate(0.5,0,0);
+                return q;
+            });
+            const m=new THREE.Mesh(g,fadeMaterial('red'));
+            m.visible=false;
+            m.frustumCulled=false;
+            this.fxScene.add(m);
+            this.fades.push(m);
+        }
+        return this.fades[i];
+    }
+
+    fadeRay(i,ox,oz,a,r0,r1,dir,w,alpha) {
+        const cx=Math.cos(a);
+        const cz=Math.sin(a);
+        const s=dir>0?1:-1;
+        const px=-cz*s*w/2;
+        const pz=cx*s*w/2;
+        const m=this.fade(i);
+        this.putLine(m,ox+cx*r0+px,oz+cz*r0+pz,ox+cx*r1+px,oz+cz*r1+pz,w);
+        m.position.y=0.035;
+        m.material.uniforms.uAxis.value=1;
+        m.material.uniforms.uFlip.value=dir>0?0:1;
+        m.material.uniforms.uAlpha.value=alpha;
+    }
+
+    fadeBand(i,ax,az,bx,bz,w,alpha) {
+        const m=this.fade(i);
+        this.putLine(m,ax,az,bx,bz,w);
+        m.position.y=0.035;
+        m.material.uniforms.uAxis.value=0;
+        m.material.uniforms.uFlip.value=1;
+        m.material.uniforms.uAlpha.value=alpha;
+    }
+
     ringMesh() {
         if (!this.ring) {
             const g=geo('ring',()=>{
@@ -187,7 +230,11 @@ export class Enemy {
         this.hp=d.hp*(o.hpMult||1);
         this.act=o.act||0;
         this.tier=o.tier||0;
+        this.summons=!!o.summon;
+        this.tempo=o.tempo||0;
+        this.summonCap=o.summonCap||0;
         this.minionT=TUNING.bossScale.summonFirst;
+        this.minionWaves=[];
         this.elite=!!o.elite;
         this.dummy=!!o.dummy;
         this.immortal=!!o.immortal;
@@ -234,6 +281,7 @@ export class Enemy {
         this.evolving=false;
         this.evoT=0;
         this.shielded=false;
+        this.sticky=null;
         this.baseScale=d.scale*(this.elite?TUNING.elite.scale:1);
         this.root.visible=true;
         this.root.position.copy(this.pos);
@@ -253,6 +301,9 @@ export class Enemy {
         this.hideStrips();
         for (const l of this.lines) {
             l.visible=false;
+        }
+        for (const f of this.fades) {
+            f.visible=false;
         }
         if (this.ring) {
             this.ring.visible=false;
@@ -276,10 +327,23 @@ export class Enemy {
 
     teleLine(dx,dz,len,dur,count=1,spread=0) {
         this.tele={type:'line',dx,dz,len,dur,count,spread,t:0};
+        this.teleSeen();
+    }
+
+    teleWall(dx,dz,dur) {
+        this.tele={type:'wall',dx,dz,dur,t:0};
+        this.teleSeen();
     }
 
     teleRing(r,dur) {
         this.tele={type:'ring',r,dur,t:0};
+        this.teleSeen();
+    }
+
+    teleSeen() {
+        if (this.def.boss||this.elite) {
+            flashRelic('glasses',0.5);
+        }
     }
 
     hurt(dmg,dx,dz) {
@@ -302,6 +366,11 @@ export class Enemy {
 
     damageMult() {
         return 1;
+    }
+
+    weakX(m) {
+        const B=TUNING.bossScale;
+        return this.def.boss&&this.tier>=B.lateTier?Math.min(m,B.lateWeak):m;
     }
 
     onEvolveStart() {
@@ -385,20 +454,54 @@ export class Enemy {
             return;
         }
         this.minionT-=dt;
-        if (this.minionT>0) {
+        if (this.minionT>0||this.state!=='move'||this.tele) {
             return;
         }
-        const k=Math.min(this.tier,B.summonEvery.length)-1;
-        this.minionT=B.summonEvery[k]*(this.def.summonMult||1);
-        if (ctx.enemyMgr.list.length>=B.summonCap) {
+        const k=Math.max(0,Math.min(this.tier,B.summonEvery.length)-1);
+        this.minionT=(this.tier>=B.lateTier?B.lateSummon:B.summonEvery[k])*(this.def.summonMult||1);
+        if (ctx.enemyMgr.list.length>=(this.summonCap||B.summonCap)||!this.canSummon()) {
             return;
         }
-        for (const type of B.minions[k]) {
+        this.patternT=Math.max(this.patternT||0,B.summonCd);
+        const list=B.minions[k].map(type=>{
             const a=rng.range(0,Math.PI*2);
-            const e=ctx.enemyMgr.spawn(type,this.pos.x+Math.cos(a)*3.5,this.pos.z+Math.sin(a)*3.5,{});
+            return [type,this.pos.x+Math.cos(a)*3.5,this.pos.z+Math.sin(a)*3.5];
+        });
+        for (const e of this.summonWave(ctx,list)) {
             ctx.particles.burst(e.pos.x,0.4,e.pos.z,8,{color:'midGray',speed:[1,4],up:[1,4]});
+            this.sqv+=0.7;
         }
-        this.sqv+=2;
+        ctx.particles.burst(this.pos.x,1.6,this.pos.z,12,{color:'red',speed:[2,5],up:[2,5],size:[0.08,0.14]});
+    }
+
+    minionsAlive() {
+        return (this.minionWaves||[]).some(w=>w.some(q=>q.e.alive&&q.e.uid===q.uid));
+    }
+
+    bossTempo() {
+        const B=TUNING.bossScale;
+        if (this.tempo>0) {
+            return TUNING.bossTempo*(this.minionsAlive()?1:this.tempo);
+        }
+        return TUNING.bossTempo*(1+Math.min(this.tier,B.tempoTierMax)*B.tempo);
+    }
+
+    canSummon() {
+        this.minionWaves=(this.minionWaves||[]).filter(w=>w.some(q=>q.e.alive&&q.e.uid===q.uid));
+        return this.minionWaves.length<TUNING.bossScale.waveCap;
+    }
+
+    summonWave(ctx,list) {
+        if (!this.canSummon()) {
+            return [];
+        }
+        const w=[];
+        for (const [type,x,z,o] of list) {
+            const e=ctx.enemyMgr.spawn(type,x,z,o||{});
+            w.push({e,uid:e.uid});
+        }
+        this.minionWaves.push(w);
+        return w.map(q=>q.e);
     }
 
     colliders(ctx) {
@@ -410,6 +513,9 @@ export class Enemy {
     }
 
     update(dt,ctx) {
+        if (this.tele&&!this.dummy) {
+            dt/=teleSlow();
+        }
         const d=this.def;
         const p=ctx.player;
         this.prev.copy(this.pos);
@@ -462,7 +568,7 @@ export class Enemy {
         }
         else {
             this.think(dt,ctx);
-            if (d.boss&&this.tier>0&&ctx.enemyMgr) {
+            if (d.boss&&(this.tier>0||this.summons)&&ctx.enemyMgr) {
                 this.summonTick(dt,ctx);
             }
         }
@@ -553,12 +659,26 @@ export class Enemy {
         for (const l of this.lines) {
             l.visible=false;
         }
+        for (const f of this.fades) {
+            f.visible=false;
+        }
         if (this.ring) {
             this.ring.visible=false;
         }
         if (tg) {
             const k=EASE.easeOutCubic(Math.min(1,tg.t/(tg.dur*0.7)));
-            if (tg.type==='line') {
+            if (tg.type==='wall') {
+                const W=TUNING.wallTele;
+                const px=-tg.dz;
+                const pz=tg.dx;
+                const cx=this.renderPos.x+tg.dx*W.front;
+                const cz=this.renderPos.z+tg.dz*W.front;
+                const half=W.half*k;
+                this.putLine(this.line(0),cx-px*half,cz-pz*half,cx+px*half,cz+pz*half,W.width);
+                this.line(0).position.y=0.04;
+                this.fadeBand(0,cx,cz,cx+tg.dx*W.reach*k,cz+tg.dz*W.reach*k,half*2,W.alpha*k);
+            }
+            else if (tg.type==='line') {
                 const base=Math.atan2(tg.dz,tg.dx);
                 for (let i=0;i<tg.count;i++) {
                     const a=tg.count>1?base+(i/(tg.count-1)-0.5)*tg.spread:base;
@@ -1191,7 +1311,8 @@ class Bird extends Enemy {
     }
 
     pose(step) {
-        const flap=(step%2===0?1:-1)*(this.state==='swoop'?0.25:0.85);
+        const F=TUNING.birdFlap;
+        const flap=Math.sin(time.real*F.rate+this.phase)*(this.state==='swoop'?F.swoop:F.amp);
         this.wings[0].rotation.z=flap;
         this.wings[1].rotation.z=-flap;
         const dive=this.state==='swoop'?-1.0:(this.state==='telegraph'?0.3:0);
@@ -1418,7 +1539,7 @@ class InkBottle extends Enemy {
         const l=Math.hypot(dx,dz)||1;
         const wx=-Math.sin(this.yaw);
         const wz=-Math.cos(this.yaw);
-        return (dx*wx+dz*wz)/l>Math.cos(d.weakAngle)?d.weakMult:1;
+        return (dx*wx+dz*wz)/l>Math.cos(d.weakAngle)?this.weakX(d.weakMult):1;
     }
 
     canContact() {
@@ -1544,9 +1665,7 @@ class InkBottle extends Enemy {
                 this.finish();
             }
             else if (this.pattern==='summon') {
-                for (const sx of [-1,1]) {
-                    ctx.enemyMgr.spawn('blob',px+sx*2.6,pz+1.5,{hpMult:1,quick:false});
-                }
+                this.summonWave(ctx,[-1,1].map(sx=>['blob',px+sx*2.6,pz+1.5,{hpMult:1,quick:false}]));
                 this.finish();
             }
         }
@@ -1677,7 +1796,7 @@ class Scissors extends Enemy {
     }
 
     damageMult() {
-        return this.state==='stuck'?this.def.weakMult:1;
+        return this.state==='stuck'?this.weakX(this.def.weakMult):1;
     }
 
     phase2() {
@@ -1862,7 +1981,7 @@ class Scissors extends Enemy {
 
     finish() {
         this.setState('move');
-        this.patternT=rng.range(0.6,1.1);
+        this.patternT=rng.range(this.def.gap[0],this.def.gap[1]);
     }
 
     pose() {
@@ -2433,7 +2552,7 @@ class Book extends Enemy {
     }
 
     damageMult() {
-        return this.state==='rest'?this.def.weakMult:1;
+        return this.state==='rest'?this.weakX(this.def.weakMult):1;
     }
 
     phase2() {
@@ -2486,7 +2605,7 @@ class Book extends Enemy {
                 this.pattern=this.choose(ctx);
                 this.setState('telegraph');
                 if (this.pattern==='wall') {
-                    this.teleLine(this.nx,this.nz,14,0.7,3,0.9);
+                    this.teleWall(this.nx,this.nz,0.7);
                 }
                 else if (this.pattern==='slam') {
                     this.teleRing(4,0.7);
@@ -2607,10 +2726,10 @@ class Book extends Enemy {
             }
             else if (this.pattern==='summon') {
                 const types=['doodle','doodle','bird'];
-                for (let i=0;i<types.length;i++) {
+                this.summonWave(ctx,types.map((type,i)=>{
                     const a=Math.atan2(this.nz,this.nx)+(i-1)*0.9;
-                    ctx.enemyMgr.spawn(types[i],this.pos.x+Math.cos(a)*3.2,this.pos.z+Math.sin(a)*3.2,{});
-                }
+                    return [type,this.pos.x+Math.cos(a)*3.2,this.pos.z+Math.sin(a)*3.2];
+                }));
                 this.rest();
             }
             return;
@@ -2722,7 +2841,7 @@ class Exam extends Enemy {
     }
 
     damageMult() {
-        return this.state==='rest'?this.def.weakMult:1;
+        return this.state==='rest'?this.weakX(this.def.weakMult):1;
     }
 
     phase2() {
@@ -3360,7 +3479,7 @@ class BookFinal extends Book {
     }
 
     damageMult() {
-        return this.state==='rest'?this.def.weakMult:1;
+        return this.state==='rest'?this.weakX(this.def.weakMult):1;
     }
 
     choose() {
@@ -3540,7 +3659,7 @@ class BookFinal extends Book {
                 this.pattern=this.choose();
                 this.setState('telegraph');
                 if (this.pattern==='wall') {
-                    this.teleLine(this.nx,this.nz,14,0.8,3,0.9);
+                    this.teleWall(this.nx,this.nz,0.8);
                 }
                 else if (this.pattern==='sweep') {
                     this.teleRing(d.sweep.inner,0.5);
@@ -3721,6 +3840,8 @@ class BookFinal extends Book {
             if (w.t<w.warn) {
                 const m=this.line(li++);
                 put(m,sg.ax,sg.az,sg.bx,sg.bz,0.3);
+                const MT=TUNING.moveTele;
+                this.fadeRay(1,this.pos.x,this.pos.z,Math.atan2(sg.bz-sg.az,sg.bx-sg.ax),this.def.sweep.inner,this.def.sweep.outer,w.dir,MT.width*1.3,MT.alpha*Math.min(1,w.t/(w.warn*0.5)));
                 const a=w.a0+w.dir*this.def.sweep.arc;
                 const m2=this.line(li++);
                 put(m2,this.pos.x+Math.cos(a)*this.def.sweep.inner,this.pos.z+Math.sin(a)*this.def.sweep.inner,this.pos.x+Math.cos(a)*this.def.sweep.outer,this.pos.z+Math.sin(a)*this.def.sweep.outer,0.12);
@@ -3759,7 +3880,2430 @@ class BookFinal extends Book {
     }
 }
 
-const CLASSES={bookmark:Bookmark,stampSoldier:StampSoldier,scissorMinion:ScissorMinion,doodle:Doodle,sprayer:Sprayer,blob:Blob,blobSmall:Blob,compass:Compass,eraserMonster:EraserMonster,bird:Bird,inkCloud:InkCloud,inkBottle:InkBottle,scissors:Scissors,book:Book,exam:Exam,bookFinal:BookFinal};
+function rayHit(p,ox,oz,a,r0,r1,w) {
+    const cx=Math.cos(a);
+    const cz=Math.sin(a);
+    const qx=p.pos.x-ox;
+    const qz=p.pos.z-oz;
+    const u=Math.max(r0,Math.min(r1,qx*cx+qz*cz));
+    return Math.hypot(qx-cx*u,qz-cz*u)<w+TUNING.player.radius;
+}
+
+function handAngle(a) {
+    return Math.atan2(-Math.cos(a),-Math.sin(a));
+}
+
+class Alarm extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const head=this.mat('head');
+        const limb=this.mat('limb');
+        const ink=this.inkMat();
+        const red=unlitMaterial({color:'red'});
+        this.clock=new THREE.Group();
+        this.clock.position.y=2.05;
+        this.clock.add(this.hullify(new THREE.Mesh(geo('alCase',()=>new THREE.CylinderGeometry(1.55,1.55,1.0,24).rotateX(Math.PI/2)),body)));
+        const rim=new THREE.Mesh(geo('alRim',()=>new THREE.TorusGeometry(1.42,0.1,6,28)),ink);
+        rim.position.z=0.5;
+        this.clock.add(rim);
+        const face=new THREE.Mesh(geo('alFace',()=>new THREE.CircleGeometry(1.36,28)),head);
+        face.position.z=0.505;
+        this.clock.add(face);
+        this.blush=new THREE.Mesh(geo('alBlush',()=>new THREE.CircleGeometry(1.34,28)),red);
+        this.blush.position.z=0.512;
+        this.clock.add(this.blush);
+        for (let i=0;i<12;i++) {
+            const big=i%3===0;
+            const m=new THREE.Mesh(geo(big?'alTickB':'alTick',()=>new THREE.BoxGeometry(big?0.1:0.06,big?0.28:0.15,0.02)),ink);
+            const a=i/12*Math.PI*2;
+            m.position.set(Math.sin(a)*1.14,Math.cos(a)*1.14,0.52);
+            m.rotation.z=-a;
+            this.clock.add(m);
+        }
+        const hand=(key,w,len,m)=>{
+            const g=new THREE.Group();
+            g.position.z=0.53;
+            const h=new THREE.Mesh(geo(key,()=>new THREE.BoxGeometry(w,len,0.03).translate(0,len/2-0.12,0)),m);
+            g.add(h);
+            this.clock.add(g);
+            return g;
+        };
+        this.hHand=hand('alHour',0.14,0.78,ink);
+        this.mHand=hand('alMin',0.09,1.12,ink);
+        this.sHand=hand('alSec',0.04,1.22,red);
+        this.sHand.position.z=0.545;
+        const cap=new THREE.Mesh(geo('alCap',()=>new THREE.CylinderGeometry(0.1,0.1,0.06,10).rotateX(Math.PI/2)),ink);
+        cap.position.z=0.56;
+        this.clock.add(cap);
+        for (const sx of [-1,1]) {
+            const e=new THREE.Mesh(geo('alEye',()=>new THREE.SphereGeometry(0.11,8,6)),ink);
+            e.position.set(sx*0.48,0.3,0.54);
+            e.scale.set(1,1.3,0.4);
+            this.clock.add(e);
+            const br=new THREE.Mesh(geo('alBrow',()=>new THREE.BoxGeometry(0.36,0.07,0.03)),ink);
+            br.position.set(sx*0.46,0.55,0.55);
+            br.rotation.z=-sx*0.45;
+            this.clock.add(br);
+        }
+        const mouth=new THREE.Mesh(geo('alMouth',()=>new THREE.BoxGeometry(0.42,0.06,0.03)),ink);
+        mouth.position.set(0,-0.55,0.55);
+        this.clock.add(mouth);
+        this.bells=[];
+        for (const sx of [-1,1]) {
+            const g=new THREE.Group();
+            g.position.set(sx*0.95,1.3,0);
+            g.userData.base=-sx*0.5;
+            g.rotation.z=g.userData.base;
+            const dome=this.hullify(new THREE.Mesh(geo('alBell',()=>new THREE.SphereGeometry(0.62,14,8,0,Math.PI*2,0,Math.PI/2)),limb));
+            dome.position.y=0.05;
+            g.add(dome);
+            const knob=new THREE.Mesh(geo('alKnob',()=>new THREE.SphereGeometry(0.12,8,6)),ink);
+            knob.position.y=0.7;
+            g.add(knob);
+            this.clock.add(g);
+            this.bells.push(g);
+        }
+        this.hammer=new THREE.Group();
+        this.hammer.position.y=1.45;
+        const stick=new THREE.Mesh(geo('alStick',()=>new THREE.BoxGeometry(0.07,0.5,0.07).translate(0,0.25,0)),ink);
+        this.hammer.add(stick);
+        const ball=new THREE.Mesh(geo('alBall',()=>new THREE.SphereGeometry(0.13,8,6)),red);
+        ball.position.y=0.52;
+        this.hammer.add(ball);
+        this.clock.add(this.hammer);
+        for (const sx of [-1,1]) {
+            const f=this.hullify(new THREE.Mesh(geo('alFoot',()=>new THREE.ConeGeometry(0.22,0.6,6)),limb));
+            f.position.set(sx*0.95,-1.55,0);
+            f.rotation.z=sx*0.5;
+            this.clock.add(f);
+        }
+        this.body.add(this.clock);
+    }
+
+    onReset() {
+        this.bar=0;
+        this.beams=[];
+        this.waves=[];
+        this.pads=[];
+        this.lastPad=-1;
+        this.relight=false;
+        this.tickT=0;
+        this.patternT=this.def.first;
+        this.last=null;
+        this.bag=[];
+        this.burstNext=false;
+        this.kicks=[0,0];
+        this.faceT=0;
+        this.lastDing=-9;
+        this.burstDmg=0;
+        this.snoozeT=0;
+        this.homeX=this.pos.x;
+        this.homeZ=this.pos.z;
+        this.hop=null;
+        this.hopQ=[];
+        this.hopY=0;
+        this.fallY=0;
+        this.airborne=false;
+        this.warnMeshes=this.warnMeshes||[];
+        this.waveMeshes=this.waveMeshes||[];
+        this.padMeshes=this.padMeshes||[];
+    }
+
+    get alarmBar() {
+        return this.bar;
+    }
+
+    sfx(ctx,n,p=1) {
+        if (ctx.sfx) {
+            ctx.sfx(n,p);
+        }
+    }
+
+    waveMesh(i) {
+        while (this.waveMeshes.length<=i) {
+            const m=new THREE.Mesh(geo('ring',()=>new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2)),ringMaterial('ink'));
+            m.visible=false;
+            m.frustumCulled=false;
+            m.position.y=0.06;
+            this.fxScene.add(m);
+            this.waveMeshes.push(m);
+        }
+        return this.waveMeshes[i];
+    }
+
+    warnMesh(i) {
+        while (this.warnMeshes.length<=i) {
+            const m=new THREE.Mesh(geo('ring',()=>new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2)),ringMaterial('red'));
+            m.visible=false;
+            m.frustumCulled=false;
+            m.position.y=0.05;
+            this.fxScene.add(m);
+            this.warnMeshes.push(m);
+        }
+        return this.warnMeshes[i];
+    }
+
+    padMesh(i) {
+        while (this.padMeshes.length<=i) {
+            const g=geo('ring',()=>new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2));
+            const mk=(m,y)=>{
+                const q=new THREE.Mesh(g,m);
+                q.visible=false;
+                q.frustumCulled=false;
+                q.position.y=y;
+                this.fxScene.add(q);
+                return q;
+            };
+            const fill=mk(ringMaterial('red'),0.04);
+            fill.material.uniforms.uWidth.value=2;
+            const edge=mk(ringMaterial('red'),0.05);
+            edge.material.uniforms.uWidth.value=0.1;
+            edge.material.uniforms.uDash.value=12;
+            const prog=mk(trapMaterial('red',true),0.06);
+            this.padMeshes.push({fill,edge,prog});
+        }
+        return this.padMeshes[i];
+    }
+
+    hideFx() {
+        for (const m of this.warnMeshes||[]) {
+            m.visible=false;
+        }
+        for (const m of this.waveMeshes||[]) {
+            m.visible=false;
+        }
+        for (const q of this.padMeshes||[]) {
+            q.fill.visible=false;
+            q.edge.visible=false;
+            q.prog.visible=false;
+        }
+    }
+
+    hide() {
+        super.hide();
+        this.beams=[];
+        this.waves=[];
+        this.pads=[];
+        this.hideFx();
+    }
+
+    clearHazards() {
+        this.beams=[];
+        this.waves=[];
+        this.tele=null;
+        this.fallY=this.hop?this.hopY:0;
+        this.hop=null;
+        this.hopQ=[];
+        this.airborne=false;
+    }
+
+    canContact() {
+        return !this.airborne;
+    }
+
+    nextHop(ctx) {
+        const H=this.def.hop;
+        const q=this.hopQ.shift();
+        const b=ctx.room.bounds;
+        const p=ctx.player.pos;
+        const home=q==='home';
+        const tx=home?this.homeX:Math.max(b.minX+H.margin,Math.min(b.maxX-H.margin,p.x));
+        const tz=home?this.homeZ:Math.max(b.minZ+H.margin,Math.min(b.maxZ-H.margin,p.z));
+        this.hop={sx:this.pos.x,sz:this.pos.z,tx,tz,t:0,tele:H.tele*(home?H.homeTele:1)};
+        ctx.dangerRings.spawn(tx,tz,H.r,'red',this.hop.tele+H.air);
+        this.kicks[0]=0.8;
+        this.kicks[1]=0.8;
+        this.sfx(ctx,'alarmTick',0.7);
+    }
+
+    hopTick(dt,ctx) {
+        const H=this.def.hop;
+        const h=this.hop;
+        h.t+=dt;
+        if (h.t<h.tele) {
+            this.sq=Math.max(this.sq,-0.25*Math.min(1,h.t/h.tele));
+            return;
+        }
+        const f=Math.min(1,(h.t-h.tele)/H.air);
+        this.pos.x=h.sx+(h.tx-h.sx)*f;
+        this.pos.z=h.sz+(h.tz-h.sz)*f;
+        this.hopY=Math.sin(f*Math.PI)*H.height;
+        this.airborne=f<1;
+        if (f<1) {
+            return;
+        }
+        this.hopY=0;
+        this.sqv+=5;
+        ctx.fx.cameraShake(0.4);
+        ctx.particles.burst(h.tx,0.4,h.tz,18,{color:'ink',speed:[3,8],up:[2,5]});
+        this.sfx(ctx,'alarmBell',0.7);
+        const p=ctx.player;
+        const dx=p.pos.x-h.tx;
+        const dz=p.pos.z-h.tz;
+        const l=Math.hypot(dx,dz);
+        if (l<H.r+TUNING.player.radius) {
+            this.harm(ctx,dx/(l||1),dz/(l||1),false);
+        }
+        this.waves.push({x:h.tx,z:h.tz,r:H.r*0.6,speed:H.wave.speed,max:H.wave.max,width:H.wave.width,hit:false,delay:0});
+        this.hop=null;
+        if (this.hopQ.length) {
+            this.nextHop(ctx);
+        }
+    }
+
+    onEvolved() {
+        this.burstNext=true;
+    }
+
+    onEvolveStart(ctx) {
+        this.padLinger(ctx);
+        this.clearHazards();
+        this.pads=[];
+        this.relight=false;
+    }
+
+    damageMult() {
+        return this.state==='snooze'?this.weakX(this.def.weakMult):1;
+    }
+
+    stun(t,full) {
+        if (this.state==='snooze'||this.state==='burst'||this.airborne) {
+            return;
+        }
+        super.stun(t,full);
+    }
+
+    edgePulse() {
+        const B=this.def.bar;
+        if (!this.alive||this.state==='spawn') {
+            return 0;
+        }
+        if (this.state==='burst') {
+            return 1;
+        }
+        if (this.bar<B.show) {
+            return 0;
+        }
+        return 0.35+0.65*(this.bar-B.show)/(B.max-B.show);
+    }
+
+    ding(ctx,p=1) {
+        if (this.t-this.lastDing<0.3) {
+            return;
+        }
+        this.lastDing=this.t;
+        this.kicks[0]=1;
+        this.kicks[1]=1;
+        this.sfx(ctx,'alarmBell',p);
+    }
+
+    beam(o) {
+        const b={a:0,speed:0,warn:1,dur:1,width:0.4,thin:false,gap:null,len:24,inner:1.9,flip:false,flipped:false,rang:false,role:null,burst:false,boom:false,t:0,cd:0,...o};
+        this.beams.push(b);
+        return b;
+    }
+
+    segs(b) {
+        return b.gap?[[b.inner,b.gap[0]],[b.gap[1],b.len]]:[[b.inner,b.len]];
+    }
+
+    harm(ctx,dx,dz,burst) {
+        if (burst&&this.burstDmg>=this.def.burst.cap) {
+            return false;
+        }
+        const p=ctx.player;
+        p.noteDodge();
+        const ok=p.hurt(1,dx,dz);
+        if (ok&&burst) {
+            this.burstDmg++;
+        }
+        return ok;
+    }
+
+    tickHazards(dt,ctx) {
+        const d=this.def;
+        const p=ctx.player;
+        const ox=this.pos.x;
+        const oz=this.pos.z;
+        for (let i=this.beams.length-1;i>=0;i--) {
+            const b=this.beams[i];
+            b.t+=dt;
+            b.cd=Math.max(0,b.cd-dt);
+            if (b.t>=b.warn&&b.t<b.warn+b.dur) {
+                if (!b.boom) {
+                    b.boom=true;
+                    if (b.loud) {
+                        this.ding(ctx,1.2);
+                        ctx.fx.cameraShake(0.25);
+                    }
+                }
+                if (b.flip&&!b.flipped) {
+                    const half=b.warn+b.dur/2;
+                    if (!b.rang&&b.t>=half-d.p2.flipWarn) {
+                        b.rang=true;
+                        this.ding(ctx,0.9);
+                    }
+                    if (b.t>=half) {
+                        b.flipped=true;
+                        b.speed=-b.speed;
+                    }
+                }
+                b.a+=b.speed*dt;
+                if (b.cd<=0) {
+                    for (const [r0,r1] of this.segs(b)) {
+                        if (rayHit(p,ox,oz,b.a,r0,r1,b.width)) {
+                            const s=Math.sign(b.speed)||(((p.pos.x-ox)*-Math.sin(b.a)+(p.pos.z-oz)*Math.cos(b.a))>0?1:-1);
+                            if (this.harm(ctx,-Math.sin(b.a)*s,Math.cos(b.a)*s,b.burst)) {
+                                b.cd=d.hitCool;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            if (b.t>=b.warn+b.dur+0.25) {
+                this.beams.splice(i,1);
+            }
+        }
+        for (let i=this.waves.length-1;i>=0;i--) {
+            const w=this.waves[i];
+            if (w.delay>0) {
+                w.delay-=dt;
+                if (w.delay<=0) {
+                    if (w.bell) {
+                        this.kicks[0]=1;
+                        this.kicks[1]=1;
+                    }
+                    this.sfx(ctx,'alarmBell',1);
+                    ctx.fx.cameraShake(w.burst?0.45:0.15);
+                }
+                continue;
+            }
+            w.r+=w.speed*dt;
+            const dist=Math.hypot(p.pos.x-w.x,p.pos.z-w.z);
+            if (!w.hit&&Math.abs(dist-w.r)<w.width+TUNING.player.radius) {
+                const l=dist||1;
+                if (this.harm(ctx,(p.pos.x-w.x)/l,(p.pos.z-w.z)/l,w.burst)) {
+                    w.hit=true;
+                }
+            }
+            if (w.r>=w.max) {
+                this.waves.splice(i,1);
+            }
+        }
+    }
+
+    beamBlocks(x,z) {
+        const a=Math.atan2(z-this.pos.z,x-this.pos.x);
+        return this.beams.some(b=>Math.abs(wrap(b.a-a))<this.def.pad.avoid||(b.speed!==0&&Math.abs(wrap(b.a+b.speed*0.8-a))<this.def.pad.avoid));
+    }
+
+    corners(ctx) {
+        const P=this.def.pad;
+        const b=ctx.room.bounds;
+        const out=[];
+        for (const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) {
+            const v=new THREE.Vector3(sx<0?b.minX+P.inset:b.maxX-P.inset,0,sz<0?b.minZ+P.inset:b.maxZ-P.inset);
+            resolveCircle(v,P.r*0.6,ctx.room.colliders,3);
+            clampToBounds(v,P.inset-0.4,b);
+            out.push(v);
+        }
+        return out;
+    }
+
+    spawnPads(ctx) {
+        const P=this.def.pad;
+        const p=ctx.player;
+        const cs=this.corners(ctx);
+        const far=i=>Math.hypot(cs[i].x-p.pos.x,cs[i].z-p.pos.z)>=P.minDist;
+        const free=i=>!this.beamBlocks(cs[i].x,cs[i].z);
+        let pick=[];
+        if (this.evolved) {
+            const pairs=[[0,1],[2,3],[0,2],[1,3]];
+            const opts=[0,1,2,3].filter(j=>j!==this.lastPair);
+            const tries=[j=>pairs[j].every(far)&&pairs[j].every(free),j=>pairs[j].every(far),()=>true];
+            let c=[];
+            for (const f of tries) {
+                c=opts.filter(f);
+                if (c.length) {
+                    break;
+                }
+            }
+            const j=c[Math.floor(rng.next()*c.length)];
+            this.lastPair=j;
+            pick=pairs[j];
+        }
+        else {
+            const all=[0,1,2,3].filter(i=>i!==this.lastPad);
+            const tries=[i=>far(i)&&free(i),far,free,()=>true];
+            let c=[];
+            for (const f of tries) {
+                c=all.filter(f);
+                if (c.length) {
+                    break;
+                }
+            }
+            const i=c[Math.floor(rng.next()*c.length)];
+            this.lastPad=i;
+            pick=[i];
+        }
+        const need=this.evolved?P.hold2:P.hold;
+        this.pads=pick.map(i=>({x:cs[i].x,z:cs[i].z,hold:0,need,done:false,t:0}));
+        this.relight=false;
+        this.tickT=0;
+        for (const q of this.pads) {
+            ctx.particles.burst(q.x,0.3,q.z,10,{color:'red',speed:[2,5],up:[2,5]});
+        }
+        if (ctx.notice) {
+            ctx.notice(t('alarm.padHint'));
+        }
+    }
+
+    tickBar(dt,ctx) {
+        const B=this.def.bar;
+        if (this.state==='snooze'||this.state==='burst') {
+            return;
+        }
+        this.bar=Math.min(B.max,this.bar+(this.evolved?B.rate2:B.rate)*dt);
+        if (this.bar>=B.max) {
+            this.startBurst(ctx);
+            return;
+        }
+        if (!this.pads.length&&(this.bar>=B.show||this.relight)) {
+            this.spawnPads(ctx);
+        }
+        if (this.pads.length) {
+            const k=Math.max(0,Math.min(1,(this.bar-B.show)/(B.max-B.show)));
+            this.tickT-=dt;
+            if (this.tickT<=0) {
+                this.tickT=B.tick[0]+(B.tick[1]-B.tick[0])*k;
+                this.sfx(ctx,'alarmTick',B.pitch[0]+(B.pitch[1]-B.pitch[0])*k);
+            }
+        }
+    }
+
+    padLinger(ctx) {
+        const P=this.def.pad;
+        const p=ctx.player;
+        for (const q of this.pads) {
+            if (Math.hypot(p.pos.x-q.x,p.pos.z-q.z)<P.r+TUNING.player.radius) {
+                p.safeT=Math.max(p.safeT||0,P.linger);
+            }
+        }
+    }
+
+    guardPads(ctx) {
+        const P=this.def.pad;
+        const p=ctx.player;
+        if (this.state==='snooze'||this.state==='burst') {
+            return;
+        }
+        for (const q of this.pads) {
+            if (!q.done&&Math.hypot(p.pos.x-q.x,p.pos.z-q.z)<P.r) {
+                p.safeT=Math.max(p.safeT||0,P.safe);
+            }
+        }
+    }
+
+    tickPads(dt,ctx) {
+        if (!this.pads.length||this.state==='snooze'||this.state==='burst') {
+            return;
+        }
+        const P=this.def.pad;
+        const p=ctx.player;
+        let done=0;
+        for (const q of this.pads) {
+            q.t+=dt;
+            if (!q.done) {
+                const inside=Math.hypot(p.pos.x-q.x,p.pos.z-q.z)<P.r;
+                q.hold=inside?q.hold+dt:Math.max(0,q.hold-dt*P.decay);
+                if (inside) {
+                    this.bar=Math.max(0,this.bar-P.drain*dt);
+                }
+                if (q.hold>=q.need) {
+                    q.done=true;
+                    p.safeT=Math.max(p.safeT||0,P.linger);
+                    q.hold=q.need;
+                    this.sfx(ctx,'alarmPress',1+done*0.15);
+                    ctx.particles.burst(q.x,0.4,q.z,16,{color:'red',speed:[3,7],up:[2,6]});
+                }
+            }
+            if (q.done) {
+                done++;
+            }
+        }
+        if (done>=this.pads.length) {
+            this.snooze(ctx);
+        }
+    }
+
+    snooze(ctx) {
+        const S=this.def.snooze;
+        this.padLinger(ctx);
+        this.clearHazards();
+        this.pads=[];
+        this.stunT=0;
+        this.lockT=0;
+        this.bar=0;
+        this.snoozeT=this.evolved?S.time2:S.time;
+        if (ctx.addInk) {
+            ctx.addInk(S.ink);
+        }
+        this.setState('snooze');
+        this.say={text:t('alarm.snooze'),t:0,dur:this.snoozeT,keep:true};
+        this.sqv-=4;
+        this.flashT=0.15;
+        ctx.fx.cameraShake(0.2);
+        ctx.particles.burst(this.pos.x,3,this.pos.z,14,{color:'paper',speed:[1,3],up:[2,4]});
+    }
+
+    startBurst(ctx) {
+        const B=this.def.burst;
+        this.padLinger(ctx);
+        this.clearHazards();
+        this.pads=[];
+        this.burstDmg=0;
+        this.burstOn=false;
+        this.burstBell=0;
+        this.setState('burst');
+        this.teleRing(3.4,B.warn);
+        this.say={text:t('alarm.burst'),t:0,dur:B.warn+B.time,keep:true};
+        this.sfx(ctx,'alarmBurst');
+        ctx.fx.cameraShake(0.35);
+        this.sqv+=5;
+    }
+
+    burstTick(dt,ctx) {
+        const d=this.def;
+        const B=d.burst;
+        if (!this.burstOn&&this.stateT>=B.warn) {
+            this.burstOn=true;
+            this.tele=null;
+            this.waves.push({x:this.pos.x,z:this.pos.z,r:d.radius,speed:B.speed,max:B.max,width:B.width,hit:false,burst:true,delay:0.001});
+            const n=(this.evolved?d.p2.beams:2)*B.mult;
+            const a0=rng.range(0,Math.PI*2);
+            const dir=rng.sign();
+            for (let i=0;i<n;i++) {
+                this.beam({a:a0+i/n*Math.PI*2,speed:dir*B.spin,warn:B.warn,dur:B.time,width:B.width2,len:B.len,inner:B.inner,burst:true,t:-B.beamDelay});
+            }
+            ctx.particles.burst(this.pos.x,2,this.pos.z,30,{color:'red',speed:[5,12],up:[2,8]});
+        }
+        if (this.burstOn) {
+            this.burstBell-=dt;
+            if (this.burstBell<=0&&this.beams.length) {
+                this.burstBell=0.5;
+                this.kicks[0]=1;
+                this.kicks[1]=1;
+                this.sfx(ctx,'alarmBell',1.25);
+            }
+            if (!this.beams.length&&!this.waves.length) {
+                this.bar=d.bar.after;
+                this.relight=true;
+                this.say=null;
+                this.setState('move');
+                this.patternT=d.gap[1];
+            }
+        }
+    }
+
+    startPattern(ctx) {
+        const d=this.def;
+        const ev=this.evolved;
+        const sp=ev?d.p2.speed:1;
+        const away=Math.hypot(this.pos.x-this.homeX,this.pos.z-this.homeZ)>1.5;
+        if (!this.bag.length) {
+            const list=['second','hands','chime','bells','hop'];
+            for (let i=list.length-1;i>0;i--) {
+                const j=Math.floor(rng.next()*(i+1));
+                [list[i],list[j]]=[list[j],list[i]];
+            }
+            if (list[0]===this.last) {
+                list.push(list.shift());
+            }
+            this.bag=list;
+        }
+        const k=away?'hop':this.bag.shift();
+        this.last=k;
+        this.pattern=k;
+        this.setState('attack');
+        if (k==='second') {
+            const S=d.second;
+            const dir=rng.sign();
+            this.beam({a:Math.atan2(this.nz,this.nx)-dir*0.9,speed:dir*Math.PI*2/S.period*sp,warn:S.warn,dur:S.period*S.turns/sp,width:S.width,thin:true,len:S.len,inner:S.inner,flip:ev,role:'s'});
+            this.sfx(ctx,'alarmTick',0.8);
+        }
+        else if (k==='hop') {
+            const H=d.hop;
+            this.hopQ=[];
+            if (!away) {
+                for (let i=0;i<(ev?H.count2:H.count);i++) {
+                    this.hopQ.push('player');
+                }
+            }
+            this.hopQ.push('home');
+            this.nextHop(ctx);
+        }
+        else if (k==='hands') {
+            const H=d.hands;
+            const n=ev?d.p2.beams:2;
+            const g=rng.range(H.gap[0],H.gap[1]);
+            const a0=rng.range(0,Math.PI*2);
+            const step=n===2?Math.PI/2:Math.PI*2/n;
+            for (let i=0;i<n;i++) {
+                this.beam({a:a0+i*step,speed:H.speeds[i]*sp,warn:H.warn,dur:H.dur,width:H.width,gap:[g-H.gapW/2,g+H.gapW/2],len:H.len,inner:H.inner,flip:ev,role:['h','m',null][i]});
+            }
+        }
+        else if (k==='chime') {
+            const C=d.chime;
+            const h=C.hours[0]+Math.floor(rng.next()*(C.hours[1]-C.hours[0]+1));
+            const ang=[[-Math.PI/2+h/12*Math.PI*2,'h'],[-Math.PI/2,'m']];
+            let text=h+':00';
+            if (ev) {
+                const ok=[];
+                for (let s=0;s<60;s+=5) {
+                    const a=-Math.PI/2+s/60*Math.PI*2;
+                    if (ang.every(([b])=>Math.abs(wrap(a-b))>0.7)) {
+                        ok.push([s,a]);
+                    }
+                }
+                const [s,a]=ok[Math.floor(rng.next()*ok.length)];
+                ang.push([a,'s']);
+                text+=':'+String(s).padStart(2,'0');
+            }
+            for (const [a,role] of ang) {
+                this.beam({a,warn:C.show,dur:C.live,width:role==='s'?d.second.width*2:C.width,thin:role==='s',len:C.len,inner:C.inner,role,loud:true});
+            }
+            this.say={text,t:0,dur:C.show+C.live,keep:true};
+            this.sfx(ctx,'alarmTick',1.3);
+        }
+        else {
+            const B=d.bells;
+            this.waves.push({x:this.pos.x,z:this.pos.z,r:0.8,speed:B.speed*(ev?d.p2.speed:1),max:B.max,width:B.width,hit:false,delay:B.tele,warn:B.tele,bell:true});
+            this.kicks[0]=0.6;
+            this.kicks[1]=0.6;
+            this.sfx(ctx,'alarmTick',1.1);
+        }
+    }
+
+    update(dt,ctx) {
+        this.thought=false;
+        super.update(dt,ctx);
+        if (!this.thought&&this.alive&&this.state!=='spawn'&&!this.evolving&&!this.dummy) {
+            this.guardPads(ctx);
+            this.tickPads(dt,ctx);
+        }
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        this.thought=true;
+        this.manual=true;
+        this.vel.set(0,0,0);
+        this.aimX=0;
+        this.aimZ=1;
+        this.faceT+=this.state==='snooze'?0:dt;
+        if (this.fallY>0) {
+            this.fallY=Math.max(0,this.fallY-dt*this.def.hop.fall);
+            this.hopY=this.fallY;
+        }
+        this.kicks[0]*=Math.exp(-5*dt);
+        this.kicks[1]*=Math.exp(-5*dt);
+        this.guardPads(ctx);
+        this.tickHazards(dt,ctx);
+        this.tickBar(dt,ctx);
+        this.tickPads(dt,ctx);
+        if (this.state==='snooze') {
+            if (this.stateT>=this.snoozeT) {
+                this.say=null;
+                this.setState('move');
+                this.patternT=d.gap[0];
+            }
+            return;
+        }
+        if (this.state==='burst') {
+            this.burstTick(dt,ctx);
+            return;
+        }
+        if (this.burstNext) {
+            this.burstNext=false;
+            this.startBurst(ctx);
+            return;
+        }
+        if (this.state==='move') {
+            this.patternT-=dt;
+            if (this.patternT<=0) {
+                this.startPattern(ctx);
+            }
+            return;
+        }
+        if (this.state==='attack'&&this.hop) {
+            this.hopTick(dt,ctx);
+        }
+        if (this.state==='attack'&&!this.beams.length&&!this.waves.length&&!this.hop) {
+            this.setState('move');
+            this.patternT=rng.range(d.gap[0],d.gap[1])+(this.pattern==='bells'?d.bells.rest:0);
+        }
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        const hy=this.hopY||0;
+        this.root.position.y=hy;
+        this.shadow.position.y=0.03-hy;
+        this.shadow.scale.setScalar(this.def.radius*3.2*(1-0.4*hy/this.def.hop.height));
+        const ox=this.pos.x;
+        const oz=this.pos.z;
+        let si=0;
+        let li=8;
+        let fi=1;
+        const roles={h:null,m:null,s:null};
+        for (const b of this.beams) {
+            if (b.t<0) {
+                continue;
+            }
+            const cx=Math.cos(b.a);
+            const cz=Math.sin(b.a);
+            if (b.role) {
+                roles[b.role]=b.a;
+            }
+            if (b.t<b.warn) {
+                const k=Math.min(1,b.t/(b.warn*0.5));
+                for (const [r0,r1] of this.segs(b)) {
+                    const r2=r0+(r1-r0)*k;
+                    this.putLine(this.line(li++),ox+cx*r0,oz+cz*r0,ox+cx*r2,oz+cz*r2,b.thin?0.14:0.22);
+                }
+                if (b.speed!==0) {
+                    const MT=TUNING.moveTele;
+                    for (const [r0,r1] of this.segs(b)) {
+                        this.fadeRay(fi++,ox,oz,b.a,r0,r0+(r1-r0)*k,b.speed,MT.width,MT.alpha);
+                    }
+                }
+            }
+            else {
+                const fade=Math.max(0,Math.min(1,1-(b.t-b.warn-b.dur)/0.25));
+                for (const [r0,r1] of this.segs(b)) {
+                    const m=this.strip(si++);
+                    this.putLine(m,ox+cx*r0,oz+cz*r0,ox+cx*r1,oz+cz*r1,b.width*2.2);
+                    m.material.uniforms.uAlpha.value=fade;
+                }
+            }
+        }
+        this.hideStrips(si);
+        let wi=0;
+        let ki=0;
+        const BW=this.def.bells;
+        for (const w of this.waves) {
+            if (w.delay>0) {
+                if (w.warn) {
+                    const e=(w.warn-w.delay)/BW.warnCycle;
+                    for (let j=0;j<BW.warnRings;j++) {
+                        const f=(e+j/BW.warnRings)%1;
+                        const m=this.warnMesh(ki++);
+                        const R=w.r+f*BW.warnReach;
+                        m.visible=true;
+                        m.position.x=w.x;
+                        m.position.z=w.z;
+                        m.scale.set(R,1,R);
+                        m.material.uniforms.uWidth.value=Math.min(2,BW.warnWidth*2/R);
+                        m.material.uniforms.uAlpha.value=(1-f)*Math.min(1,e*3)*BW.warnAlpha;
+                    }
+                }
+                continue;
+            }
+            const m=this.waveMesh(wi++);
+            const R=w.r+w.width;
+            m.visible=true;
+            m.position.x=w.x;
+            m.position.z=w.z;
+            m.scale.set(R,1,R);
+            m.material.uniforms.uWidth.value=Math.min(2,w.width*2/R);
+            m.material.uniforms.uAlpha.value=Math.min(1,(w.max-w.r)/2);
+        }
+        for (let i=wi;i<this.waveMeshes.length;i++) {
+            this.waveMeshes[i].visible=false;
+        }
+        for (let i=ki;i<this.warnMeshes.length;i++) {
+            this.warnMeshes[i].visible=false;
+        }
+        const P=this.def.pad;
+        const B=this.def.bar;
+        const k=Math.max(0,Math.min(1,(this.bar-B.show)/(B.max-B.show)));
+        for (let i=0;i<Math.max(this.pads.length,this.padMeshes.length);i++) {
+            const q=this.pads[i];
+            const pm=this.padMesh(i);
+            if (!q) {
+                pm.fill.visible=false;
+                pm.edge.visible=false;
+                pm.prog.visible=false;
+                continue;
+            }
+            if (q.done) {
+                q.out=(q.out||0)+dt;
+            }
+            const gone=q.done?Math.min(1,q.out/P.vanish):0;
+            if (gone>=1) {
+                pm.fill.visible=false;
+                pm.edge.visible=false;
+                pm.prog.visible=false;
+                continue;
+            }
+            const pop=EASE.easeOutBack(Math.min(1,q.t/0.3));
+            const r=P.r*pop*(1+gone*0.4);
+            const blink=0.5+0.5*Math.sin(time.real*(6+k*14));
+            for (const m of [pm.fill,pm.edge,pm.prog]) {
+                m.visible=true;
+                m.position.x=q.x;
+                m.position.z=q.z;
+            }
+            pm.fill.scale.set(r,1,r);
+            pm.fill.material.uniforms.uAlpha.value=q.done?0.45*(1-gone):0.12+0.2*blink;
+            pm.edge.scale.set(r,1,r);
+            pm.edge.material.uniforms.uAlpha.value=q.done?1-gone:0.55+0.45*blink;
+            pm.edge.material.uniforms.uTime.value=time.real*0.6;
+            pm.prog.scale.set(r*1.25,1,r*1.25);
+            pm.prog.material.uniforms.uProgress.value=q.hold/q.need;
+            pm.prog.material.uniforms.uAlpha.value=1-gone;
+        }
+        const bk=this.bar/this.def.bar.max;
+        this.blush.visible=bk>0.02;
+        this.blush.scale.setScalar(Math.max(0.01,bk));
+        const ft=this.faceT;
+        const sA=roles.s??-Math.PI/2+ft*Math.PI*2/6;
+        const mA=roles.m??-Math.PI/2+ft*0.12;
+        const hA=roles.h??-Math.PI/3+ft*0.01;
+        this.sHand.rotation.z=handAngle(sA);
+        this.mHand.rotation.z=handAngle(mA);
+        this.hHand.rotation.z=handAngle(hA);
+    }
+
+    pose() {
+        const tm=time.real;
+        const k=this.bar/this.def.bar.max;
+        const sleep=this.state==='snooze';
+        const amp=this.state==='burst'?0.45:(sleep?0:k*k*0.4);
+        const f=10+k*16;
+        this.bells.forEach((b,i)=>{
+            b.rotation.z=b.userData.base+Math.sin(tm*f+i*1.7)*amp+this.kicks[i]*Math.sin(tm*45+i)*0.35;
+        });
+        this.hammer.rotation.z=Math.sin(tm*f*1.3)*(amp+Math.max(this.kicks[0],this.kicks[1])*0.4)*1.4;
+        this.clock.rotation.z=sleep?0.22:Math.sin(tm*f*0.5)*amp*0.2;
+        this.clock.position.y=sleep?1.9+Math.sin(tm*2)*0.05:2.05+Math.abs(Math.sin(tm*f))*amp*0.25;
+    }
+}
+
+const LCD_FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+const labelMats={};
+const tileTmp=new THREE.Vector3();
+
+function labelMat(ch) {
+    if (!labelMats[ch]) {
+        const c=document.createElement('canvas');
+        c.width=128;
+        c.height=128;
+        const x=c.getContext('2d');
+        x.font='bold '+(ch.length>1?82:104)+'px '+LCD_FONT;
+        x.textAlign='center';
+        x.textBaseline='middle';
+        x.lineJoin='round';
+        x.lineWidth=16;
+        x.strokeStyle=PALETTE.paper;
+        x.strokeText(ch,64,70);
+        x.fillStyle=PALETTE.ink;
+        x.fillText(ch,64,70);
+        const tex=new THREE.CanvasTexture(c);
+        tex.colorSpace=THREE.NoColorSpace;
+        labelMats[ch]=iconMaterial(tex);
+    }
+    return labelMats[ch];
+}
+
+function shuffle(list) {
+    for (let i=list.length-1;i>0;i--) {
+        const j=Math.floor(rng.next()*(i+1));
+        [list[i],list[j]]=[list[j],list[i]];
+    }
+    return list;
+}
+
+class Calculator extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const head=this.mat('head');
+        const red=this.mat('limb');
+        const ink=this.inkMat();
+        this.calc=new THREE.Group();
+        this.calc.position.y=2.25;
+        this.calc.rotation.x=-0.16;
+        this.calc.add(this.hullify(new THREE.Mesh(geo('caShell',()=>new THREE.BoxGeometry(2.9,3.8,1.2)),body)));
+        const bezel=new THREE.Mesh(geo('caBezel',()=>new THREE.BoxGeometry(2.5,1.2,0.12)),ink);
+        bezel.position.set(0,1.1,0.62);
+        this.calc.add(bezel);
+        const c=document.createElement('canvas');
+        c.width=256;
+        c.height=112;
+        this.lcd=c;
+        this.lcdTex=new THREE.CanvasTexture(c);
+        this.lcdTex.colorSpace=THREE.NoColorSpace;
+        const scr=new THREE.Mesh(geo('caScreen',()=>new THREE.PlaneGeometry(2.3,1.0)),iconMaterial(this.lcdTex));
+        scr.position.set(0,1.1,0.69);
+        this.calc.add(scr);
+        const solar=new THREE.Mesh(geo('caSolar',()=>new THREE.BoxGeometry(1.1,0.22,0.08)),ink);
+        solar.position.set(0.6,1.72,0.62);
+        this.calc.add(solar);
+        this.keys=[];
+        const kg=geo('caKey',()=>new THREE.BoxGeometry(0.5,0.4,0.24));
+        for (let r=0;r<4;r++) {
+            for (let k=0;k<4;k++) {
+                const m=this.hullify(new THREE.Mesh(kg,k===3?red:head));
+                m.position.set(-0.93+k*0.62,0.08-r*0.52,0.66);
+                this.calc.add(m);
+                this.keys.push(m);
+            }
+        }
+        this.arms=[];
+        for (const sx of [-1,1]) {
+            const g=new THREE.Group();
+            g.position.set(sx*1.5,0.2,0);
+            g.add(this.hullify(new THREE.Mesh(geo('caArm',()=>new THREE.CylinderGeometry(0.12,0.12,1.2,6).translate(0,-0.6,0)),body)));
+            const hand=new THREE.Mesh(geo('caHand',()=>new THREE.SphereGeometry(0.22,8,6)),ink);
+            hand.position.y=-1.2;
+            g.add(hand);
+            g.userData.base=sx*0.45;
+            g.rotation.z=g.userData.base;
+            this.calc.add(g);
+            this.arms.push(g);
+        }
+        for (const sx of [-1,1]) {
+            const f=this.hullify(new THREE.Mesh(geo('caFoot',()=>new THREE.BoxGeometry(0.6,0.45,0.8)),body));
+            f.position.set(sx*0.85,-2.0,0.05);
+            this.calc.add(f);
+        }
+        this.body.add(this.calc);
+        this.shown=null;
+        this.paint('');
+    }
+
+    paint(text,color='ink') {
+        const key=text+'|'+color;
+        if (key===this.shown) {
+            return;
+        }
+        this.shown=key;
+        const x=this.lcd.getContext('2d');
+        x.fillStyle=PALETTE.nearGray;
+        x.fillRect(0,0,256,112);
+        x.fillStyle=PALETTE.paper;
+        x.fillRect(8,8,240,96);
+        if (text==='') {
+            x.strokeStyle=PALETTE.ink;
+            x.lineWidth=9;
+            x.lineCap='round';
+            for (const sx of [-1,1]) {
+                x.beginPath();
+                x.moveTo(128+sx*72,34);
+                x.lineTo(128+sx*26,50);
+                x.stroke();
+                x.fillStyle=PALETTE.ink;
+                x.beginPath();
+                x.arc(128+sx*44,70,10,0,Math.PI*2);
+                x.fill();
+            }
+        }
+        else {
+            let size=66;
+            x.font='bold '+size+'px '+LCD_FONT;
+            while (x.measureText(text).width>226&&size>26) {
+                size-=4;
+                x.font='bold '+size+'px '+LCD_FONT;
+            }
+            x.fillStyle=PALETTE[color];
+            x.textAlign='right';
+            x.textBaseline='middle';
+            x.fillText(text,238,60);
+        }
+        this.lcdTex.needsUpdate=true;
+    }
+
+    onReset() {
+        this.patternT=this.def.first;
+        this.q=null;
+        this.tiles=[];
+        this.queue=[];
+        this.rows=[];
+        this.beams=[];
+        this.sweeps=[];
+        this.bag=[];
+        this.last=null;
+        this.press=0;
+        this.shotT=0;
+        this.digits=this.digits||[];
+        this.tileMeshes=this.tileMeshes||[];
+        this.say=null;
+        this.paint('');
+    }
+
+    get calcQ() {
+        const q=this.q;
+        if (!q||!this.alive||(this.state!=='ask'&&this.state!=='daze')) {
+            return null;
+        }
+        const solved=this.state==='daze';
+        return {text:q.a+' '+q.op+' '+q.b+' = '+(solved?q.ans:'?'),frac:solved?0:Math.max(0,1-q.t/q.time),solved,hint:solved?'':t('calc.hint')};
+    }
+
+    sfx(ctx,n,p=1) {
+        if (ctx.sfx) {
+            ctx.sfx(n,p);
+        }
+    }
+
+    harm(ctx,dx,dz) {
+        const p=ctx.player;
+        p.noteDodge();
+        return p.hurt(1,dx,dz);
+    }
+
+    damageMult() {
+        return this.state==='daze'?this.weakX(this.def.weakMult):1;
+    }
+
+    get guarded() {
+        return this.alive&&this.state==='ask';
+    }
+
+    get guardKey() {
+        return 'boss.guard.calc';
+    }
+
+    guardMult() {
+        return this.guarded?this.def.quiz.guardMult:1;
+    }
+
+    stun(t,full) {
+        if (this.state==='daze'||this.state==='zero') {
+            return;
+        }
+        super.stun(t,full);
+    }
+
+    clearTiles(ctx) {
+        for (const k of this.tiles) {
+            if (!k.done&&ctx) {
+                ctx.particles.burst(k.x,0.5,k.z,8,{color:'midGray',speed:[2,4],up:[1,3]});
+            }
+        }
+        this.tiles=[];
+    }
+
+    clearHazards() {
+        this.rows=[];
+        this.beams=[];
+        this.sweeps=[];
+    }
+
+    hide() {
+        super.hide();
+        this.tiles=[];
+        this.clearHazards();
+        this.q=null;
+        for (const m of this.digits||[]) {
+            m.visible=false;
+        }
+        for (const q of this.tileMeshes||[]) {
+            q.box.visible=false;
+            q.top.visible=false;
+        }
+    }
+
+    onEvolveStart(ctx) {
+        this.clearHazards();
+        this.clearTiles(ctx);
+        this.queue=[];
+        this.q=null;
+        this.paint('');
+    }
+
+    onEvolved() {
+        this.queue=[];
+    }
+
+    spot(ctx,taken) {
+        const Q=this.def.quiz;
+        const b=ctx.room.bounds;
+        const p=ctx.player.pos;
+        let best=[(b.minX+b.maxX)/2,b.maxZ-Q.margin];
+        let bs=-Infinity;
+        for (let i=0;i<80;i++) {
+            const x=rng.range(b.minX+Q.margin,b.maxX-Q.margin);
+            const z=rng.range(b.minZ+Q.margin,b.maxZ-Q.margin);
+            const dp=Math.hypot(x-p.x,z-p.z);
+            const db=Math.hypot(x-this.pos.x,z-this.pos.z);
+            const dt=taken.reduce((m,q)=>Math.min(m,Math.hypot(x-q[0],z-q[1])),99);
+            tileTmp.set(x,0,z);
+            resolveCircle(tileTmp,Q.keyR+Q.clear,ctx.room.colliders,2);
+            if (Math.hypot(tileTmp.x-x,tileTmp.z-z)>0.01) {
+                continue;
+            }
+            const score=Math.min(dp-Q.minPlayer,db-Q.minBoss,dt-Q.minGap);
+            if (score>=0) {
+                return [x,z];
+            }
+            if (score>bs) {
+                bs=score;
+                best=[x,z];
+            }
+        }
+        return best;
+    }
+
+    question() {
+        const Q=this.def.quiz;
+        const ev=this.evolved;
+        const add=rng.next()<(ev?Q.addRate2:Q.addRate);
+        let a=1+Math.floor(rng.next()*9);
+        let b=1+Math.floor(rng.next()*9);
+        if (!add&&a<b) {
+            [a,b]=[b,a];
+        }
+        const ans=add?a+b:a-b;
+        const n=ev?Q.count2:Q.count;
+        const pool=[];
+        for (let v=0;v<=18;v++) {
+            if (v!==ans) {
+                pool.push(v);
+            }
+        }
+        const wrong=[];
+        if (ev) {
+            const near=shuffle(pool.filter(v=>Math.abs(v-ans)>=Q.near2[0]&&Math.abs(v-ans)<=Q.near2[1]));
+            wrong.push(...near.slice(0,Q.near));
+        }
+        const far=shuffle(pool.filter(v=>Math.abs(v-ans)>=Q.far));
+        while (wrong.length<n-1&&far.length) {
+            wrong.push(far.shift());
+        }
+        return {a,b,op:add?'+':'−',ans,nums:shuffle([ans,...wrong])};
+    }
+
+    ask(ctx) {
+        const Q=this.def.quiz;
+        const q=this.question();
+        this.q={...q,t:0,time:this.evolved?Q.time2:Q.time,swapped:false};
+        const taken=[];
+        this.tiles=q.nums.map(v=>{
+            const s=this.spot(ctx,taken);
+            taken.push(s);
+            return {x:s[0],z:s[1],fx:s[0],fz:s[1],tx:s[0],tz:s[1],mt:1,num:v,right:v===q.ans,done:false,press:0,t:0};
+        });
+        for (const k of this.tiles) {
+            ctx.particles.burst(k.x,0.4,k.z,8,{color:'ink',speed:[2,5],up:[2,5]});
+        }
+        this.paint(q.a+q.op+q.b+'=?');
+        this.press=1;
+        this.shotT=Q.shoot;
+        this.setState('ask');
+        this.sfx(ctx,'alarmTick',1.2);
+        ctx.fx.cameraShake(0.15);
+    }
+
+    get edgeWarn() {
+        const S=this.alive?this.sweeps.find(s=>s.t>-this.def.minus.gap):null;
+        if (!S) {
+            return null;
+        }
+        return {side:S.axis==='z'?(S.dir>0?'top':'bottom'):(S.dir>0?'left':'right')};
+    }
+
+    onTile(p) {
+        const Q=this.def.quiz;
+        if (!this.alive||this.state!=='ask') {
+            return null;
+        }
+        return this.tiles.find(k=>!k.done&&k.t>=Q.pop&&k.mt>=1&&Math.abs(p.pos.x-k.x)<Q.keyR&&Math.abs(p.pos.z-k.z)<Q.keyR)||null;
+    }
+
+    pressTile(ctx) {
+        const k=this.onTile(ctx.player);
+        if (!k) {
+            return false;
+        }
+        k.done=true;
+        k.press=1;
+        ctx.player.sqv-=3;
+        if (k.right) {
+            this.solved(ctx,k);
+        }
+        else {
+            this.wrong(ctx,k);
+        }
+        return true;
+    }
+
+    swapTiles() {
+        const live=this.tiles.filter(k=>!k.done);
+        const spots=shuffle(live.map(k=>[k.x,k.z]));
+        if (live.length>1&&spots.every((s,i)=>s[0]===live[i].x&&s[1]===live[i].z)) {
+            spots.push(spots.shift());
+        }
+        live.forEach((k,i)=>{
+            k.fx=k.x;
+            k.fz=k.z;
+            k.tx=spots[i][0];
+            k.tz=spots[i][1];
+            k.mt=0;
+        });
+    }
+
+    tickQuiz(dt,ctx) {
+        const Q=this.def.quiz;
+        const q=this.q;
+        const p=ctx.player;
+        q.t+=dt;
+        if (this.evolved&&!q.swapped&&q.t>=q.time*Q.swapAt) {
+            q.swapped=true;
+            this.swapTiles();
+            this.sfx(ctx,'alarmTick',0.8);
+        }
+        for (const k of this.tiles) {
+            k.t+=dt;
+            if (k.mt<1) {
+                k.mt=Math.min(1,k.mt+dt/Q.swapTime);
+                const f=EASE.easeInOutCubic(k.mt);
+                k.x=k.fx+(k.tx-k.fx)*f;
+                k.z=k.fz+(k.tz-k.fz)*f;
+            }
+        }
+        this.shotT-=dt;
+        if (this.shotT<=0) {
+            this.shotT=this.evolved?Q.shoot2:Q.shoot;
+            const a=Math.atan2(this.nz,this.nx);
+            for (const o of [-1,0,1]) {
+                const b=a+o*Q.shotSpread;
+                ctx.enemyBullets.spawn(this.pos.x+Math.cos(b)*1.8,this.pos.z+Math.sin(b)*1.8,Math.cos(b),Math.sin(b),Q.shotSpeed,this.def.bulletDamage,4);
+            }
+            this.press=1;
+        }
+        if (q.t>=q.time) {
+            this.timeout(ctx);
+        }
+    }
+
+    burstRing(ctx,x,z,n) {
+        const Q=this.def.quiz;
+        fireRing(ctx,x,z,n,rng.range(0,Math.PI*2),Q.ringSpeed,this.def.bulletDamage,4);
+        ctx.particles.burst(x,0.6,z,14,{color:'red',speed:[3,7],up:[2,5]});
+    }
+
+    wrong(ctx,k) {
+        this.burstRing(ctx,k.x,k.z,this.def.quiz.wrongRing);
+        this.sfx(ctx,'fail',1.1);
+        ctx.fx.cameraShake(0.2);
+        this.sqv+=2;
+        this.flashT=0.1;
+    }
+
+    solved(ctx,k) {
+        const q=this.q;
+        for (const o of this.tiles) {
+            if (!o.done) {
+                o.done=true;
+                ctx.particles.burst(o.x,0.5,o.z,8,{color:'midGray',speed:[2,4],up:[1,3]});
+            }
+        }
+        ctx.particles.burst(k.x,0.6,k.z,20,{color:'paper',speed:[3,7],up:[2,6]});
+        this.paint(q.a+q.op+q.b+'='+q.ans,'red');
+        this.setState('daze');
+        this.say={text:t('calc.daze'),t:0,dur:this.def.daze.time,keep:true};
+        this.sfx(ctx,'clear',1.1);
+        ctx.fx.cameraShake(0.3);
+        this.sqv-=4;
+        ctx.particles.burst(this.pos.x,3.5,this.pos.z,24,{color:'red',speed:[3,8],up:[2,6]});
+    }
+
+    timeout(ctx) {
+        const Q=this.def.quiz;
+        for (const k of this.tiles) {
+            if (!k.done) {
+                k.done=true;
+                k.press=1;
+                this.burstRing(ctx,k.x,k.z,Q.timeoutRing);
+            }
+        }
+        this.paint('Error','red');
+        this.say={text:t('calc.timeout'),t:0,dur:1.4,keep:false};
+        this.sfx(ctx,'alarmBurst',1.2);
+        ctx.fx.cameraShake(0.35);
+        this.interlude();
+    }
+
+    draw() {
+        if (!this.bag.length) {
+            this.bag=shuffle(['rain','plus','minus']);
+            if (this.bag[0]===this.last) {
+                this.bag.push(this.bag.shift());
+            }
+        }
+        const k=this.bag.shift();
+        this.last=k;
+        return k;
+    }
+
+    interlude() {
+        const d=this.def;
+        const n=d.attacks[0]+Math.floor(rng.next()*(d.attacks[1]-d.attacks[0]+1));
+        this.queue=[];
+        for (let i=0;i<n;i++) {
+            this.queue.push(this.draw());
+        }
+        if (rng.next()<d.zero.chance) {
+            this.queue.push('zero');
+        }
+        this.setState('move');
+        this.patternT=rng.range(d.gap[0],d.gap[1]);
+    }
+
+    nextStep(ctx) {
+        const k=this.queue.shift();
+        if (!k) {
+            this.ask(ctx);
+            return;
+        }
+        this.pattern=k;
+        this.press=1;
+        this.tiles=this.tiles.filter(q=>q.press>0.05);
+        if (k==='zero') {
+            this.zero(ctx);
+            return;
+        }
+        this.setState('attack');
+        if (k==='rain') {
+            this.startRain(ctx);
+            this.paint('÷');
+        }
+        else if (k==='plus') {
+            this.startPlus(ctx);
+            this.paint('+');
+        }
+        else {
+            this.startMinus(ctx);
+            this.paint('−');
+        }
+        this.sfx(ctx,'alarmTick',0.9);
+    }
+
+    zero(ctx) {
+        const Z=this.def.zero;
+        this.clearHazards();
+        this.clearTiles(ctx);
+        ctx.enemyBullets.clear();
+        this.shielded=true;
+        this.setState('zero');
+        this.paint('0');
+        this.say={text:t('calc.zero'),t:0,dur:Z.time,keep:true};
+        this.sfx(ctx,'erase',1);
+        ctx.fx.cameraShake(0.3);
+        this.sqv+=4;
+        ctx.particles.burst(this.pos.x,2,this.pos.z,30,{color:'paper',speed:[4,10],up:[1,5]});
+    }
+
+    startRain(ctx) {
+        const R=this.def.rain;
+        const ev=this.evolved;
+        const b=ctx.room.bounds;
+        const p=ctx.player.pos;
+        const n=ev?R.rows2:R.rows;
+        const rows=[];
+        for (let i=0;i<n;i++) {
+            const vert=ev&&R.cross2&&i%2===1;
+            const lo=(vert?b.minX:b.minZ)+R.half;
+            const hi=(vert?b.maxX:b.maxZ)-R.half;
+            let v=i<2?(vert?p.x:p.z):rng.range(lo,hi);
+            for (let k=0;k<12&&rows.some(r=>r.vert===vert&&Math.abs(r.v-v)<R.half*3);k++) {
+                v=rng.range(lo,hi);
+            }
+            const ch=[];
+            for (let j=0;j<24;j++) {
+                ch.push(String(Math.floor(rng.next()*10)));
+            }
+            rows.push({vert,v:Math.max(lo,Math.min(hi,v)),t:-i*R.stagger,landed:false,ch});
+        }
+        this.rows.push(...rows);
+    }
+
+    rowLine(r) {
+        const b=this.bounds;
+        return r.vert?[r.v,b.minZ,r.v,b.maxZ]:[b.minX,r.v,b.maxX,r.v];
+    }
+
+    startPlus(ctx) {
+        const P=this.def.plus;
+        const dir=rng.sign();
+        const ev=this.evolved;
+        const dur=ev?P.dur2:P.dur;
+        const turn=ev?P.turn2:P.turn;
+        const a0=Math.atan2(this.nz,this.nx)+Math.PI/4;
+        for (let i=0;i<4;i++) {
+            this.beams.push({a:a0+i*Math.PI/2,speed:dir*turn/dur,warn:P.warn,dur,t:0,cd:0});
+        }
+    }
+
+    startMinus(ctx) {
+        const M=this.def.minus;
+        const b=ctx.room.bounds;
+        const axis=this.evolved&&rng.next()<0.5?'x':'z';
+        const lo=axis==='z'?b.minZ:b.minX;
+        const hi=axis==='z'?b.maxZ:b.maxX;
+        const pc=axis==='z'?ctx.player.pos.z:ctx.player.pos.x;
+        const fwd=pc-lo>hi-pc?1:-1;
+        const from=fwd>0?lo+M.half:hi-M.half;
+        const to=fwd>0?hi-M.half:lo+M.half;
+        const speed=this.evolved?M.speed2:M.speed;
+        for (let i=0;i<M.count;i++) {
+            this.sweeps.push({axis,from,to,dir:fwd,pos:from,t:-i*M.gap,warn:M.warn,speed,cd:0});
+        }
+    }
+
+    busy() {
+        return this.rows.length>0||this.beams.length>0||this.sweeps.length>0;
+    }
+
+    tickRain(dt,ctx) {
+        const R=this.def.rain;
+        const p=ctx.player;
+        for (let i=this.rows.length-1;i>=0;i--) {
+            const r=this.rows[i];
+            r.t+=dt;
+            if (!r.landed&&r.t>=R.warn) {
+                r.landed=true;
+                const [ax,az,bx,bz]=this.rowLine(r);
+                const off=r.vert?p.pos.x-r.v:p.pos.z-r.v;
+                if (Math.abs(off)<R.half+TUNING.player.radius) {
+                    const s=Math.sign(off)||1;
+                    this.harm(ctx,r.vert?s:0,r.vert?0:s);
+                }
+                for (let k=0;k<6;k++) {
+                    const u=rng.next();
+                    ctx.particles.burst(ax+(bx-ax)*u,0.4,az+(bz-az)*u,3,{color:'ink',speed:[2,5],up:[2,5]});
+                }
+                ctx.fx.cameraShake(0.12);
+                this.sfx(ctx,'wall',0.8+rng.next()*0.3);
+            }
+            if (r.t>=R.warn+R.linger) {
+                this.rows.splice(i,1);
+            }
+        }
+    }
+
+    tickBeams(dt,ctx) {
+        const P=this.def.plus;
+        const p=ctx.player;
+        for (let i=this.beams.length-1;i>=0;i--) {
+            const b=this.beams[i];
+            b.t+=dt;
+            b.cd=Math.max(0,b.cd-dt);
+            if (b.t>=b.warn&&b.t<b.warn+b.dur) {
+                b.a+=b.speed*dt;
+                if (b.cd<=0&&rayHit(p,this.pos.x,this.pos.z,b.a,P.inner,P.len,P.width)) {
+                    const s=Math.sign(b.speed)||1;
+                    if (this.harm(ctx,-Math.sin(b.a)*s,Math.cos(b.a)*s)) {
+                        b.cd=this.def.hitCool;
+                    }
+                }
+            }
+            if (b.t>=b.warn+b.dur+0.25) {
+                this.beams.splice(i,1);
+            }
+        }
+    }
+
+    tickSweep(dt,ctx) {
+        const M=this.def.minus;
+        const p=ctx.player;
+        for (let i=this.sweeps.length-1;i>=0;i--) {
+            const S=this.sweeps[i];
+            S.t+=dt;
+            S.cd=Math.max(0,S.cd-dt);
+            if (S.t<S.warn) {
+                continue;
+            }
+            S.pos+=S.dir*S.speed*dt;
+            const pc=S.axis==='z'?p.pos.z:p.pos.x;
+            if (S.cd<=0&&Math.abs(pc-S.pos)<M.half+TUNING.player.radius) {
+                if (this.harm(ctx,S.axis==='x'?S.dir:0,S.axis==='z'?S.dir:0)) {
+                    S.cd=this.def.hitCool;
+                }
+            }
+            if ((S.to-S.pos)*S.dir<=0) {
+                this.sweeps.splice(i,1);
+            }
+        }
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        this.bounds=ctx.room.bounds;
+        this.manual=true;
+        this.vel.set(0,0,0);
+        this.aimX=0;
+        this.aimZ=1;
+        this.press=Math.max(0,this.press-dt*3);
+        for (const k of this.tiles) {
+            if (k.done) {
+                k.press=Math.max(0,k.press-dt*d.quiz.fade);
+            }
+        }
+        this.tiles=this.tiles.filter(k=>!k.done||k.press>0);
+        this.tickRain(dt,ctx);
+        this.tickBeams(dt,ctx);
+        this.tickSweep(dt,ctx);
+        if (this.state==='daze') {
+            if (this.stateT>=d.daze.time) {
+                this.say=null;
+                this.paint('');
+                this.interlude();
+            }
+            return;
+        }
+        if (this.state==='zero') {
+            if (this.stateT>=d.zero.time) {
+                this.shielded=false;
+                this.say=null;
+                this.queue=[];
+                this.ask(ctx);
+            }
+            return;
+        }
+        if (this.state==='ask') {
+            this.tickQuiz(dt,ctx);
+            return;
+        }
+        if (this.state==='move') {
+            this.patternT-=dt;
+            if (this.patternT<=0) {
+                this.nextStep(ctx);
+            }
+            return;
+        }
+        if (this.state==='attack'&&!this.busy()) {
+            this.paint('');
+            this.setState('move');
+            this.patternT=rng.range(d.gap[0],d.gap[1]);
+        }
+    }
+
+    digitMesh(i,ch) {
+        while (this.digits.length<=i) {
+            const m=new THREE.Mesh(geo('caDigit',()=>new THREE.PlaneGeometry(1,1)),labelMat('0'));
+            m.rotation.x=-0.7;
+            m.frustumCulled=false;
+            m.visible=false;
+            if (this.root.parent) {
+                this.root.parent.add(m);
+            }
+            this.digits.push(m);
+        }
+        const m=this.digits[i];
+        const mat=labelMat(ch);
+        if (m.material!==mat) {
+            m.material=mat;
+        }
+        m.visible=true;
+        return m;
+    }
+
+    tileMat() {
+        if (!this._tileMat) {
+            this._tileMat=toonMaterial({...this.def.tones.head,jitter:TUNING.boil.vertexJitter,unique:true});
+        }
+        return this._tileMat;
+    }
+
+    tileMesh(i) {
+        const Q=this.def.quiz;
+        while (this.tileMeshes.length<=i) {
+            const box=new THREE.Mesh(geo('caTile',()=>new THREE.BoxGeometry(Q.keySize,Q.keyH,Q.keySize)),this.tileMat());
+            box.add(new THREE.Mesh(box.geometry,this.hull));
+            const top=new THREE.Mesh(geo('caTileTop',()=>new THREE.PlaneGeometry(Q.keySize*0.9,Q.keySize*0.9).rotateX(-Math.PI/2)),labelMat('0'));
+            for (const m of [box,top]) {
+                m.frustumCulled=false;
+                m.visible=false;
+                if (this.root.parent) {
+                    this.root.parent.add(m);
+                }
+            }
+            this.tileMeshes.push({box,top});
+        }
+        return this.tileMeshes[i];
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        const d=this.def;
+        const ox=this.pos.x;
+        const oz=this.pos.z;
+        const MT=TUNING.moveTele;
+        const Q=d.quiz;
+        let li=0;
+        let fi=0;
+        let si=0;
+        let di=0;
+        for (let i=0;i<Math.max(this.tiles.length,this.tileMeshes.length);i++) {
+            const k=this.tiles[i];
+            const tm=this.tileMesh(i);
+            if (!k) {
+                tm.box.visible=false;
+                tm.top.visible=false;
+                continue;
+            }
+            const pop=EASE.easeOutBack(Math.min(1,k.t/Q.pop));
+            const lift=k.mt<1?Math.sin(k.mt*Math.PI)*Q.hop:0;
+            const y=Q.keyH/2-(k.done?Q.keyH*Q.sink:0)+lift;
+            const sc=Math.max(0.01,pop*(k.done?k.press:1));
+            const mat=labelMat(String(k.num));
+            if (tm.top.material!==mat) {
+                tm.top.material=mat;
+            }
+            tm.box.visible=true;
+            tm.top.visible=true;
+            tm.box.position.set(k.x,y,k.z);
+            tm.box.scale.set(sc,1,sc);
+            tm.top.position.set(k.x,y+Q.keyH/2+0.02,k.z);
+            tm.top.scale.set(sc,1,sc);
+        }
+        if (this.bounds) {
+            const R=d.rain;
+            for (const r of this.rows) {
+                if (r.t<0) {
+                    continue;
+                }
+                const [ax,az,bx,bz]=this.rowLine(r);
+                if (r.t<R.warn) {
+                    const k=Math.min(1,r.t/(R.warn*0.5));
+                    const cx=(ax+bx)/2;
+                    const cz=(az+bz)/2;
+                    this.putLine(this.line(li++),cx-(cx-ax)*k,cz-(cz-az)*k,cx+(bx-cx)*k,cz+(bz-cz)*k,0.14);
+                    this.fadeBand(fi++,ax,az,bx,bz,R.half*2,0.3*k);
+                }
+                const t0=R.warn-R.fall;
+                if (r.t>=t0&&r.t<R.warn+R.linger) {
+                    const f=Math.min(1,(r.t-t0)/R.fall);
+                    const len=Math.hypot(bx-ax,bz-az);
+                    const n=Math.max(1,Math.floor(len/R.spacing));
+                    const out=r.t>R.warn?Math.max(0.01,1-(r.t-R.warn)/R.linger):1;
+                    for (let j=0;j<n;j++) {
+                        const u=(j+0.5)/n;
+                        const m=this.digitMesh(di++,r.ch[j%r.ch.length]);
+                        m.position.set(ax+(bx-ax)*u,0.5+R.height*(1-f*f)+(j%2)*0.6*(1-f),az+(bz-az)*u);
+                        m.scale.setScalar(out);
+                    }
+                }
+            }
+            const P=d.plus;
+            for (const b of this.beams) {
+                const cx=Math.cos(b.a);
+                const cz=Math.sin(b.a);
+                if (b.t<b.warn) {
+                    const k=Math.min(1,b.t/(b.warn*0.5));
+                    const r2=P.inner+(P.len-P.inner)*k;
+                    this.putLine(this.line(li++),ox+cx*P.inner,oz+cz*P.inner,ox+cx*r2,oz+cz*r2,0.22);
+                    this.fadeRay(fi++,ox,oz,b.a,P.inner,r2,b.speed,MT.width,MT.alpha);
+                }
+                else {
+                    const fade=Math.max(0,Math.min(1,1-(b.t-b.warn-b.dur)/0.25));
+                    const m=this.strip(si++);
+                    this.putLine(m,ox+cx*P.inner,oz+cz*P.inner,ox+cx*P.len,oz+cz*P.len,P.width*2.2);
+                    m.material.uniforms.uAlpha.value=fade;
+                }
+            }
+            const b=this.bounds;
+            for (const S of this.sweeps) {
+                if (S.t<0) {
+                    continue;
+                }
+                const seg=v=>S.axis==='z'?[b.minX,v,b.maxX,v]:[v,b.minZ,v,b.maxZ];
+                const [ax,az,bx,bz]=seg(S.pos);
+                if (S.t<S.warn) {
+                    const k=Math.min(1,S.t/(S.warn*0.5));
+                    this.putLine(this.line(li++),ax,az,ax+(bx-ax)*k,az+(bz-az)*k,0.22);
+                    const e=S.pos+S.dir*d.minus.reach*k;
+                    const [cx,cz]=S.axis==='z'?[(ax+bx)/2,S.pos]:[S.pos,(az+bz)/2];
+                    const [ex,ez]=S.axis==='z'?[(ax+bx)/2,e]:[e,(az+bz)/2];
+                    this.fadeBand(fi++,cx,cz,ex,ez,S.axis==='z'?b.maxX-b.minX:b.maxZ-b.minZ,MT.alpha*k);
+                }
+                else {
+                    const m=this.strip(si++);
+                    this.putLine(m,ax,az,bx,bz,d.minus.half*2.2);
+                    m.material.uniforms.uAlpha.value=1;
+                }
+            }
+        }
+        this.hideStrips(si);
+        for (let i=di;i<this.digits.length;i++) {
+            this.digits[i].visible=false;
+        }
+    }
+
+    pose() {
+        const tm=time.real;
+        const daze=this.state==='daze';
+        const zero=this.state==='zero';
+        const ask=this.state==='ask';
+        this.calc.rotation.z=daze?Math.sin(tm*3)*0.18:(zero?Math.sin(tm*30)*0.04:0);
+        this.calc.position.y=2.25+(daze?0:Math.abs(Math.sin(tm*(ask?5:2.5)))*0.08);
+        this.arms.forEach((g,i)=>{
+            const s=i?1:-1;
+            g.rotation.z=g.userData.base+(daze?s*0.6:Math.sin(tm*(ask?8:3)+i*Math.PI)*0.25+(this.press>0?-s*0.5*this.press:0));
+        });
+        const hot=ask?Math.floor(tm*6)%this.keys.length:-1;
+        this.keys.forEach((k,i)=>{
+            k.position.z=0.66-(i===hot||(this.press>0&&i%5===0)?0.1:0);
+        });
+    }
+}
+
+function planeGeo(k) {
+    return triGeo([
+        0,0,0.5*k,-0.42*k,0.02*k,-0.38*k,0,0,-0.3*k,
+        0,0,0.5*k,0.42*k,0.02*k,-0.38*k,0,0,-0.3*k,
+        0,0,0.5*k,0,-0.16*k,-0.36*k,0,0,-0.3*k
+    ]);
+}
+
+function sPoint(P,s,amp,out) {
+    const w=amp*P.k*Math.sin(s*Math.PI*2);
+    out.x=P.sx+P.dx*P.len*s-P.dz*w;
+    out.z=P.sz+P.dz*P.len*s+P.dx*w;
+    return out;
+}
+
+function sPath(sx,sz,ex,ez,k,amp) {
+    const dx=ex-sx;
+    const dz=ez-sz;
+    const len=Math.hypot(dx,dz)||1;
+    const P={sx,sz,dx:dx/len,dz:dz/len,len,k,arc:0};
+    const a={x:0,z:0};
+    const b={x:sx,z:sz};
+    for (let i=1;i<=24;i++) {
+        sPoint(P,i/24,amp,a);
+        P.arc+=Math.hypot(a.x-b.x,a.z-b.z);
+        b.x=a.x;
+        b.z=a.z;
+    }
+    return P;
+}
+
+class PaperPlane extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const head=this.mat('head');
+        const limb=this.mat('limb');
+        const ink=this.inkMat();
+        head.side=THREE.DoubleSide;
+        this.legs=[];
+        for (const sx of [-1,1]) {
+            const p=new THREE.Group();
+            p.position.set(sx*0.16,0.42,0);
+            const leg=this.hullify(new THREE.Mesh(geo('leg',()=>capsule(0.11,0.22)),limb));
+            leg.position.y=-0.2;
+            p.add(leg);
+            this.body.add(p);
+            this.legs.push(p);
+        }
+        this.torso=this.hullify(new THREE.Mesh(geo('ppTorso',()=>new THREE.BoxGeometry(0.58,0.58,0.42)),body));
+        this.torso.position.y=0.76;
+        this.body.add(this.torso);
+        this.head=new THREE.Group();
+        this.head.position.y=1.3;
+        this.head.add(this.hullify(new THREE.Mesh(geo('skull',()=>new THREE.SphereGeometry(0.3,9,6)),head)));
+        const hat=this.hullify(new THREE.Mesh(geo('ppHat',()=>{
+            const g=new THREE.ConeGeometry(0.36,0.42,3);
+            g.scale(1,1,0.45);
+            return g;
+        }),head));
+        hat.position.y=0.36;
+        this.head.add(hat);
+        const eg=geo('ppEye',()=>new THREE.BoxGeometry(0.06,0.12,0.04));
+        for (const sx of [-1,1]) {
+            const e=new THREE.Mesh(eg,ink);
+            e.position.set(sx*0.1,0,0.28);
+            this.head.add(e);
+        }
+        this.body.add(this.head);
+        this.arm=new THREE.Group();
+        this.arm.position.set(0.36,0.92,0);
+        const armMesh=this.hullify(new THREE.Mesh(geo('arm',()=>capsule(0.08,0.26)),limb));
+        armMesh.position.y=-0.18;
+        this.arm.add(armMesh);
+        this.handPlane=new THREE.Mesh(geo('ppPlaneS',()=>planeGeo(0.8)),head);
+        this.handPlane.position.set(0,-0.42,0.12);
+        this.arm.add(this.handPlane);
+        this.body.add(this.arm);
+        this.planes=[];
+        this.dashes=[];
+        this.dashMat=null;
+        this.planeMat=head;
+    }
+
+    onReset() {
+        const d=this.def;
+        this.throwT=this.firstT(d.firstThrow);
+        this.strafeSign=rng.sign();
+        this.strafeT=rng.range(1,3);
+        this.launched=0;
+        this.crashed=0;
+        this.outPaths=[];
+        for (const pl of this.planes) {
+            pl.alive=false;
+            pl.mesh.visible=false;
+        }
+        this.hideDashes();
+        this.handPlane.visible=true;
+    }
+
+    hide() {
+        super.hide();
+        for (const pl of this.planes) {
+            pl.alive=false;
+            pl.mesh.visible=false;
+        }
+        this.launched=0;
+        this.hideDashes();
+    }
+
+    plane(i) {
+        while (this.planes.length<=i) {
+            const g=new THREE.Group();
+            const m=new THREE.Mesh(geo('ppPlane',()=>planeGeo(1.4)),this.planeMat);
+            g.add(m);
+            g.visible=false;
+            (this.root.parent||this.fxScene).add(g);
+            this.planes.push({mesh:g,alive:false,uid:0,x:0,z:0,px:0,pz:0,hx:0,hz:1,pos:{x:0,z:0},spin:0});
+        }
+        return this.planes[i];
+    }
+
+    dash(i) {
+        while (this.dashes.length<=i) {
+            if (!this.dashMat) {
+                this.dashMat=inkMaterial('red');
+            }
+            const m=new THREE.Mesh(geo('line',()=>{
+                const q=new THREE.PlaneGeometry(1,1);
+                q.rotateX(-Math.PI/2);
+                q.translate(0.5,0,0);
+                return q;
+            }),this.dashMat);
+            m.visible=false;
+            m.frustumCulled=false;
+            this.fxScene.add(m);
+            this.dashes.push(m);
+        }
+        return this.dashes[i];
+    }
+
+    hideDashes(from=0) {
+        for (let i=from;i<this.dashes.length;i++) {
+            this.dashes[i].visible=false;
+        }
+    }
+
+    busy() {
+        return this.planes.some(pl=>pl.alive);
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        if (this.state==='move'||this.state==='throw') {
+            let push=0;
+            if (this.dist>d.range[1]) {
+                push=1;
+            }
+            else if (this.dist<d.range[0]) {
+                push=-1;
+            }
+            this.strafeT-=dt;
+            if (this.strafeT<=0) {
+                this.strafeT=rng.range(1.2,3);
+                this.strafeSign=-this.strafeSign;
+            }
+            const k=this.state==='throw'?d.throwSlow:1;
+            this.wx=(this.nx*push-this.nz*this.strafeSign*d.strafe)*k;
+            this.wz=(this.nz*push+this.nx*this.strafeSign*d.strafe)*k;
+            this.aimX=this.nx;
+            this.aimZ=this.nz;
+            if (this.state==='move') {
+                this.throwT-=dt;
+                if (this.throwT<=0&&!this.busy()) {
+                    this.aim(ctx);
+                }
+            }
+        }
+        else if (this.state==='aim') {
+            this.manual=true;
+            this.vel.multiplyScalar(Math.exp(-10*dt));
+            const P=this.outPaths[0];
+            this.aimX=P.dx;
+            this.aimZ=P.dz;
+            if (this.stateT>=(this.elite?d.eliteTelegraph:d.telegraph)) {
+                this.launch();
+            }
+        }
+        else if (this.state==='hold') {
+            this.manual=true;
+            this.vel.set(0,0,0);
+        }
+    }
+
+    aim(ctx) {
+        const d=this.def;
+        const p=ctx.player.pos;
+        const sx=this.pos.x+this.nx*0.5;
+        const sz=this.pos.z+this.nz*0.5;
+        const dx=p.x-sx;
+        const dz=p.z-sz;
+        const l=Math.hypot(dx,dz)||1;
+        const len=Math.max(d.flyRange[0],Math.min(d.flyRange[1],l+d.lead));
+        const b=ctx.room.bounds;
+        const ex=Math.max(b.minX+1,Math.min(b.maxX-1,sx+dx/l*len));
+        const ez=Math.max(b.minZ+1,Math.min(b.maxZ-1,sz+dz/l*len));
+        const ks=this.elite?[1,-1]:[rng.sign()];
+        this.outPaths=ks.map(k=>sPath(sx,sz,ex,ez,k,d.amp));
+        this.setState('aim');
+        this.teleSeen();
+    }
+
+    launch() {
+        const d=this.def;
+        this.launched=this.outPaths.length;
+        this.crashed=0;
+        this.outPaths.forEach((P,i)=>{
+            const pl=this.plane(i);
+            pl.alive=true;
+            pl.uid=++uidCounter;
+            pl.leg='out';
+            pl.s=0;
+            pl.path=P;
+            pl.back=null;
+            pl.legHit=false;
+            pl.hitT=0;
+            pl.spin=0;
+            sPoint(P,0,d.amp,pl);
+            pl.px=pl.x;
+            pl.pz=pl.z;
+            pl.mesh.visible=true;
+        });
+        this.handPlane.visible=false;
+        this.kick=1;
+        this.sqv-=1.5;
+        this.setState('throw');
+    }
+
+    planeHit(x,z,r) {
+        const d=this.def;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            const rr=d.planeRadius+r;
+            if ((pl.x-x)*(pl.x-x)+(pl.z-z)*(pl.z-z)<rr*rr) {
+                this.crash(pl);
+                return pl;
+            }
+        }
+        return null;
+    }
+
+    crash(pl) {
+        pl.alive=false;
+        pl.mesh.visible=false;
+        this.crashed++;
+        if (this.ctxRef) {
+            this.ctxRef.particles.burst(pl.x,this.def.planeHeight,pl.z,10,{color:'farGray',speed:[2,5],up:[1,4],size:[0.06,0.14]});
+        }
+    }
+
+    update(dt,ctx) {
+        super.update(dt,ctx);
+        if (this.alive) {
+            this.tickPlanes(this.tele&&!this.dummy?dt/teleSlow():dt,ctx);
+        }
+    }
+
+    tickPlanes(dt,ctx) {
+        const d=this.def;
+        this.ctxRef=ctx;
+        if (this.launched<=0) {
+            return;
+        }
+        const p=ctx.player;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            pl.px=pl.x;
+            pl.pz=pl.z;
+            pl.hitT=Math.max(0,pl.hitT-dt);
+            if (pl.leg==='out') {
+                pl.s=Math.min(1,pl.s+d.outSpeed*dt/pl.path.arc);
+                sPoint(pl.path,pl.s,d.amp,pl);
+                if (pl.s>=1) {
+                    pl.leg='hover';
+                    pl.hoverT=0;
+                    if (this.state==='throw') {
+                        this.setState('hold');
+                    }
+                    pl.back=sPath(pl.x,pl.z,this.pos.x,this.pos.z,-pl.path.k,d.amp);
+                }
+            }
+            else if (pl.leg==='hover') {
+                pl.hoverT+=dt;
+                pl.spin+=dt*14;
+                if (pl.hoverT>=d.hover) {
+                    pl.leg='back';
+                    pl.s=0;
+                    pl.legHit=false;
+                }
+            }
+            else {
+                pl.s=Math.min(1,pl.s+d.backSpeed*dt/pl.back.arc);
+                sPoint(pl.back,pl.s,d.amp,pl);
+                if (pl.s>=1) {
+                    pl.alive=false;
+                    pl.mesh.visible=false;
+                    this.sqv+=1;
+                    continue;
+                }
+            }
+            if (pl.leg!=='hover') {
+                const mx=pl.x-pl.px;
+                const mz=pl.z-pl.pz;
+                if (mx*mx+mz*mz>1e-6) {
+                    pl.hx=mx;
+                    pl.hz=mz;
+                }
+            }
+            pl.pos.x=pl.x;
+            pl.pos.z=pl.z;
+            if (pl.leg!=='hover'&&!pl.legHit&&pl.hitT<=0&&p.hp>0) {
+                const rr=d.planeRadius+TUNING.player.radius;
+                const ex=p.pos.x-pl.x;
+                const ez=p.pos.z-pl.z;
+                if (ex*ex+ez*ez<rr*rr&&!p.isInvulnerable()) {
+                    const l=Math.hypot(ex,ez)||1;
+                    p.hurt(d.planeDamage,ex/l,ez/l);
+                    pl.legHit=true;
+                    pl.hitT=d.rehit;
+                }
+            }
+        }
+        if (!this.busy()) {
+            const all=this.crashed>=this.launched;
+            this.launched=0;
+            this.handPlane.visible=true;
+            this.throwT=this.paced('throw',d.throwEvery);
+            if (all) {
+                this.setState('move');
+                this.stun(d.stagger,true);
+            }
+            else if (this.state==='hold'||this.state==='throw') {
+                this.setState('move');
+            }
+        }
+    }
+
+    canContact() {
+        return this.state!=='hold';
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        const d=this.def;
+        for (const pl of this.planes) {
+            if (!pl.alive) {
+                continue;
+            }
+            const m=pl.mesh;
+            m.position.set(pl.px+(pl.x-pl.px)*alpha,d.planeHeight+Math.sin(time.real*6+pl.uid)*0.06,pl.pz+(pl.z-pl.pz)*alpha);
+            m.rotation.set(pl.leg==='hover'?0:-0.08,Math.atan2(pl.hx,pl.hz)+pl.spin,Math.sin(time.real*5)*0.15);
+        }
+        let n=0;
+        const shown=[];
+        let a=d.dashAlpha;
+        if (this.state==='aim'&&this.alive) {
+            for (const P of this.outPaths) {
+                shown.push(P);
+            }
+            a*=Math.min(1,this.stateT/0.2);
+        }
+        else {
+            for (const pl of this.planes) {
+                if (!pl.alive) {
+                    continue;
+                }
+                if (pl.leg==='out') {
+                    shown.push(pl.path);
+                }
+                else if (pl.back) {
+                    shown.push(pl.back);
+                }
+            }
+        }
+        const N=d.dashes;
+        const pa={x:0,z:0};
+        const pb={x:0,z:0};
+        for (const P of shown) {
+            for (let i=0;i<N;i++) {
+                sPoint(P,i/N,d.amp,pa);
+                sPoint(P,(i+0.55)/N,d.amp,pb);
+                const m=this.dash(n++);
+                this.putLine(m,pa.x,pa.z,pb.x,pb.z,0.13);
+                m.position.y=0.045;
+            }
+        }
+        if (this.dashMat) {
+            this.dashMat.uniforms.uAlpha.value=a;
+        }
+        this.hideDashes(n);
+    }
+
+    pose() {
+        const s=this.speedFrac||0;
+        const sw=Math.sin(this.phase)*0.7*s;
+        this.legs[0].rotation.x=sw;
+        this.legs[1].rotation.x=-sw;
+        this.body.position.y=Math.abs(Math.sin(this.phase))*0.06*s;
+        const wind=this.state==='aim'?Math.min(1,this.stateT/0.3):0;
+        const hold=this.state==='hold'?1:0;
+        this.arm.rotation.x=-0.3-wind*2.2+this.kick*1.6-hold*1.2;
+        this.arm.rotation.z=hold*0.4;
+        this.torso.rotation.y=-wind*0.3+this.kick*0.25;
+        this.head.rotation.x=wind*-0.1;
+    }
+}
+
+class StickyHelper extends Enemy {
+    buildBody() {
+        const body=this.mat('body');
+        const limb=this.mat('limb');
+        const ink=this.inkMat();
+        body.side=THREE.DoubleSide;
+        this.legs=[];
+        for (const sx of [-1,1]) {
+            const p=new THREE.Group();
+            p.position.set(sx*0.18,0.4,0);
+            const leg=this.hullify(new THREE.Mesh(geo('leg',()=>capsule(0.1,0.2)),limb));
+            leg.position.y=-0.19;
+            p.add(leg);
+            this.body.add(p);
+            this.legs.push(p);
+        }
+        this.pad=new THREE.Group();
+        this.pad.position.y=1.0;
+        const sheet=this.hullify(new THREE.Mesh(geo('shPad',()=>new THREE.BoxGeometry(0.95,0.95,0.16)),body));
+        this.pad.add(sheet);
+        const curl=new THREE.Mesh(geo('shCurl',()=>triGeo([0.48,-0.48,0.09,0.12,-0.48,0.09,0.48,-0.12,0.09])),this.mat('head'));
+        this.pad.add(curl);
+        const eg=geo('shEye',()=>new THREE.BoxGeometry(0.07,0.14,0.04));
+        for (const sx of [-1,1]) {
+            const e=new THREE.Mesh(eg,ink);
+            e.position.set(sx*0.16,0.12,0.09);
+            this.pad.add(e);
+        }
+        const mouth=new THREE.Mesh(geo('shMouth',()=>new THREE.BoxGeometry(0.22,0.04,0.04)),ink);
+        mouth.position.set(0,-0.08,0.09);
+        this.pad.add(mouth);
+        this.body.add(this.pad);
+        this.arms=[];
+        for (const sx of [-1,1]) {
+            const a=new THREE.Group();
+            a.position.set(sx*0.5,1.0,0);
+            const m=this.hullify(new THREE.Mesh(geo('shArm',()=>capsule(0.06,0.24)),limb));
+            m.position.y=-0.16;
+            a.add(m);
+            this.body.add(a);
+            this.arms.push(a);
+        }
+        this.notes=[];
+        this.noteMat=null;
+    }
+
+    onReset() {
+        this.stickT=0;
+        this.stuckOnce=false;
+        this.waveT=0;
+        this.dropAll();
+    }
+
+    hide() {
+        super.hide();
+        this.dropAll();
+    }
+
+    dropAll() {
+        for (const n of this.notes) {
+            if (n.e&&n.e.sticky===this&&n.e.uid===n.uid) {
+                n.e.sticky=null;
+            }
+            n.e=null;
+            n.mesh.visible=false;
+        }
+    }
+
+    unstick(e) {
+        for (const n of this.notes) {
+            if (n.e===e) {
+                n.e=null;
+                n.mesh.visible=false;
+            }
+        }
+        if (e.sticky===this) {
+            e.sticky=null;
+        }
+    }
+
+    note() {
+        let n=this.notes.find(q=>!q.e);
+        if (!n) {
+            if (!this.noteMat) {
+                this.noteMat=toonMaterial({...this.def.tones.body,jitter:TUNING.boil.vertexJitter,unique:true});
+                this.noteMat.side=THREE.DoubleSide;
+            }
+            const g=new THREE.Group();
+            const s=this.def.noteSize;
+            const m=new THREE.Mesh(geo('shNote',()=>new THREE.BoxGeometry(1,1,0.05)),this.noteMat);
+            m.scale.set(s,s,1);
+            g.add(m);
+            g.visible=false;
+            (this.root.parent||this.fxScene).add(g);
+            n={mesh:g,e:null,uid:0,t:0};
+            this.notes.push(n);
+        }
+        return n;
+    }
+
+    others(ctx) {
+        return ctx.enemies.filter(o=>o!==this&&o.alive&&o.type!=='stickyHelper'&&!o.dummy);
+    }
+
+    think(dt,ctx) {
+        const d=this.def;
+        const p=ctx.player.pos;
+        const mates=this.others(ctx);
+        this.rushing=mates.length===0;
+        if (this.rushing) {
+            this.wx=this.nx*d.rush;
+            this.wz=this.nz*d.rush;
+            this.aimX=this.nx;
+            this.aimZ=this.nz;
+            return;
+        }
+        let best=null;
+        let bd=1e9;
+        for (const o of mates) {
+            const dd=Math.hypot(o.pos.x-this.pos.x,o.pos.z-this.pos.z);
+            if (dd<bd) {
+                bd=dd;
+                best=o;
+            }
+        }
+        const bx=best.pos.x-p.x;
+        const bz=best.pos.z-p.z;
+        const bl=Math.hypot(bx,bz)||1;
+        const reach=Math.max(d.keep,bl+d.behind);
+        const tx=p.x+bx/bl*reach;
+        const tz=p.z+bz/bl*reach;
+        const dx=tx-this.pos.x;
+        const dz=tz-this.pos.z;
+        const l=Math.hypot(dx,dz)||1;
+        this.wx=dx/l*Math.min(1,l/1.5);
+        this.wz=dz/l*Math.min(1,l/1.5);
+        if (this.dist<d.keep) {
+            this.wx-=this.nx;
+            this.wz-=this.nz;
+        }
+        this.aimX=this.nx;
+        this.aimZ=this.nz;
+        this.stickT-=dt;
+        if (this.stickT<=0) {
+            if (this.stick(ctx,mates)||this.stuckOnce) {
+                this.stickT=d.stickEvery;
+                this.stuckOnce=true;
+            }
+        }
+    }
+
+    stick(ctx,mates) {
+        const d=this.def;
+        if (this.notes.filter(n=>n.e).length>=(this.elite?d.eliteMaxNotes:d.maxNotes)) {
+            return false;
+        }
+        let best=null;
+        let bd=1e9;
+        for (const o of mates) {
+            if (o.def.boss||o.def.part||o.sticky||o.state==='spawn') {
+                continue;
+            }
+            const dd=Math.hypot(o.pos.x-this.pos.x,o.pos.z-this.pos.z);
+            if (dd<bd) {
+                bd=dd;
+                best=o;
+            }
+        }
+        if (!best) {
+            return false;
+        }
+        const n=this.note();
+        n.e=best;
+        n.uid=best.uid;
+        n.t=0;
+        n.mesh.visible=true;
+        best.sticky=this;
+        best.sqv+=1.5;
+        this.waveT=0.5;
+        this.sqv+=2;
+        ctx.particles.burst(best.pos.x,best.def.height*0.9,best.pos.z,8,{color:'marker',speed:[1,3],up:[1,3],size:[0.06,0.12]});
+        return true;
+    }
+
+    sync(alpha,dt) {
+        super.sync(alpha,dt);
+        this.waveT=Math.max(0,this.waveT-dt);
+        for (const n of this.notes) {
+            if (!n.e) {
+                continue;
+            }
+            const e=n.e;
+            if (!e.alive||e.uid!==n.uid||e.sticky!==this) {
+                n.e=null;
+                n.mesh.visible=false;
+                continue;
+            }
+            n.t+=dt;
+            const pop=EASE.easeOutBack(Math.min(1,n.t/0.3));
+            const h=e.def.height*(e.elite?TUNING.elite.scale:1);
+            n.mesh.position.set(e.renderPos.x,h+0.35+Math.sin(time.real*3+n.uid)*0.05,e.renderPos.z);
+            n.mesh.rotation.set(-0.35,Math.sin(time.real*1.6+n.uid)*0.4,0.12);
+            n.mesh.scale.setScalar(Math.max(0.01,pop));
+        }
+    }
+
+    pose() {
+        const s=this.speedFrac||0;
+        const sw=Math.sin(this.phase)*0.7*s;
+        this.legs[0].rotation.x=sw;
+        this.legs[1].rotation.x=-sw;
+        this.body.position.y=Math.abs(Math.sin(this.phase))*0.07*s;
+        const wave=Math.sin(this.waveT/0.5*Math.PI);
+        this.arms[0].rotation.z=-0.4-wave*1.4;
+        this.arms[1].rotation.z=0.4+(this.rushing?0.9:0);
+        this.arms[0].rotation.x=this.rushing?-1.2:0;
+        this.arms[1].rotation.x=this.rushing?-1.2:0;
+        this.pad.rotation.z=Math.sin(this.phase*0.5)*0.1*s+wave*0.15;
+        this.pad.rotation.x=this.rushing?0.25:0;
+    }
+}
+
+const CLASSES={paperPlane:PaperPlane,stickyHelper:StickyHelper,bookmark:Bookmark,stampSoldier:StampSoldier,scissorMinion:ScissorMinion,doodle:Doodle,sprayer:Sprayer,blob:Blob,blobSmall:Blob,compass:Compass,eraserMonster:EraserMonster,bird:Bird,inkCloud:InkCloud,inkBottle:InkBottle,scissors:Scissors,book:Book,exam:Exam,bookFinal:BookFinal,alarm:Alarm,calculator:Calculator};
 
 export class EnemyManager {
     constructor(parent,fxScene) {
@@ -3781,7 +6325,7 @@ export class EnemyManager {
             e=new C(type,ENEMIES[type],this.parent,this.fxScene);
             pool.push(e);
         }
-        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0});
+        e.reset(x,z,{hpMult:o.hpMult??this.hpMult,quick:o.quick,act:this.act,elite:o.elite,dummy:o.dummy,immortal:o.immortal,tutor:o.tutor,tier:o.tier||0,summon:o.summon,tempo:o.tempo,summonCap:o.summonCap});
         this.list.push(e);
         if (this.onSpawned) {
             this.onSpawned(e);
@@ -3790,7 +6334,7 @@ export class EnemyManager {
     }
 
     clear() {
-        for (const e of this.list) {
+        for (const e of this.list.slice()) {
             e.hide();
         }
         this.list.length=0;
@@ -3826,7 +6370,29 @@ export class EnemyManager {
         }
         for (const e of arr) {
             if (e.alive) {
-                e.update(e.def.boss?dt*TUNING.bossTempo*(1+e.tier*TUNING.bossScale.tempo):dt,ctx);
+                e.update(e.def.boss?dt*e.bossTempo()*(this.bossScale??1):dt*(this.timeScale??1),ctx);
+            }
+        }
+        if (D&&D.active) {
+            const P=TUNING.effects.puppet;
+            const fp=D.fig.pos;
+            for (const e of arr) {
+                if (!e.alive||e.def.boss||e.def.part||e.state==='spawn'||e.dummy||e.stunT>0) {
+                    continue;
+                }
+                const dx=fp.x-e.pos.x;
+                const dz=fp.z-e.pos.z;
+                const l=Math.hypot(dx,dz);
+                if (l<=P.near+e.def.radius) {
+                    continue;
+                }
+                const step=Math.min(l-P.near-e.def.radius,P.pull*dt);
+                e.pos.x+=dx/l*step;
+                e.pos.z+=dz/l*step;
+                if (!e.def.flying) {
+                    resolveCircle(e.pos,e.def.radius,e.colliders(ctx),2);
+                }
+                clampToBounds(e.pos,e.def.radius,ctx.room.bounds);
             }
         }
         ctx.player=real;
@@ -3877,7 +6443,7 @@ export class EnemyManager {
         let best=null;
         let bd=range*range;
         for (const e of this.list) {
-            if (e.state==='spawn'||(ground&&e.def.flying)) {
+            if (e.state==='spawn'||e.def.noAim||(ground&&e.def.flying)) {
                 continue;
             }
             const dx=e.pos.x-x;
@@ -3891,7 +6457,31 @@ export class EnemyManager {
         return best;
     }
 
+    priority(x,z,range) {
+        let best=null;
+        let bk=-1;
+        let bd=0;
+        for (const e of this.list) {
+            if (e.state==='spawn'||e.def.noAim||!e.alive) {
+                continue;
+            }
+            const d=Math.hypot(e.pos.x-x,e.pos.z-z);
+            if (d>range+e.def.radius) {
+                continue;
+            }
+            const k=e.def.boss?2:(e.elite?1:0);
+            if (k>bk||(k===bk&&d<bd)) {
+                best=e;
+                bk=k;
+                bd=d;
+            }
+        }
+        return best;
+    }
+
     damage(e,dmg,dx,dz,quiet=false,crit=false) {
+        const src=this.src||'card';
+        this.src=null;
         if (!e.alive) {
             return false;
         }
@@ -3910,13 +6500,25 @@ export class EnemyManager {
         if (this.dmgHook) {
             dmg=this.dmgHook(e,dmg);
         }
+        if (e.sticky) {
+            const S=ENEMIES.stickyHelper;
+            const blocked=dmg<=S.blockMax;
+            e.sticky.unstick(e);
+            if (this.onSticky) {
+                this.onSticky(e,blocked);
+            }
+            if (blocked) {
+                return false;
+            }
+            dmg-=S.pierceLoss;
+        }
         let dead=e.hurt(dmg,dx,dz);
         if (dead&&e.immortal) {
             e.hp=e.maxHp;
             dead=false;
         }
         if (this.onDamage) {
-            this.onDamage(e,dmg,crit);
+            this.onDamage(e,dmg,crit,src);
         }
         if (this.onHit) {
             this.onHit(e,e.pos.x,e.pos.z,dx,dz,dead,quiet,crit);
@@ -3948,6 +6550,14 @@ export class EnemyManager {
 
     hitBullet(x,z,r,dmg,vx,vz,sys,bi) {
         for (const e of this.list) {
+            if (e.planeHit&&e.alive) {
+                const pl=e.planeHit(x,z,r);
+                if (pl) {
+                    return pl;
+                }
+            }
+        }
+        for (const e of this.list) {
             if (e.state==='spawn') {
                 continue;
             }
@@ -3960,7 +6570,7 @@ export class EnemyManager {
             if (ex*ex+ez*ez<rr*rr) {
                 const l=Math.hypot(vx,vz)||1;
                 const m=e.damageMult(x,z);
-                this.damage(e,dmg*m,vx/l,vz/l,false,m>1);
+                this.damage(e,(typeof dmg==='function'?dmg(e):dmg)*m,vx/l,vz/l,false,m>1);
                 return e;
             }
         }

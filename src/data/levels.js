@@ -91,6 +91,117 @@ export const LAYOUTS={
     ],{size:[32,22],spawn:[0,5],bossSpawn:[0,-3]})
 };
 
+const BIG=1.28;
+
+const BIG_SPAWNS=EDGE_SPAWNS.map(([x,z])=>[x*BIG,z*BIG]);
+
+const BIG_DECOR=DECOR.map(d=>({...d,x:d.x*BIG,z:d.z*BIG}));
+
+function bigRoom(props,extra={}) {
+    return {
+        size:[38,26],
+        spawn:[0,8],
+        wallHeight:0.7,
+        wallThickness:0.6,
+        spawnPoints:BIG_SPAWNS,
+        props:props.concat(BIG_DECOR),
+        big:true,
+        ...extra
+    };
+}
+
+export const BIG_LAYOUTS={
+    bigPlaza:bigRoom([
+        {type:'pillar',x:0,z:-1.5,r:1.0,h:3.4},
+        {type:'pillar',x:-7,z:-5,r:0.7,h:2.8},
+        {type:'pillar',x:7,z:-5,r:0.7,h:2.8},
+        {type:'pillar',x:-7,z:2.5,r:0.7,h:2.8},
+        {type:'pillar',x:7,z:2.5,r:0.7,h:2.8},
+        {type:'wall',x:-14,z:-7.5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:14,z:-7.5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-14.5,z:6,w:5,h:1.1,d:0.8,rot:0.45},
+        {type:'wall',x:14.5,z:6,w:5,h:1.1,d:0.8,rot:-0.45},
+        {type:'box',x:-3.5,z:-8.5,w:1.6,h:1.4,d:1.6,rot:0.4},
+        {type:'box',x:4,z:-9,w:1.4,h:1.8,d:1.4,rot:-0.3},
+        {type:'box',x:-11.5,z:-1,w:1.8,h:1.3,d:1.4,rot:0.2},
+        {type:'box',x:11.5,z:-0.5,w:1.6,h:1.5,d:1.6,rot:-0.5}
+    ]),
+    bigMaze:bigRoom([
+        {type:'wall',x:-12,z:-6.5,w:9,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:5,z:-6.5,w:11,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-4.5,z:-1,w:11,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:13.5,z:-1,w:6,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-12.5,z:4.5,w:7,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:8.5,z:5,w:6,h:1.1,d:0.8,rot:0},
+        {type:'pillar',x:-16.5,z:-1,r:0.6,h:2.4},
+        {type:'pillar',x:0.5,z:4.5,r:0.6,h:2.4},
+        {type:'pillar',x:-6.5,z:-9.5,r:0.6,h:2.6},
+        {type:'box',x:15,z:-9.5,w:1.6,h:1.4,d:1.6,rot:0.3},
+        {type:'box',x:-15,z:9,w:1.6,h:1.3,d:1.6,rot:-0.4}
+    ]),
+    bigRuins:bigRoom([
+        {type:'wall',x:-11,z:-6,w:4.5,h:1.0,d:0.7,rot:0.7},
+        {type:'wall',x:-4,z:-8,w:3.5,h:1.0,d:0.7,rot:-0.3},
+        {type:'wall',x:6,z:-7,w:5,h:1.0,d:0.7,rot:0.25},
+        {type:'wall',x:13,z:-3,w:4,h:1.0,d:0.7,rot:-0.9},
+        {type:'wall',x:-13,z:3,w:4,h:1.0,d:0.7,rot:-0.5},
+        {type:'wall',x:10,z:6,w:4.5,h:1.0,d:0.7,rot:0.6},
+        {type:'pillar',x:-6,z:-2,r:0.8,h:3.0},
+        {type:'pillar',x:4,z:0,r:0.7,h:2.6},
+        {type:'pillar',x:-2,z:4,r:0.5,h:1.8},
+        {type:'pillar',x:15.5,z:9,r:0.6,h:2.2},
+        {type:'box',x:0,z:-3.5,w:1.8,h:1.2,d:1.8,rot:0.6},
+        {type:'box',x:-9,z:8,w:1.4,h:1.6,d:1.4,rot:0.2},
+        {type:'box',x:9.5,z:-0.5,w:1.2,h:2.2,d:1.2,rot:-0.2},
+        {type:'box',x:-16,z:-9,w:1.6,h:1.4,d:1.6,rot:0.5}
+    ]),
+    bigHalls:bigRoom([
+        {type:'wall',x:-6.5,z:-5,w:0.8,h:1.2,d:8,rot:0},
+        {type:'wall',x:6.5,z:-5,w:0.8,h:1.2,d:8,rot:0},
+        {type:'wall',x:-6.5,z:5.5,w:0.8,h:1.2,d:4,rot:0},
+        {type:'wall',x:6.5,z:5.5,w:0.8,h:1.2,d:4,rot:0},
+        {type:'pillar',x:0,z:-5,r:0.8,h:3.0},
+        {type:'pillar',x:0,z:1,r:0.6,h:2.4},
+        {type:'pillar',x:-13,z:-6,r:0.7,h:2.8},
+        {type:'pillar',x:13,z:-6,r:0.7,h:2.8},
+        {type:'box',x:-13,z:2,w:2.0,h:1.3,d:1.4,rot:0.1},
+        {type:'box',x:13,z:2.5,w:1.6,h:1.6,d:1.6,rot:-0.6},
+        {type:'box',x:-15.5,z:9,w:1.4,h:1.2,d:1.4,rot:0.4},
+        {type:'box',x:15.5,z:-10,w:1.4,h:1.4,d:1.4,rot:-0.2}
+    ]),
+    bigFort:bigRoom([
+        {type:'wall',x:-3.2,z:-6,w:4,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:3.2,z:2.5,w:4,h:1.1,d:0.8,rot:0},
+        {type:'wall',x:-5.5,z:0.5,w:0.8,h:1.1,d:4,rot:0},
+        {type:'wall',x:5.5,z:-3,w:0.8,h:1.1,d:4,rot:0},
+        {type:'pillar',x:0,z:-1.8,r:0.7,h:2.6},
+        {type:'pillar',x:-14,z:-8,r:0.8,h:3.2},
+        {type:'pillar',x:14,z:-8,r:0.8,h:3.2},
+        {type:'pillar',x:-14,z:7,r:0.7,h:2.6},
+        {type:'pillar',x:14,z:7,r:0.7,h:2.6},
+        {type:'box',x:-10,z:-3,w:1.6,h:1.4,d:1.6,rot:0.5},
+        {type:'box',x:10.5,z:1,w:1.8,h:1.3,d:1.4,rot:-0.3},
+        {type:'box',x:-9,z:5.5,w:1.4,h:1.8,d:1.4,rot:0.1},
+        {type:'box',x:9,z:-9,w:1.4,h:1.2,d:1.4,rot:0.7}
+    ]),
+    bigArena:bigRoom([
+        {type:'pillar',x:-14,z:-8,r:0.9,h:3.4},
+        {type:'pillar',x:14,z:-8,r:0.9,h:3.4},
+        {type:'pillar',x:-14,z:8,r:0.9,h:3.4},
+        {type:'pillar',x:14,z:8,r:0.9,h:3.4},
+        {type:'pillar',x:-8,z:-1,r:0.6,h:2.4},
+        {type:'pillar',x:8,z:-1,r:0.6,h:2.4},
+        {type:'wall',x:-7.5,z:5,w:3.5,h:1.0,d:0.7,rot:0.4},
+        {type:'wall',x:7.5,z:5,w:3.5,h:1.0,d:0.7,rot:-0.4}
+    ],{size:[40,28],spawn:[0,8.5],bossSpawn:[0,-4]})
+};
+
+Object.assign(LAYOUTS,BIG_LAYOUTS);
+
+export const BIG_NORMAL=['bigPlaza','bigMaze','bigRuins','bigHalls','bigFort'];
+
+export const BIG_FROM=2;
+
 const PEACE_SPAWNS=[[-9,-5],[9,-5],[-10,1],[10,1],[0,-5.5],[-5,-6],[5,-6],[-7,3],[7,3]];
 
 function peace(props,npcs) {
@@ -191,6 +302,73 @@ export const PEACE_LAYOUTS={
     ]
 };
 
+const LIB_DECOR=[
+    {type:'shelf',x:-14,z:-14,w:7,h:6,d:1.4,rot:0.05},
+    {type:'shelf',x:-5,z:-14.5,w:7,h:7,d:1.4,rot:0},
+    {type:'arch',x:4,z:-16,w:6,h:6},
+    {type:'shelf',x:13,z:-14,w:7,h:6.5,d:1.4,rot:-0.06},
+    {type:'shelf',x:-20,z:-3,w:6,h:5.5,d:1.4,rot:1.45},
+    {type:'shelf',x:20.5,z:-2,w:6,h:5.5,d:1.4,rot:-1.5},
+    {type:'tome',x:-19,z:7,s:2.2,rot:0.5},
+    {type:'tome',x:19,z:8.5,s:1.8,rot:-0.7},
+    {type:'books',x:-16,z:4,w:2.6,d:3.4,rot:0.4,count:6},
+    {type:'books',x:16.5,z:4.5,w:2.2,d:3,rot:-0.3,count:5},
+    {type:'books',x:9,z:-18,w:3,d:4,rot:0.2,count:7},
+    {type:'candle',x:-15.5,z:-8,r:0.4,h:1.8},
+    {type:'candle',x:15.5,z:-8.5,r:0.35,h:1.4},
+    {type:'candle',x:-17,z:9,r:0.3,h:1.1},
+    {type:'candle',x:-10.5,z:-12.5,r:0.35,h:1.5},
+    {type:'crumple',x:-8,z:13,r:1.6},
+    {type:'tome',x:6,z:13.5,s:1.5,rot:0.2},
+    {type:'candle',x:9,z:12,r:0.3,h:1.0}
+];
+
+export const LIBRARY={
+    size:[24,16],
+    spawn:[0,4],
+    wallHeight:0.7,
+    wallThickness:0.6,
+    spawnPoints:PEACE_SPAWNS,
+    base:[],
+    decor:LIB_DECOR,
+    props:[
+        {type:'shelf',x:-10.6,z:-6.6,w:2.4,h:2.6,d:0.9,rot:0.6,solid:[2.4,0.9]},
+        {type:'books',x:-10.6,z:5.5,w:1.4,d:1.8,rot:0.3,count:4},
+        {type:'candle',x:-6,z:-5.5,r:0.18,h:0.7},
+        {type:'candle',x:-6,z:4,r:0.16,h:0.5},
+        {type:'runes',x:7,z:-0.6,r:3.4,count:10},
+        {type:'candle',x:3.2,z:-3.6,r:0.2,h:0.9},
+        {type:'candle',x:10.8,z:-3.4,r:0.2,h:1.1},
+        {type:'candle',x:3.6,z:2.6,r:0.16,h:0.6},
+        {type:'candle',x:10.5,z:2.4,r:0.18,h:0.7},
+        {type:'tome',x:10.4,z:-5.8,s:0.7,rot:-0.4,solid:[2.2,1.6]},
+        {type:'shelf',x:11,z:5.6,w:2.2,h:2.2,d:0.8,rot:-0.5,solid:[2.2,0.8]},
+        {type:'sheet',x:-3,z:1,w:2.4,d:3,rot:0.25}
+    ].concat(LIB_DECOR),
+    keepers:[[-7.5,-2.6],[-7.5,1.8]],
+    librarian:[7,-3.6],
+    relics:[[4,1.4],[7,2.6],[10,1.4]]
+};
+
+export const INFIRMARY=room([
+    {type:'medCabinet',x:-4.5,z:-9.2,w:1.8,h:2.0,solid:[1.8,0.6]},
+    {type:'medCabinet',x:4.5,z:-9.2,w:1.8,h:2.0,solid:[1.8,0.6]},
+    {type:'medKit',x:-2.6,z:-8.9,s:1,rot:0.15},
+    {type:'floorCross',x:0,z:1,s:1.2},
+    {type:'notice',x:9.5,z:0.3,w:2.8,h:1.5,key:'rush.sign',solid:[2.9,0.3]},
+    {type:'runes',x:-9,z:2.6,r:3.4,count:10},
+    {type:'candle',x:-12.6,z:0.6,r:0.2,h:0.9},
+    {type:'candle',x:-5.4,z:0.6,r:0.18,h:0.7},
+    {type:'candle',x:-12.4,z:7.6,r:0.16,h:0.6},
+    {type:'candle',x:-5.6,z:7.6,r:0.2,h:1.0},
+    {type:'tome',x:-13.2,z:-7.4,s:0.7,rot:0.4,solid:[2.2,1.6]},
+    {type:'books',x:-13,z:8.4,w:1.4,d:1.8,rot:0.3,count:4},
+    {type:'pillar',x:14,z:9,r:0.5,h:2.2},
+    {type:'notes',x:-1,z:-6.5,s:1.1,count:3,rot:0.2},
+    {type:'crumple',x:3,z:8.6,r:0.6},
+    {type:'shavings',x:2,z:-3,count:6}
+],{spawn:[0,6],keeper:[-11,-4.5],relics:[[-12,4.6],[-9,5.8],[-6,4.6]],zones:[[9.5,-4.2],[9.5,4.8]]});
+
 export const TRAINING={
     layout:room([
         {type:'pillar',x:-12,z:-6.5,r:0.7,h:2.8},
@@ -209,23 +387,37 @@ export const TRAINING_MAPS=['training','crossroads','colonnade','trenches','crat
 
 export const NORMAL_LAYOUTS=['crossroads','colonnade','trenches','crates','circle','lanes'];
 
-export const ENEMY_ORDER=['doodle','blob','sprayer','stampSoldier','inkCloud','bird','compass','eraserMonster'];
+export const ENEMY_ORDER=['doodle','blob','sprayer','stampSoldier','inkCloud','paperPlane','bird','stickyHelper','compass','eraserMonster'];
 
-export const STORY_INTRO=[0,2,4,6,8,10,12,14];
+export const STORY_INTRO=[0,2,4,6,8,9,10,11,12,14];
 
-export const ROOM_TYPES=3;
+export const ROOM_TYPES=[3,3,4];
 
-export const BOSS_POOL=['inkBottle','scissors','book','exam','bookFinal'];
+export const MUST_TYPES=[1,2];
+
+export const BOSS_POOL=['inkBottle','scissors','book','exam','bookFinal','alarm','calculator'];
 
 export const PAIRED=[];
 
-export const ENEMY_COST={doodle:1,blob:2,sprayer:2,inkCloud:2,compass:2,bird:1,eraserMonster:2,stampSoldier:2,scissorMinion:2};
+export const ENEMY_COST={doodle:1,blob:2,sprayer:2,inkCloud:2,compass:2,bird:1,eraserMonster:2,stampSoldier:2,scissorMinion:2,paperPlane:2,stickyHelper:2};
 
 export const ACTS=[
     {rooms:6,budget:[5,5,6,7,7,8],waves:[2,2,2,2,3,3],pool:{doodle:4,blob:2,sprayer:2,bird:1,compass:1},hpMult:1,bossMult:1,bossHp:1.35,modChance:[0,0,0.2,0.3,0.3,0.3],elite:false},
-    {rooms:6,budget:[8,8,9,10,10,11],waves:[2,2,3,3,3,3],pool:{doodle:3,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:1,bird:2,eraserMonster:1},hpMult:1.12,bossMult:1.3,bossHp:1.35,modChance:[0.3,0.3,0.4,0.4,0.5,0.5],elite:true},
-    {rooms:6,budget:[10,11,12,13,14,15],waves:[2,3,3,3,3,3],pool:{doodle:2,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:2,bird:2,eraserMonster:2},hpMult:1.28,bossMult:1.65,bossHp:1.35,modChance:[0.4,0.4,0.5,0.5,0.6,0.6],elite:true}
+    {rooms:6,budget:[8,8,9,10,10,11],waves:[2,2,3,3,3,3],pool:{doodle:3,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:1,bird:2,eraserMonster:1,paperPlane:2,stickyHelper:2},hpMult:1.12,bossMult:1.3,bossHp:1.35,modChance:[0.3,0.3,0.4,0.4,0.5,0.5],elite:true},
+    {rooms:6,budget:[10,11,12,13,14,15],waves:[2,3,3,3,3,3],pool:{doodle:2,blob:2,sprayer:2,stampSoldier:2,inkCloud:2,compass:2,bird:2,eraserMonster:2,paperPlane:2,stickyHelper:2},hpMult:1.28,bossMult:1.65,bossHp:1.35,modChance:[0.4,0.4,0.5,0.5,0.6,0.6],elite:true}
 ];
+
+export const ACT_EXTRA={budget:1,budgetMax:20,hp:0.08,hpMax:1.6,boss:0.15,bossMax:2.1};
+
+export function actDef(a) {
+    if (a<ACTS.length) {
+        return ACTS[a];
+    }
+    const L=ACTS[ACTS.length-1];
+    const X=ACT_EXTRA;
+    const k=a-ACTS.length+1;
+    return {...L,budget:L.budget.map(b=>Math.min(X.budgetMax,b+k*X.budget)),hpMult:Math.min(X.hpMax,L.hpMult+k*X.hp),bossMult:Math.min(X.bossMax,L.bossMult+k*X.boss)};
+}
 
 export const ENDLESS={
     bossEvery:5,
@@ -267,13 +459,36 @@ const MENU_DECOR=[
     {type:'shavings',x:10,z:-24,count:12}
 ];
 
+const MENU_PROPS=[
+    {type:'runes',x:0,z:1.5,r:3.2,count:12},
+    {type:'tome',x:0.5,z:-6.5,s:1.4,rot:0.12},
+    {type:'candle',x:-3.4,z:-1.2,r:0.22,h:1.1},
+    {type:'candle',x:3.6,z:-0.6,r:0.18,h:0.7},
+    {type:'candle',x:-2.6,z:4.6,r:0.16,h:0.5},
+    {type:'candle',x:3,z:4.4,r:0.2,h:0.9},
+    {type:'books',x:-7.5,z:-4.5,w:1.6,d:2.2,rot:0.4,count:5},
+    {type:'books',x:7,z:-6.5,w:1.4,d:1.9,rot:-0.3,count:3},
+    {type:'shelf',x:-10.5,z:-8.5,w:3.2,h:3.2,d:1,rot:0.35},
+    {type:'lamp',x:9.5,z:-4,s:1.1,rot:2.4},
+    {type:'mug',x:-9.5,z:2,r:1.2,h:2},
+    {type:'sharpener',x:7.5,z:3.5,s:1.1,rot:-0.6},
+    {type:'ruler',x:-4.5,z:7.5,len:9,w:1.4,rot:0.12},
+    {type:'notes',x:6,z:7,s:1.4,count:4,rot:0.25},
+    {type:'sheet',x:-6.5,z:0.5,w:2.6,d:3.4,rot:0.35},
+    {type:'shavings',x:4.5,z:-2.5,count:7},
+    {type:'crumple',x:-5,z:-7,r:0.6},
+    {type:'crumple',x:10.5,z:6.5,r:0.5},
+    {type:'clip',x:-11,z:6,r:0.6,len:2.6,rot:-0.5},
+    {type:'pin',x:11.5,z:-1,r:0.35}
+];
+
 export const MENU_SCENE={
-    layout:{...LAYOUTS.crossroads,props:LAYOUTS.crossroads.props.filter(q=>Math.hypot(q.x,q.z-1.5)>5).concat(MENU_DECOR)},
-    seed:77,
+    layout:room(MENU_PROPS.concat(MENU_DECOR.filter(q=>Math.hypot(q.x,q.z)>16))),
+    seed:91,
     barrels:0,
     crates:0,
-    enemies:[['doodle',-6,-5,2.4],['blob',7,-3,0],['compass',-8,5,0.8]],
-    decals:[[-3,2,2.6],[6,-5,3.2],[-8,-6,2.2],[9,3,1.8],[1,6.5,2.4],[-6,7,1.6]]
+    enemies:[['bird',-6,-3,1.2],['stampSoldier',6.5,-2,-0.4],['inkCloud',-8,5,0.9]],
+    decals:[[-3,-3,2.2],[5,-5,2.8],[-8,-7,2.0],[9,4,1.6],[2,7.5,2.2],[-7,7,1.4]]
 };
 
 export const LEVELS={test:LAYOUTS.crossroads};

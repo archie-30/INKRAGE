@@ -4,6 +4,8 @@ import {t} from '../data/strings.js';
 import {time} from '../core/loop.js';
 import {EASE} from '../core/easing.js';
 import {sketchRect,drawShape} from './sketch.js';
+import {wrapText} from './cardView.js';
+import {relicParams} from '../data/relics.js';
 import {drawChoiceIcon,CHOICE_ICONS} from './menu.js';
 import {NOTEBOOK} from '../data/notebook.js';
 
@@ -12,6 +14,9 @@ const SHOP=NOTEBOOK.shop;
 const FONT='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 
 export function exitLabel(ex) {
+    if (ex.label) {
+        return t(ex.label);
+    }
     if (ex.kind==='node') {
         return t('node.'+ex.node);
     }
@@ -43,25 +48,130 @@ export class WorldMarks {
         const W=TUNING.worldMarks;
         ctx.font='bold 15px '+FONT;
         let bw=ctx.measureText(label).width+30;
+        let lines=[];
         if (sub) {
-            ctx.font='13px '+FONT;
-            bw=Math.max(bw,Math.min(W.subMaxW,ctx.measureText(sub).width+30));
+            ctx.font=W.subFont+'px '+FONT;
+            const full=Math.max(...String(sub).split('\n').map(q=>ctx.measureText(q).width));
+            bw=Math.max(bw,Math.min(W.subMaxW,full+30));
+            lines=String(sub).split('\n').flatMap(q=>wrapText(ctx,q,bw-28));
         }
-        const bh=W.promptH+(sub?W.subH:0);
-        const x=p.x-bw/2;
-        const y=p.y-bh+Math.sin(time.real*W.bobRate)*W.bob;
+        const bh=W.promptH+(lines.length?lines.length*W.subLine+10:0);
+        const sw=this.sw||p.x*2;
+        const x=Math.max(8,Math.min(sw-8-bw,p.x-bw/2));
+        const cx=x+bw/2;
+        const y=Math.max(8,p.y-bh+Math.sin(time.real*W.bobRate)*W.bob);
         ctx.fillStyle=rgba('paper',0.96);
         ctx.fillRect(x,y,bw,bh);
         drawShape(ctx,sketchRect(x,y,bw,bh,{width:hot?3:2,seed}),hot?PALETTE.red:PALETTE.ink,v);
         ctx.fillStyle=hot?PALETTE.red:PALETTE.ink;
         ctx.font='bold 15px '+FONT;
-        ctx.fillText(label,p.x,y+W.promptH/2+1);
-        if (sub) {
-            ctx.font='13px '+FONT;
+        ctx.fillText(label,cx,y+W.promptH/2+1,bw-16);
+        if (lines.length) {
+            ctx.font=W.subFont+'px '+FONT;
             ctx.fillStyle=PALETTE.nearGray;
-            ctx.fillText(sub,p.x,y+W.promptH+W.subH/2-4,bw-20);
+            lines.forEach((ln,i)=>ctx.fillText(ln,cx,y+W.promptH+W.subLine/2-2+i*W.subLine));
         }
         this.prompt={x:x-W.touchPad,y:y-W.touchPad,w:bw+W.touchPad*2,h:bh+W.touchPad*2};
+    }
+
+    drawAlarm(ctx,game,e,p,v) {
+        const A=TUNING.alarmMarks;
+        const B=e.def.bar;
+        const k=Math.max(0,Math.min(1,e.alarmBar/B.max));
+        const hot=e.alarmBar>=B.show||e.state==='burst';
+        ctx.save();
+        const pl=game.player.renderPos;
+        if (e.pads.some(q=>!q.done)&&e.state!=='snooze'&&e.state!=='burst') {
+            const hurry=e.alarmBar>=A.hurryAt;
+            const pu=0.5+0.5*Math.sin(time.real*(hurry?A.alertRate*2:A.alertRate));
+            const sc=1+pu*(hurry?A.alertPop*2:A.alertPop);
+            game.project(pl.x,A.alertLift,pl.z,p);
+            ctx.save();
+            ctx.translate(p.x,p.y);
+            ctx.scale(sc,sc);
+            ctx.font='bold '+A.alertFont+'px '+FONT;
+            ctx.textAlign='center';
+            ctx.textBaseline='bottom';
+            ctx.lineWidth=4;
+            ctx.lineJoin='round';
+            ctx.strokeStyle=rgba('paper',0.92);
+            ctx.fillStyle=PALETTE.red;
+            const msg=t(hurry?'alarm.hurry':'alarm.go');
+            ctx.strokeText(msg,0,0);
+            ctx.fillText(msg,0,0);
+            ctx.restore();
+        }
+        for (let i=0;i<e.pads.length;i++) {
+            const q=e.pads[i];
+            if (q.done) {
+                continue;
+            }
+            const dx=q.x-pl.x;
+            const dz=q.z-pl.z;
+            if (Math.hypot(dx,dz)>e.def.pad.r) {
+                game.project(pl.x,A.arrowLift,pl.z,p);
+                game.project(q.x,A.arrowLift,q.z,this.arrowTmp||(this.arrowTmp={x:0,y:0}));
+                const an=Math.atan2(this.arrowTmp.y-p.y,this.arrowTmp.x-p.x);
+                const rr=A.arrowR+Math.sin(time.real*A.padBob*2+i)*A.arrowBob;
+                ctx.save();
+                ctx.translate(p.x+Math.cos(an)*rr,p.y+Math.sin(an)*rr);
+                ctx.rotate(an);
+                ctx.fillStyle=PALETTE.red;
+                ctx.strokeStyle=PALETTE.paper;
+                ctx.lineWidth=2;
+                ctx.beginPath();
+                ctx.moveTo(A.arrow,0);
+                ctx.lineTo(-A.arrow*0.7,-A.arrow*0.75);
+                ctx.lineTo(-A.arrow*0.35,0);
+                ctx.lineTo(-A.arrow*0.7,A.arrow*0.75);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+                ctx.restore();
+            }
+            game.project(q.x,A.padLift,q.z,p);
+            const m=A.edge;
+            const x=Math.max(m,Math.min((this.sw||p.x*2)-m,p.x));
+            const y=Math.max(m+A.padR,Math.min((this.sh||p.y*2)-m,p.y))-Math.abs(Math.sin(time.real*A.padBob+i))*A.padR*0.5;
+            ctx.fillStyle=PALETTE.red;
+            ctx.beginPath();
+            ctx.arc(x,y,A.padR,0,Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle=PALETTE.paper;
+            ctx.lineWidth=3;
+            ctx.beginPath();
+            ctx.arc(x,y,A.padR-3,-Math.PI/2,-Math.PI/2+Math.PI*2*q.hold/q.need);
+            ctx.stroke();
+            ctx.fillStyle=PALETTE.paper;
+            ctx.font='bold '+A.font+'px '+FONT;
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText('!',x,y+1);
+        }
+        game.project(e.renderPos.x,e.def.height+A.lift,e.renderPos.z,p);
+        const sh=hot?Math.sin(time.real*40)*A.shake*k:0;
+        const x=p.x-A.w/2+sh;
+        const y=p.y-A.h/2;
+        ctx.fillStyle=rgba('paper',0.92);
+        ctx.fillRect(x,y,A.w,A.h);
+        ctx.globalAlpha=hot?0.7+0.3*Math.sin(time.real*(8+k*12)):1;
+        ctx.fillStyle=PALETTE.red;
+        ctx.fillRect(x,y,A.w*k,A.h);
+        ctx.globalAlpha=1;
+        const mx=x+A.w*B.show/B.max;
+        ctx.strokeStyle=PALETTE.ink;
+        ctx.lineWidth=1.5;
+        ctx.beginPath();
+        ctx.moveTo(mx,y);
+        ctx.lineTo(mx,y+A.h);
+        ctx.stroke();
+        drawShape(ctx,sketchRect(x,y,A.w,A.h,{width:1.6,seed:2390}),PALETTE.ink,v);
+        ctx.fillStyle=hot?PALETTE.red:PALETTE.ink;
+        ctx.font='bold '+A.font+'px '+FONT;
+        ctx.textAlign='right';
+        ctx.textBaseline='middle';
+        ctx.fillText(t('alarm.bar'),x-A.label,y+A.h/2+1);
+        ctx.restore();
     }
 
     drawSpeech(ctx,p,q,v,foe=false) {
@@ -193,7 +303,15 @@ export class WorldMarks {
         if (doors.focus>=0&&game.run.canExit()) {
             const d=doors.list[doors.focus];
             game.project(d.x,D.height+W.enterLift,d.z-d.t-D.alcove*0.5,p);
-            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('door.enter',{name:exitLabel(d.exit)}),v,2340,t('intro.'+(d.exit.kind==='node'?d.exit.node:d.exit.kind)));
+            const ik='intro.'+(d.exit.intro||(d.exit.kind==='node'?d.exit.node:d.exit.kind));
+            const it=t(ik);
+            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('door.enter',{name:exitLabel(d.exit)}),v,2340,it===ik?'':it);
+        }
+        const qb=game.enemies.boss();
+        const tile=qb&&qb.onTile?qb.onTile(game.player):null;
+        if (tile) {
+            game.project(tile.x,TUNING.calcMarks.promptLift,tile.z,p);
+            this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t('calc.press'),v,2380);
         }
         const mp=game.minis.prompt(game.player);
         if (mp) {
@@ -201,6 +319,9 @@ export class WorldMarks {
             this.drawPrompt(ctx,p,t(touch?'npc.tap':'npc.press')+t('ui.gap')+t(mp.key),v,2360);
         }
         for (const e of game.enemies.list) {
+            if (e.alarmBar!==undefined&&e.alive&&e.state!=='spawn') {
+                this.drawAlarm(ctx,game,e,p,v);
+            }
             if (e.say&&e.alive) {
                 game.project(e.renderPos.x,e.def.height*(e.elite?TUNING.elite.scale:1)+TUNING.taunt.lift,e.renderPos.z,p);
                 this.drawSpeech(ctx,p,e.say,v,true);
@@ -222,6 +343,17 @@ export class WorldMarks {
             game.project(n.x,n.h+W.npcLift,n.z,p);
             if (npcs.focus===i&&doors.focus<0) {
                 focused=i;
+            }
+            else if (n.relic||n.role) {
+                const y=p.y-W.bangH+Math.sin(time.real*W.bobRate+i)*W.bob;
+                ctx.font='bold 13px '+FONT;
+                const label=n.label;
+                const tw=ctx.measureText(label).width+16;
+                ctx.fillStyle=rgba('paper',0.95);
+                ctx.fillRect(p.x-tw/2,y-11,tw,22);
+                drawShape(ctx,sketchRect(p.x-tw/2,y-11,tw,22,{width:1.4,seed:2400+i}),PALETTE.ink,v);
+                ctx.fillStyle=PALETTE.ink;
+                ctx.fillText(label,p.x,y+1);
             }
             else if (n.item) {
                 const poor=game.run.stats.score<n.price;
@@ -248,9 +380,11 @@ export class WorldMarks {
         if (focused>=0) {
             const n=npcs.list[focused];
             game.project(n.x,n.h+W.npcLift,n.z,p);
-            const sub=n.item?t('shop.'+n.item+'.desc',{price:n.price,n:SHOP.items[n.item].n||0}):null;
+            const sub=n.item?t('shop.'+n.item+'.desc',{price:n.price,n:SHOP.items[n.item].n||0}):(n.relic?t('relic.'+n.relic+'.desc',relicParams(n.relic)):(n.zone?t('rush.zoneDesc.'+n.zone):null));
             const armed=touch&&npcs.armed===focused;
-            this.drawPrompt(ctx,p,armed?t('shop.confirmTap',{name:n.label}):t(touch?'npc.tap':'npc.press')+t('ui.gap')+(n.label||t('npc.'+n.model)),v,2320+focused,sub,armed);
+            const taken=n.relic&&((game.run.lib&&game.run.lib.relic)||(game.run.plan&&game.run.plan.relicTaken));
+            const head=taken?n.label+t('ui.sep')+t('library.viewOnly'):(n.relic?t('library.take',{name:n.label}):(n.label||t('npc.'+n.model)));
+            this.drawPrompt(ctx,p,armed?t(n.relic?'library.confirmTap':'shop.confirmTap',{name:n.label}):(taken?head:t(touch?'npc.tap':'npc.press')+t('ui.gap')+head),v,2320+focused,sub,armed);
         }
         ctx.restore();
     }

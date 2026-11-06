@@ -82,7 +82,7 @@ export class CourseRun {
         let live=0;
         const pool=[];
         for (const e of list) {
-            if (!e.alive||e.def.boss) {
+            if (!e.alive||e.def.boss||e.def.part) {
                 continue;
             }
             if (e.courseNum===this.step) {
@@ -142,7 +142,7 @@ export class CourseRun {
                 }
             }
         }
-        if (!e.courseOrig||e.def.boss) {
+        if (!e.courseOrig||e.def.boss||e.def.part) {
             return;
         }
         if (this.id==='pe'||this.id==='copy') {
@@ -203,8 +203,9 @@ export class CourseRun {
             if (x<b.minX+1||x>b.maxX-1||z<b.minZ+1||z>b.maxZ-1) {
                 continue;
             }
-            this.throws.push({x,z,t:C.warn});
-            this.hooks.chalked(x,z,C.warn);
+            const aim=Math.atan2(player.pos.z-z,player.pos.x-x)+(Math.random()-0.5)*2*C.spread;
+            this.throws.push({x,z,a:aim,t:C.warn});
+            this.hooks.chalked(x,z,C.warn,Math.cos(aim),Math.sin(aim),Math.min(C.teleLen,C.speed*C.life));
             return;
         }
     }
@@ -218,8 +219,7 @@ export class CourseRun {
                 continue;
             }
             this.throws.splice(i,1);
-            const a=Math.atan2(player.pos.z-q.z,player.pos.x-q.x)+(Math.random()-0.5)*2*C.spread;
-            this.hooks.bullets.spawn(q.x,q.z,Math.cos(a),Math.sin(a),C.speed,1,C.life);
+            this.hooks.bullets.spawn(q.x,q.z,Math.cos(q.a),Math.sin(q.a),C.speed,1,C.life);
             this.hooks.thrown(q.x,q.z);
         }
     }
@@ -289,7 +289,7 @@ export class CourseRun {
         let copies=0;
         const pool=[];
         for (const e of list) {
-            if (!e.alive||e.def.boss||e.state==='spawn') {
+            if (!e.alive||e.def.boss||e.def.part||e.state==='spawn') {
                 continue;
             }
             if (e.copyOf) {

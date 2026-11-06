@@ -2,8 +2,8 @@ import*as THREE from 'three';
 import {PALETTE} from '../data/palette.js';
 import {TUNING} from '../data/tuning.js';
 import {device} from '../core/settings.js';
-import {TOON_VERT,TOON_FRAG,HULL_VERT,HULL_FRAG,UNLIT_VERT,UNLIT_FRAG,SHADOW_VERT,SHADOW_FRAG} from './shaders/toon.js';
-import {PARTICLE_VERT,PARTICLE_FRAG,TRAIL_VERT,TRAIL_FRAG,FLASH_VERT,FLASH_FRAG,LINE_VERT,LINE_FRAG,DECAL_VERT,DECAL_FRAG,STAMP_FRAG,DASH_FRAG,RING_FRAG,TRAP_FRAG,INK_FRAG,BRUSH_FRAG,BEAM_FRAG,COUNT_FRAG} from './shaders/fx.js';
+import {TOON_VERT,TOON_FRAG,HULL_VERT,HULL_FRAG,UNLIT_VERT,UNLIT_FRAG,GLOW_FRAG,SHADOW_VERT,SHADOW_FRAG} from './shaders/toon.js';
+import {PARTICLE_VERT,PARTICLE_FRAG,TRAIL_VERT,TRAIL_FRAG,FLASH_VERT,FLASH_FRAG,LINE_VERT,LINE_FRAG,DECAL_VERT,DECAL_FRAG,STAMP_FRAG,ICON_VERT,ICON_FRAG,DASH_FRAG,RING_FRAG,TRAP_FRAG,INK_FRAG,BRUSH_FRAG,BEAM_FRAG,COUNT_FRAG,FADE_FRAG,PORTAL_VERT,PORTAL_FRAG} from './shaders/fx.js';
 
 const colorCache={};
 
@@ -28,6 +28,7 @@ export const shared={
     uFogColor:{value:new THREE.Color()},
     uFog:{value:new THREE.Vector3()},
     uMist:{value:new THREE.Vector4(0,0,1000,1001)},
+    uClip:{value:new THREE.Vector4(-1e5,1e5,-1e5,1e5)},
     uMistK:{value:0},
     uJitterScale:{value:1},
     tGBuf:{value:null},
@@ -208,6 +209,20 @@ export function unlitMaterial(opts={}) {
     return mat;
 }
 
+export function glowMaterial(color) {
+    const u={uBoilSeed:shared.uBoilSeed,uJitter:{value:0},uColor:{value:pal(color).clone()},uOpacity:{value:1}};
+    const mat=new THREE.ShaderMaterial({
+        vertexShader:UNLIT_VERT,
+        fragmentShader:GLOW_FRAG,
+        uniforms:u,
+        transparent:true,
+        depthWrite:false,
+        side:THREE.DoubleSide
+    });
+    Object.defineProperty(mat,'opacity',{get:()=>u.uOpacity.value,set:v=>{u.uOpacity.value=v;},configurable:true});
+    return mat;
+}
+
 export function shadowMaterial(hatched) {
     const key='shadow|'+hatched;
     if (cache.has(key)) {
@@ -259,8 +274,28 @@ function fxUniforms(extra) {
         uScreen:shared.uScreen,
         uFar:shared.uFar,
         tNoise:shared.tNoise,
-        uBoilSeed:shared.uBoilSeed
+        uBoilSeed:shared.uBoilSeed,
+        uClip:shared.uClip
     },extra);
+}
+
+export function setArenaClip(b) {
+    if (b) {
+        shared.uClip.value.set(b.minX,b.maxX,b.minZ,b.maxZ);
+    }
+    else {
+        shared.uClip.value.set(-1e5,1e5,-1e5,1e5);
+    }
+}
+
+const clipCache=new Map();
+function clipFrag(src) {
+    if (!clipCache.has(src)) {
+        const head='uniform vec4 uClip;\n'+(src.includes('varying vec3 vWorldPos')?'':'varying vec3 vWorldPos;\n');
+        const body=src.replace(/void main\(\)\s*\{/,'void main() {\n    if (vWorldPos.x<uClip.x||vWorldPos.x>uClip.y||vWorldPos.z<uClip.z||vWorldPos.z>uClip.w) {\n        discard;\n    }');
+        clipCache.set(src,head+body);
+    }
+    return clipCache.get(src);
 }
 
 export function particleMaterial() {
@@ -302,6 +337,21 @@ export function flashMaterial(atlas) {
     });
 }
 
+export function portalMaterial(map) {
+    const u=fxUniforms({tMap:{value:map},uOpacity:{value:0}});
+    const mat=new THREE.ShaderMaterial({
+        vertexShader:PORTAL_VERT,
+        fragmentShader:PORTAL_FRAG,
+        uniforms:u,
+        transparent:true,
+        depthTest:false,
+        depthWrite:false,
+        side:THREE.DoubleSide
+    });
+    Object.defineProperty(mat,'opacity',{get:()=>u.uOpacity.value,set:v=>{u.uOpacity.value=v;},configurable:true});
+    return mat;
+}
+
 export function lineMaterial(color) {
     const extra={
         uColor:{value:pal(color).clone()},
@@ -309,8 +359,26 @@ export function lineMaterial(color) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:LINE_FRAG,
+        fragmentShader:clipFrag(LINE_FRAG),
         uniforms:fxUniforms(extra),
+        depthTest:false,
+        depthWrite:false
+    });
+}
+
+export function fadeMaterial(color) {
+    const extra={
+        uColor:{value:pal(color).clone()},
+        uAlpha:{value:0.4},
+        uAxis:{value:0},
+        uFlip:{value:0},
+        uLength:{value:1}
+    };
+    return new THREE.ShaderMaterial({
+        vertexShader:LINE_VERT,
+        fragmentShader:clipFrag(FADE_FRAG),
+        uniforms:fxUniforms(extra),
+        transparent:true,
         depthTest:false,
         depthWrite:false
     });
@@ -351,6 +419,18 @@ export function stampMaterial(tex,color) {
     });
 }
 
+export function iconMaterial(tex) {
+    return new THREE.ShaderMaterial({
+        vertexShader:ICON_VERT,
+        fragmentShader:ICON_FRAG,
+        uniforms:{
+            tIcon:{value:tex},
+            uFar:shared.uFar
+        },
+        side:THREE.DoubleSide
+    });
+}
+
 export function dashMaterial(color) {
     const extra={
         uColor:{value:pal(color).clone()},
@@ -361,7 +441,7 @@ export function dashMaterial(color) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:DASH_FRAG,
+        fragmentShader:clipFrag(DASH_FRAG),
         uniforms:fxUniforms(extra),
         transparent:true,
         depthTest:false,
@@ -380,7 +460,7 @@ export function ringMaterial(color) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:RING_FRAG,
+        fragmentShader:clipFrag(RING_FRAG),
         uniforms:fxUniforms(extra),
         transparent:true,
         depthTest:false,
@@ -405,7 +485,7 @@ export function trapMaterial(color,noFill=false) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:TRAP_FRAG,
+        fragmentShader:clipFrag(TRAP_FRAG),
         uniforms:fxUniforms(extra),
         defines:noFill?{NO_FILL:''}:{},
         transparent:true,
@@ -423,7 +503,7 @@ export function countdownMaterial(color) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:COUNT_FRAG,
+        fragmentShader:clipFrag(COUNT_FRAG),
         uniforms:fxUniforms(extra),
         transparent:true,
         depthTest:false,
@@ -439,7 +519,7 @@ export function inkMaterial(color) {
     };
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:INK_FRAG,
+        fragmentShader:clipFrag(INK_FRAG),
         uniforms:fxUniforms(extra),
         transparent:true,
         depthTest:false,
@@ -463,7 +543,7 @@ export function brushMaterial(color) {
 export function beamMaterial(color,core) {
     return new THREE.ShaderMaterial({
         vertexShader:LINE_VERT,
-        fragmentShader:BEAM_FRAG,
+        fragmentShader:clipFrag(BEAM_FRAG),
         uniforms:fxUniforms({uColor:{value:pal(color).clone()},uCore:{value:pal(core).clone()},uAlpha:{value:0},uLength:{value:1},uTime:{value:0}}),
         transparent:true,
         depthTest:false,

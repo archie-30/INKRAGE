@@ -12,7 +12,6 @@ import {dots,price,statValue,chestsReady,achTier,bundlePrice} from '../core/meta
 import {FONT,inRect,drawButton,fitText,Panel} from './uiKit.js';
 import {drawChoiceIcon} from './menu.js';
 import {wrapText} from './cardView.js';
-import {drawRelicIcon} from './relicIcons.js';
 
 const clamp01=x=>Math.max(0,Math.min(1,x));
 
@@ -238,6 +237,21 @@ const ACC_DRAW={
             ctx.moveTo(0,-43);
             ctx.lineTo(0,-31);
             ctx.stroke();
+        },
+        mortarboard(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            box(ctx,-8,-32,16,5,h[1]);
+            poly(ctx,[[-15,-35],[0,-40],[15,-35],[0,-30]],h[1]);
+            ctx.strokeStyle=g[1];
+            ctx.lineWidth=1.2;
+            ctx.beginPath();
+            ctx.moveTo(0,-35);
+            ctx.lineTo(11,-33);
+            ctx.lineTo(11,-25);
+            ctx.stroke();
+            box(ctx,9.6,-26,2.8,4,g[1],null);
+            oval(ctx,0,-35,1.4,1,0,g[2],null);
         }
     },
     eyewear:{
@@ -311,6 +325,45 @@ const ACC_DRAW={
                 box(ctx,-4,-1.3,8,2.6,PALETTE.paper,PALETTE.ink,0.7);
                 ctx.restore();
             }
+        },
+        goggles(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            box(ctx,-11,-21,22,2.4,h[1],null);
+            for (const sx of [-1,1]) {
+                oval(ctx,sx*4.2,-19.5,4.4,4.4,0,g[1],PALETTE.ink,1);
+                oval(ctx,sx*4.2,-19.5,2.8,2.8,0,PALETTE.paper,null);
+                oval(ctx,sx*4.2-1,-20.5,0.9,0.9,0,PALETTE.ink,null);
+            }
+        },
+        starGlasses(ctx,s) {
+            const g=tones(s,'gear');
+            for (const sx of [-1,1]) {
+                const pts=[];
+                for (let i=0;i<10;i++) {
+                    const a=-Math.PI/2+i*Math.PI/5;
+                    const r=i%2?2.4:5;
+                    pts.push([sx*4.2+Math.cos(a)*r,-19.5+Math.sin(a)*r]);
+                }
+                poly(ctx,pts,g[1],PALETTE.ink,0.9);
+            }
+            box(ctx,-10.5,-20.5,21,0.9,PALETTE.ink,null);
+        },
+        heartGlasses(ctx,s) {
+            const h=tones(s,'hat');
+            for (const sx of [-1,1]) {
+                const x=sx*4.2;
+                ctx.beginPath();
+                ctx.moveTo(x,-15.5);
+                ctx.bezierCurveTo(x-6,-19,x-4.5,-24,x,-21.2);
+                ctx.bezierCurveTo(x+4.5,-24,x+6,-19,x,-15.5);
+                ctx.fillStyle=h[1];
+                ctx.fill();
+                ctx.strokeStyle=PALETTE.ink;
+                ctx.lineWidth=0.9;
+                ctx.stroke();
+            }
+            box(ctx,-10.5,-20.5,21,0.9,PALETTE.ink,null);
         }
     },
     neckwear:{
@@ -360,6 +413,31 @@ const ACC_DRAW={
             for (let i=0;i<6;i++) {
                 oval(ctx,-10+i*4,-9,3.4,2.4,0,PALETTE.paper,PALETTE.ink,0.7);
             }
+        },
+        lanyard(ctx,s) {
+            const h=tones(s,'hat');
+            ctx.strokeStyle=h[1];
+            ctx.lineWidth=2;
+            ctx.beginPath();
+            ctx.moveTo(-6,-10);
+            ctx.lineTo(0,-1);
+            ctx.lineTo(6,-10);
+            ctx.stroke();
+            box(ctx,-4.5,-1,9,7,PALETTE.paper,PALETTE.ink,0.8);
+            box(ctx,-3,1,6,1,PALETTE.ink,null);
+            box(ctx,-3,3,4,0.8,PALETTE.ink,null);
+        },
+        whistle(ctx,s) {
+            const h=tones(s,'hat');
+            const g=tones(s,'gear');
+            ctx.strokeStyle=h[1];
+            ctx.lineWidth=1;
+            ctx.beginPath();
+            ctx.moveTo(-8,-10);
+            ctx.quadraticCurveTo(0,-2,8,-10);
+            ctx.stroke();
+            box(ctx,-1,-4,7,3.4,g[1],PALETTE.ink,0.7);
+            oval(ctx,-1.5,-2.3,2.4,2.4,0,g[1],PALETTE.ink,0.7);
         }
     },
     backwear:{
@@ -424,6 +502,22 @@ const ACC_DRAW={
             box(ctx,-18,-2.5,36,5,PALETTE.paper,PALETTE.ink,0.8);
             box(ctx,-20,-3.2,2.5,6.4,g[1],PALETTE.ink,0.6);
             box(ctx,17.5,-3.2,2.5,6.4,g[1],PALETTE.ink,0.6);
+            ctx.restore();
+        },
+        bookStack(ctx,s) {
+            const g=tones(s,'gear');
+            const h=tones(s,'hat');
+            box(ctx,11,-2,6,4,h[1],PALETTE.ink,0.6);
+            box(ctx,11.5,2,5,4,g[1],PALETTE.ink,0.6);
+            box(ctx,11,6,6,4,PALETTE.paper,PALETTE.ink,0.6);
+        },
+        giantPencil(ctx,s) {
+            const g=tones(s,'gear');
+            ctx.save();
+            ctx.translate(0,-4);
+            ctx.rotate(0.55);
+            box(ctx,-2.6,-18,5.2,34,g[1],PALETTE.ink,0.8);
+            poly(ctx,[[-2.6,-18],[2.6,-18],[0,-25]],PALETTE.paper,PALETTE.ink,0.7);
             ctx.restore();
         }
     }
@@ -501,6 +595,25 @@ const BACK_ICON={
         box(ctx,14,-5,3,10,g[1]);
         box(ctx,-2,-4.5,4,9,h[1],null);
         ctx.restore();
+    },
+    bookStack(ctx,s) {
+        const g=tones(s,'gear');
+        const h=tones(s,'hat');
+        box(ctx,-12,4,24,7,h[1]);
+        box(ctx,-10,-3,21,7,g[1]);
+        box(ctx,-11,-10,22,7,PALETTE.paper);
+        box(ctx,-1,-12,2,24,PALETTE.ink,null);
+    },
+    giantPencil(ctx,s) {
+        const g=tones(s,'gear');
+        const h=tones(s,'hat');
+        ctx.save();
+        ctx.rotate(0.6);
+        box(ctx,-4,-10,8,24,g[1]);
+        box(ctx,-4,14,8,4,h[1]);
+        poly(ctx,[[-4,-10],[4,-10],[0,-19]],PALETTE.paper);
+        poly(ctx,[[-1.4,-16],[1.4,-16],[0,-19]],PALETTE.ink,null);
+        ctx.restore();
     }
 };
 
@@ -552,9 +665,6 @@ export function itemName(item) {
     }
     if (item.kind==='weapon') {
         return t('weapon.'+item.value+'.name');
-    }
-    if (item.kind==='relic') {
-        return t('relic.'+item.value+'.name');
     }
     return t('acc.'+item.value);
 }
@@ -831,15 +941,12 @@ export class BuyPrompt extends Panel {
             py=y0+Math.ceil(it.items.length/2)*ch+(small?14:18);
         }
         else {
-            ctx.fillText(t(it.kind==='weapon'?'meta.buyWeapon':(it.kind==='relic'?'meta.buyRelic':'meta.buyTitle')),18,small?24:28);
+            ctx.fillText(t(it.kind==='weapon'?'meta.buyWeapon':'meta.buyTitle'),18,small?24:28);
             const iy=P.h*0.4;
             const r=small?26:32;
             const bob=Math.sin(time.real*3)*2;
             if (it.kind==='weapon') {
                 this.actions.weaponIcon(ctx,it.value,48,iy+bob,r/40,v);
-            }
-            else if (it.kind==='relic') {
-                drawRelicIcon(ctx,it.value,48,iy+bob,r/44,v);
             }
             else {
                 drawItemIcon(ctx,it,48,iy+bob,r,v,this.skin);
@@ -848,7 +955,7 @@ export class BuyPrompt extends Panel {
             ctx.fillStyle=PALETTE.ink;
             fitText(ctx,itemName(it),48+r+14,iy-10,P.w-48-r-30,small?16:18,'bold ');
             ctx.fillStyle=PALETTE.nearGray;
-            fitText(ctx,itemPart(it)||t(it.kind==='relic'?'meta.relicHint':'meta.weaponEarly'),48+r+14,iy+12,P.w-48-r-30,12,'');
+            fitText(ctx,itemPart(it)||t('meta.weaponEarly'),48+r+14,iy+12,P.w-48-r-30,12,'');
         }
         ctx.font='bold '+(small?14:15)+'px '+FONT;
         ctx.textAlign='center';
@@ -1172,8 +1279,19 @@ export class AchievementView extends Panel {
 
     update(dt) {
         super.update(dt);
+        const A=TUNING.metaUi.ach;
+        if (this.fling&&!this.press) {
+            const before=this.scrollTo;
+            this.scrollTo+=this.fling*dt;
+            this.clampScroll();
+            this.scroll=this.scrollTo;
+            this.fling*=Math.exp(-A.flingDecay*dt);
+            if (Math.abs(this.fling)<A.flingStop||this.scrollTo===before) {
+                this.fling=0;
+            }
+        }
         this.clampScroll();
-        this.scroll+=(this.scrollTo-this.scroll)*Math.min(1,dt*TUNING.metaUi.ach.scrollFollow);
+        this.scroll+=(this.scrollTo-this.scroll)*Math.min(1,dt*A.scrollFollow);
         this.bump=Math.max(0,this.bump-dt*2);
         const f=this.nextChest().f;
         this.barK+=(f-this.barK)*Math.min(1,dt*4*(this.t>0.3?1:0));
@@ -1195,8 +1313,9 @@ export class AchievementView extends Panel {
                 return true;
             }
         }
+        this.fling=0;
         if (inRect(this.V,x,y)) {
-            this.press={x0:x,y0:y,s0:this.scrollTo,moved:false};
+            this.press={x0:x,y0:y,s0:this.scrollTo,moved:false,ly:y,lt:performance.now(),vel:0};
         }
         return true;
     }
@@ -1206,9 +1325,15 @@ export class AchievementView extends Panel {
         if (!p) {
             return;
         }
-        if (Math.hypot(x-p.x0,y-p.y0)>TUNING.metaUi.ach.dragSlop) {
+        const A=TUNING.metaUi.ach;
+        if (Math.hypot(x-p.x0,y-p.y0)>A.dragSlop) {
             p.moved=true;
         }
+        const now=performance.now();
+        const dt=Math.max(1,now-p.lt)/1000;
+        p.vel+=(-(y-p.ly)/dt-p.vel)*Math.min(1,dt*A.flingSmooth);
+        p.ly=y;
+        p.lt=now;
         if (p.moved) {
             this.scrollTo=p.s0-(y-p.y0);
             this.clampScroll();
@@ -1217,6 +1342,11 @@ export class AchievementView extends Panel {
     }
 
     up() {
+        const p=this.press;
+        const A=TUNING.metaUi.ach;
+        if (p&&p.moved&&performance.now()-p.lt<A.flingWindow) {
+            this.fling=Math.max(-A.flingMax,Math.min(A.flingMax,p.vel));
+        }
         this.press=null;
     }
 
@@ -1320,7 +1450,7 @@ export class AchievementView extends Panel {
             const tier=achTier(q);
             return {q,i,tier,done:tier>=q.goals.length};
         });
-        const y0=y-this.scroll;
+        const y0=y-this.scroll+U.topPad;
         for (let k=0;k<order.length;k++) {
             const {q,done,tier}=order[k];
             const cur=Math.min(tier,q.goals.length-1);
@@ -1395,7 +1525,7 @@ export class AchievementView extends Panel {
             }
             ctx.restore();
         }
-        this.contentH=Math.ceil(order.length/cols)*(rh+10)+6;
+        this.contentH=Math.ceil(order.length/cols)*(rh+10)+6+U.topPad;
         ctx.restore();
         const max=Math.max(0,this.contentH-V.h);
         if (max>0) {

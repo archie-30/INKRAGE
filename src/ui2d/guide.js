@@ -55,12 +55,23 @@ export function courseGuide(id) {
 }
 
 export function modeGuide(mode) {
-    const n={story:4,endless:5}[mode];
+    const n={story:4,endless:5,bossrush:7}[mode];
     return {title:t('modeinfo.'+mode+'.title'),icon:null,blocks:[
         {kind:'text',text:t('modeinfo.'+mode+'.intro')},
         {kind:'head',text:t('modeinfo.head')},
         ...lines('modeinfo.'+mode+'.pt',n,{})
     ]};
+}
+
+export function relicGuide() {
+    return {title:t('tut.relics.title'),icon:null,blocks:t('tut.relics.body').split('|').map(text=>({kind:'bullet',text}))};
+}
+
+export function coinGuide() {
+    const M=TUNING.meta;
+    const G=M.gradeCoins;
+    const P={b:G.B,a:G.A,s:G.S,sp:G['S+'],spp:G['S++'],lo:M.dotRange[0],hi:M.dotRange[1],lv:TUNING.levels.chest.dots,every:TUNING.levels.chestEvery};
+    return {title:t('coins.title'),icon:null,blocks:[1,2,3,4].map(i=>({kind:'bullet',text:t('coins.src.'+i,P)}))};
 }
 
 export function modesGuide() {
@@ -88,8 +99,21 @@ export class GuidePopup extends Panel {
         this.model=model;
         this.opts=opts;
         this.scroll=0;
+        this.contentH=0;
         this.press=null;
+        this.noteText='';
+        this.noteAt=-9;
+        this.openAt=time.real;
         this.show();
+    }
+
+    lockLeft() {
+        return this.opts.lock?Math.max(0,this.opts.lock-(time.real-this.openAt)):0;
+    }
+
+    note(text) {
+        this.noteText=text;
+        this.noteAt=time.real;
     }
 
     layout() {
@@ -97,9 +121,12 @@ export class GuidePopup extends Panel {
         const h=this.height;
         const small=h<600;
         const pw=Math.min(620,w-40);
-        const ph=Math.min(h-(small?78:130),560);
-        this.P={x:w/2-pw/2,y:h/2-ph/2,w:pw,h:ph};
         const bh=small?40:48;
+        let ph=Math.min(h-(small?78:130),560);
+        if (this.opts.fit&&this.contentH>0) {
+            ph=Math.min(ph,(small?58:76)+this.contentH+bh+(small?30:44)+(this.opts.keep?TUNING.ui.guideNote:0));
+        }
+        this.P={x:w/2-pw/2,y:h/2-ph/2,w:pw,h:ph};
         const two=!!this.opts.cancel;
         const gap=12;
         const bw=two?(pw-48-gap)/2:Math.min(220,pw-48);
@@ -115,7 +142,7 @@ export class GuidePopup extends Panel {
             this.buttons=[this.okBtn];
         }
         const top=this.P.y+(small?58:76);
-        this.V={x:this.P.x+14,y:top,w:pw-28,h:by-8-top};
+        this.V={x:this.P.x+14,y:top,w:pw-28,h:by-8-top-(this.opts.keep?TUNING.ui.guideNote:0)};
     }
 
     maxScroll() {
@@ -134,6 +161,9 @@ export class GuidePopup extends Panel {
         }
         this.layout();
         if (inRect(this.okBtn,x,y)) {
+            if (this.lockLeft()>0) {
+                return true;
+            }
             this.actions.ok();
             return true;
         }
@@ -184,6 +214,9 @@ export class GuidePopup extends Panel {
                 ctx.fillText(b.text,V.x+18,V.y+y-this.scroll);
                 y+=lh+4;
             }
+            else if (b.kind==='change') {
+                y+=this.drawChange(ctx,b,V.x,V.y+y-this.scroll,V.w,fs,lh);
+            }
             else if (b.kind==='bullet') {
                 ctx.font=fs+'px '+FONT;
                 const ls=wrapText(ctx,b.text,V.w-40);
@@ -209,6 +242,56 @@ export class GuidePopup extends Panel {
             }
         }
         this.contentH=y+6;
+    }
+
+    drawChange(ctx,b,x,y,w,fs,lh) {
+        const pad=10;
+        const iw=w-pad*2-8;
+        ctx.font='bold '+fs+'px '+FONT;
+        const lw=ctx.measureText(b.label).width;
+        ctx.font=fs+'px '+FONT;
+        const fw=ctx.measureText(b.from).width;
+        const arrow='  →  ';
+        const aw=ctx.measureText(arrow).width;
+        ctx.font='bold '+fs+'px '+FONT;
+        const tw=ctx.measureText(b.to).width;
+        const one=lw+16+fw+aw+tw<=iw;
+        let lines=[];
+        if (!one) {
+            lines=fw+aw+tw<=iw-14?[null]:wrapText(ctx,b.to,iw-14);
+        }
+        const rows=one?1:1+(lines[0]===null?1:1+lines.length);
+        const h=rows*lh+pad;
+        ctx.fillStyle=rgba('ink',0.05);
+        ctx.fillRect(x+4,y-pad/2+2,w-8,h-2);
+        let cx=x+pad+4;
+        let cy=y+2;
+        ctx.fillStyle=PALETTE.ink;
+        ctx.fillText(b.label,cx,cy);
+        if (one) {
+            cx+=lw+16;
+        }
+        else {
+            cx=x+pad+18;
+            cy+=lh;
+        }
+        ctx.font=fs+'px '+FONT;
+        ctx.fillStyle=PALETTE.nearGray;
+        ctx.fillText(b.from,cx,cy);
+        ctx.fillRect(cx,cy+fs*0.62,fw,1.6);
+        ctx.fillText(arrow,cx+fw,cy);
+        ctx.font='bold '+fs+'px '+FONT;
+        ctx.fillStyle=PALETTE.red;
+        if (one||lines[0]===null) {
+            ctx.fillText(b.to,cx+fw+aw,cy);
+        }
+        else {
+            for (const l of lines) {
+                cy+=lh;
+                ctx.fillText(l,cx,cy);
+            }
+        }
+        return h+4;
     }
 
     draw(ctx) {
@@ -271,6 +354,29 @@ export class GuidePopup extends Panel {
         if (this.cancelBtn) {
             drawButton(ctx,this.cancelBtn,this.opts.cancel,v,ap,this.hoverIdx===0,small?17:19);
         }
-        drawButton(ctx,this.okBtn,this.opts.ok||t('notice.ok'),v,ap,this.hoverIdx===(this.cancelBtn?1:0),small?17:19);
+        const lk=this.lockLeft();
+        const okText=this.opts.ok||t('notice.ok');
+        drawButton(ctx,this.okBtn,lk>0?t('notes.wait',{ok:okText,n:Math.ceil(lk)}):okText,v,ap,lk<=0&&this.hoverIdx===(this.cancelBtn?1:0),small?17:19);
+        if (lk>0&&ap>0) {
+            const b=this.okBtn;
+            ctx.fillStyle=rgba('paper',0.5);
+            ctx.fillRect(b.x,b.y,b.w,b.h);
+            ctx.fillStyle=PALETTE.red;
+            ctx.fillRect(b.x,b.y+b.h-4,b.w*(lk/this.opts.lock),4);
+        }
+        const nk=time.real-this.noteAt;
+        if (this.noteText&&nk<TUNING.ui.guideNoteTime) {
+            const pop=1+Math.max(0,1-nk/0.18)*0.25;
+            ctx.save();
+            ctx.globalAlpha=Math.min(1,(TUNING.ui.guideNoteTime-nk)/0.4);
+            ctx.translate(w/2,this.okBtn.y-TUNING.ui.guideNote/2-4);
+            ctx.scale(pop,pop);
+            ctx.fillStyle=PALETTE.red;
+            ctx.font='bold '+(small?14:15)+'px '+FONT;
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText(this.noteText,0,0);
+            ctx.restore();
+        }
     }
 }

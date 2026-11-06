@@ -4,7 +4,7 @@ import {ACC_SLOTS,ACC_DEFAULT,BASIC_TONES,BASIC_ACC} from '../data/cosmetics.js'
 import {ACHIEVEMENTS,ACH_LEGACY,achKey,achUnits} from '../data/achievements.js';
 import {TUNING} from '../data/tuning.js';
 import {EARLY_WEAPONS,WEAPONS} from '../data/weapons.js';
-import {RELIC_ORDER} from '../data/relics.js';
+import {RELIC_ORDER,RELIC_STARTERS} from '../data/relics.js';
 
 const M=TUNING.meta;
 
@@ -37,15 +37,17 @@ export function initMeta() {
     }
     P.ach=[...new Set(P.ach.map(id=>ACH_LEGACY[id]||id))].filter(id=>keys.has(id));
     P.achChests=Math.max(0,Math.min(Math.floor(achUnits()/M.chestEvery),Math.floor(Number(P.achChests)||0)));
-    P.relics=P.relics.filter(id=>RELIC_ORDER.includes(id));
-    if (typeof P.relic!=='string'||!P.relics.includes(P.relic)) {
-        P.relic='';
+    if (P.relicV!==M.relicV) {
+        P.relics=[];
+        P.relicV=M.relicV;
     }
+    P.relics=P.relics.filter(id=>RELIC_ORDER.includes(id)&&!RELIC_STARTERS.includes(id));
+    delete P.relic;
     if (!P.modeSeen||typeof P.modeSeen!=='object'||Array.isArray(P.modeSeen)) {
         P.modeSeen={};
     }
     EARLY_WEAPONS.length=0;
-    EARLY_WEAPONS.push(...P.weapons.filter(id=>WEAPONS[id]),...(P.keptWeapons||[]).filter(id=>WEAPONS[id]&&!P.weapons.includes(id)));
+    EARLY_WEAPONS.push(...P.weapons.filter(id=>WEAPONS[id]));
 }
 
 export function setGate(fn) {
@@ -170,10 +172,29 @@ function unlock(item) {
     }
 }
 
-export function grant(n,accFirst=0) {
+export function gradeOf(score,mode) {
+    const G=TUNING.summaryUi.grade[mode==='endless'?'endless':'story'];
+    for (const [g,min] of G) {
+        if (score>=min) {
+            return g;
+        }
+    }
+    return G[G.length-1][0];
+}
+
+export function grantCoins(n) {
+    if (n<=0) {
+        return [];
+    }
+    progress.dots+=n;
+    saveProgress();
+    return [{kind:'dots',n}];
+}
+
+export function grant(n,accFirst=0,noDots=false) {
     const out=[];
     for (let i=0;i<n;i++) {
-        if (i>=accFirst&&Math.random()<M.dotChance) {
+        if (!noDots&&i>=accFirst&&Math.random()<M.dotChance) {
             const q=M.dotRange[0]+Math.floor(Math.random()*(M.dotRange[1]-M.dotRange[0]+1));
             progress.dots+=q;
             out.push({kind:'dots',n:q});
@@ -245,16 +266,10 @@ export function grantLevelChest(only) {
 }
 
 export function price(item) {
-    if (item.kind==='relic') {
-        return TUNING.relics.price;
-    }
     return item.kind==='color'?M.price.color:(item.kind==='acc'?M.price.acc:M.price.weapon);
 }
 
 export function buy(item) {
-    if (item.kind==='relic') {
-        return buyRelic(item.value);
-    }
     const p=price(item);
     if (progress.dots<p) {
         return false;
@@ -264,6 +279,7 @@ export function buy(item) {
         if (!progress.weapons.includes(item.value)) {
             progress.weapons.push(item.value);
             EARLY_WEAPONS.push(item.value);
+            progress.newBuys=[...(progress.newBuys||[]),item.value];
         }
     }
     else {
@@ -274,36 +290,41 @@ export function buy(item) {
     return true;
 }
 
-export function relicsUnlocked() {
-    return effectiveLevel()>=TUNING.relics.unlock;
-}
-
-export function ownsRelic(id) {
-    return godMode()||progress.relics.includes(id);
-}
-
 export function relicPrice() {
     return TUNING.relics.price;
 }
 
-export function buyRelic(id) {
-    const p=relicPrice();
-    if (!relicsUnlocked()||!RELIC_ORDER.includes(id)||progress.relics.includes(id)||progress.dots<p) {
-        return false;
+export function relicOwned(id) {
+    return godMode()||RELIC_STARTERS.includes(id)||progress.relics.includes(id);
+}
+
+export function relicPool() {
+    return RELIC_ORDER.filter(relicOwned);
+}
+
+export function relicLocked() {
+    return RELIC_ORDER.filter(id=>!relicOwned(id));
+}
+
+export function pullRelic() {
+    if (godMode()) {
+        return RELIC_ORDER[Math.floor(Math.random()*RELIC_ORDER.length)];
     }
+    const left=relicLocked();
+    const p=relicPrice();
+    if (left.length===0||progress.dots<p) {
+        return '';
+    }
+    const id=left[Math.floor(Math.random()*left.length)];
     progress.dots-=p;
     progress.relics.push(id);
+    progress.stats.pulls=(progress.stats.pulls||0)+1;
+    if (progress.dots===0) {
+        progress.stats.gachaBroke=1;
+    }
+    checkAch(true);
     saveProgress();
-    return true;
-}
-
-export function equippedRelic() {
-    return relicsUnlocked()&&ownsRelic(progress.relic)?progress.relic:'';
-}
-
-export function equipRelic(id) {
-    progress.relic=id&&ownsRelic(id)?id:'';
-    saveProgress();
+    return id;
 }
 
 export function earnDots(n) {
@@ -371,7 +392,10 @@ export function clampSkin(skin) {
 
 export function saveOutfit(i,skin) {
     progress.outfits[i]={...skin};
-    bump('outfits',1,true);
+    const n=progress.outfits.filter(Boolean).length;
+    if (n>(progress.stats.outfits||0)) {
+        bump('outfits',n-(progress.stats.outfits||0),true);
+    }
     flushMeta();
 }
 
@@ -388,6 +412,9 @@ export function statValue(stat) {
     }
     if (stat==='bossKinds') {
         return (P.kinds.boss||[]).length;
+    }
+    if (stat==='relicsOwned') {
+        return RELIC_ORDER.filter(id=>RELIC_STARTERS.includes(id)||P.relics.includes(id)).length;
     }
     if (stat==='weaponKinds') {
         return (P.kinds.weapon||[]).length;
@@ -477,6 +504,16 @@ export function claimAchChest() {
     }
     progress.achChests++;
     return grant(M.chestItems);
+}
+
+export function levelItems(from,to) {
+    let n=0;
+    for (let lv=from+1;lv<=to;lv++) {
+        if (lv%M.levelItemEvery===0) {
+            n++;
+        }
+    }
+    return n;
 }
 
 export function runChestCount(stats,mode) {

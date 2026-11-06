@@ -229,6 +229,36 @@ void main() {
 }
 `;
 
+export const ICON_VERT=`
+varying vec2 vUv;
+varying vec3 vViewNormal;
+varying float vDepth;
+void main() {
+    vUv=uv;
+    vec4 vp=modelViewMatrix*vec4(position,1.0);
+    vViewNormal=normalize(normalMatrix*normal);
+    vDepth=-vp.z;
+    gl_Position=projectionMatrix*vp;
+}
+`;
+
+export const ICON_FRAG=`
+${GBUF_OUT}
+uniform sampler2D tIcon;
+uniform float uFar;
+varying vec2 vUv;
+varying vec3 vViewNormal;
+varying float vDepth;
+void main() {
+    vec4 c=texture2D(tIcon,vUv);
+    if (c.a<0.5) {
+        discard;
+    }
+    gl_FragColor=vec4(c.rgb,1.0);
+    gBuf=vec4(normalize(vViewNormal)*0.5+0.5,vDepth/uFar);
+}
+`;
+
 export const DASH_FRAG=`
 ${OCCLUDE}
 uniform vec3 uColor;
@@ -439,5 +469,50 @@ void main() {
         return;
     }
     gl_FragColor=vec4(uColor,uAlpha*0.14);
+}
+`;
+
+export const FADE_FRAG=`
+${OCCLUDE}
+uniform vec3 uColor;
+uniform float uAlpha;
+uniform float uAxis;
+uniform float uFlip;
+varying vec2 vUv;
+varying float vDepth;
+varying vec3 vWorldPos;
+void main() {
+    if (occluded(vDepth)) {
+        discard;
+    }
+    float u=uAxis>0.5?vUv.y:vUv.x;
+    float k=uFlip>0.5?1.0-u:u;
+    gl_FragColor=vec4(uColor,uAlpha*pow(k,1.6));
+}
+`;
+
+export const PORTAL_VERT=`
+varying vec2 vUv;
+varying float vDepth;
+void main() {
+    vUv=uv;
+    vec4 vp=modelViewMatrix*vec4(position,1.0);
+    vDepth=-vp.z;
+    gl_Position=projectionMatrix*vp;
+}
+`;
+
+export const PORTAL_FRAG=`
+${OCCLUDE}
+uniform sampler2D tMap;
+uniform float uOpacity;
+varying vec2 vUv;
+varying float vDepth;
+void main() {
+    if (occluded(vDepth)) {
+        discard;
+    }
+    vec4 c=texture2D(tMap,vUv);
+    gl_FragColor=vec4(c.rgb,c.a*uOpacity);
 }
 `;
